@@ -1,34 +1,17 @@
-import {
-  Compass,
-  FolderOpen,
-  PlayCircle,
-  Settings,
-  UserRound,
-} from "lucide-react";
+import { UserRound } from "lucide-react";
 
-const NAV_ITEMS = [
-  { id: "explorer", label: "Explorer", icon: Compass, enabled: true },
-  { id: "player", label: "Player", icon: PlayCircle, enabled: false },
-  { id: "folders", label: "Folders", icon: FolderOpen, enabled: false },
-  { id: "settings", label: "Settings", icon: Settings, enabled: false },
-];
-
-const NavItem = ({ id, label, icon: Icon, enabled, isActive, onClick }) => {
+const NavItem = ({ id, label, icon: Icon, isActive, onClick }) => {
   return (
     <button
       id={`nav-${id}`}
       onClick={onClick}
-      disabled={!enabled}
       className={`
         group relative flex h-[70px] w-full items-center gap-5 overflow-hidden rounded-[7px] px-6
-        outline-none transition-all duration-300
-        ${enabled ? "cursor-pointer" : "cursor-default opacity-40"}
+        cursor-pointer outline-none transition-all duration-300
         ${
           isActive
             ? "bg-surface-container-high text-on-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
-            : enabled
-              ? "text-on-secondary/70 hover:bg-white/[0.025] hover:text-on-primary"
-              : "text-on-secondary/40"
+            : "text-on-secondary/70 hover:bg-white/[0.025] hover:text-on-primary"
         }
       `}
     >
@@ -42,9 +25,7 @@ const NavItem = ({ id, label, icon: Icon, enabled, isActive, onClick }) => {
         className={`shrink-0 transition-colors duration-300 ${
           isActive
             ? "text-primary"
-            : enabled
-              ? "text-on-secondary/75 group-hover:text-primary"
-              : ""
+            : "text-on-secondary/75 group-hover:text-primary"
         }`}
       />
       <span
@@ -56,7 +37,7 @@ const NavItem = ({ id, label, icon: Icon, enabled, isActive, onClick }) => {
   );
 };
 
-export default function Sidebar({ activeView, onNavigate }) {
+export default function Sidebar({ activeView, navItems, onNavigate }) {
   return (
     <aside className="fixed left-0 top-0 z-20 flex h-screen w-[var(--spacing-sidebar)] flex-col border-r border-white/[0.045] bg-surface">
       <header className="flex h-[135px] flex-col items-center justify-center border-b border-white/[0.035]">
@@ -69,12 +50,12 @@ export default function Sidebar({ activeView, onNavigate }) {
       </header>
 
       <nav className="flex flex-1 flex-col gap-2 px-2.5 pt-[60px]">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavItem
             key={item.id}
             {...item}
             isActive={activeView === item.id}
-            onClick={() => item.enabled && onNavigate(item.id)}
+            onClick={() => onNavigate(item.id)}
           />
         ))}
       </nav>
