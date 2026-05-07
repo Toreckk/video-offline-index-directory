@@ -138,7 +138,7 @@ The YouTube-like preview can be done without generating video files:
 
 Important browser limitation: seeking many videos at once is expensive. Only the currently hovered/focused tile should play. Keep all other tiles as posters.
 
-Optional later improvement: create cached preview sprite strips or short webm previews in a local backend/Electron/Tauri layer. In a browser-only app, runtime seeking is the simplest path.
+This project should remain a pure React web app. That means hover previews should be runtime previews using native browser video playback, not generated preview files from a native process.
 
 ## Player Modal And Fullscreen
 
@@ -235,6 +235,497 @@ Avoid adding a video player framework early. Native `<video>` is enough for `.mp
 
 ## Open Decisions
 
-- Browser-only vs. desktop shell: a browser-only app can use File System Access API in Chromium; Tauri/Electron would provide broader filesystem control and better future video processing.
+- Browser support: the target should be Chromium-first because the File System Access API is the cleanest pure web path for selecting and revisiting local folders.
 - Metadata depth: file name/duration/resolution is browser-friendly; codec/bitrate analysis likely needs a native layer or ffmpeg.
 - Preview caching: runtime hover snippets are simplest; generated preview assets are faster but require extra processing infrastructure.
+
+## Implementation Tickets
+
+These tickets are intentionally scoped so each one can be implemented and reviewed independently. Each ticket should leave the app in a working state.
+
+### VOID-001: Establish App Route And View Registry
+
+Goal: Keep navigation metadata in one place so the app shell, sidebar, and future breadcrumbs do not duplicate view ids.
+
+Scope:
+
+- Keep `src/app/views.jsx` as the source of truth for view ids, labels, icons, and components.
+- Keep `App.jsx` responsible only for selecting the active view and rendering the shell.
+- Keep `Sidebar.jsx` presentational: it receives `navItems`, `activeView`, and `onNavigate`.
+
+Libraries:
+
+- No new libraries.
+
+Useful snippet:
+
+```jsx
+export const APP_VIEWS = [
+  { id: "explorer", label: "Explorer", icon: Compass, component: Explorer },
+  { id: "player", label: "Player", icon: PlayCircle, component: Player },
+];
+```
+
+Done when:
+
+- Clicking every sidebar item renders the matching placeholder view.
+- Adding a new view only requires updating `src/app/views.jsx`.
+- `npm run lint` and `npm run build` pass.
+
+### VOID-002: Create Pure Web File System Adapter
+
+Goal: Isolate browser file-system APIs behind a small service so UI components do not call `showDirectoryPicker()` directly.
+
+Scope:
+
+- Add `src/features/library/services/fileSystem.js`.
+- Export `pickDirectory()`, `verifyPermission(handle)`, `requestPermission(handle)`, and `walkDirectory(handle, options)`.
+- Support `.mp4` and `.webm` only.
+- Support optional recursive scanning through `scanSubfolders`.
+- Return normalized lightweight file records, not object URLs.
+
+Libraries:
+
+- No new libraries.
+- Uses native File System Access API.
+
+Useful snippet:
+
+```js
+export async function pickDirectory() {
+  if (!("showDirectoryPicker" in window)) {
+    throw new Error("Directory picking is only supported in Chromium browsers.");
+  }
+
+  return window.showDirectoryPicker({ mode: "read" });
+}
+```
+
+```js
+export async function* walkDirectory(directoryHandle, pathParts = []) {
+  for await (const [name, handle] of directoryHandle.entries()) {
+    if (handle.kind === "directory") {
+      yield* walkDirectory(handle, [...pathParts, name]);
+      continue;
+    }
+
+    if (handle.kind === "file" && /\.(mp4|webm)$/i.test(name)) {
+      yield { name, fileHandle: handle, pathParts };
+    }
+  }
+}
+```
+
+Done when:
+
+- Picking a folder returns a directory handle.
+- Walking a folder finds `.mp4` and `.webm` files.
+- Non-video files are ignored.
+- Unsupported browser path shows a helpful error state.
+
+### VOID-003: Add Library Store And Persistence
+
+Goal: Store selected directory, scan state, settings needed by scanning, and recent paths in a predictable place.
+
+Scope:
+
+- Add `src/features/library/store/libraryStore.js`.
+- Track `directoryHandle`, `directoryName`, `scanStatus`, `scanProgress`, `scanError`, `recentPaths`, and `mediaIds`.
+- Persist safe values with `idb-keyval`.
+- Persist directory handles separately from JSON-like metadata.
+- Revalidate permissions on app load before scanning.
+
+Libraries:
+
+- Already installed: `zustand`.
+- Already installed: `idb-keyval`.
+
+Useful snippet:
+
+```js
+import { create } from "zustand";
+import { get, set } from "idb-keyval";
+
+export const useLibraryStore = create((set) => ({
+  directoryHandle: null,
+  scanStatus: "idle",
+  scanProgress: { found: 0, scanned: 0 },
+  setDirectoryHandle: (directoryHandle) => set({ directoryHandle }),
+}));
+```
+
+Done when:
+
+- Selected directory survives a refresh when permission is still granted.
+- Scan status can move through `idle`, `scanning`, `ready`, and `error`.
+- Recent paths render from persisted state.
+- No object URLs are stored in IndexedDB.
+
+### VOID-004: Build Scanner With Progress And Cancellation
+
+Goal: Scan large folders without freezing the UI.
+
+Scope:
+
+- Add `src/features/library/hooks/useLibraryScanner.js`.
+- Add an `AbortController`-based cancellation path.
+- Process files in batches and yield to the browser between batches.
+- Store discovered media records in a media store.
+- Keep thumbnail generation out of this ticket.
+
+Libraries:
+
+- No new libraries.
+
+Useful snippet:
+
+```js
+const pauseForPaint = () =>
+  new Promise((resolve) => requestAnimationFrame(resolve));
+```
+
+```js
+if (index % 25 === 0) {
+  setProgress({ found: index });
+  await pauseForPaint();
+}
+```
+
+Done when:
+
+- A folder with hundreds of files begins showing progress quickly.
+- The scan can be aborted.
+- Scanning 400 videos does not attempt to decode all videos.
+- Scan results contain file handles and lightweight metadata only.
+
+### VOID-005: Define Media Asset Store And Helpers
+
+Goal: Normalize media assets once and make them easy to query from Explorer and Player.
+
+Scope:
+
+- Add `src/features/explorer/store/mediaStore.js` or `src/features/library/store/mediaStore.js`.
+- Add `src/utils/media.js` for extension parsing, stable ids, and display helpers.
+- Store assets by id plus an ordered id list.
+- Include `thumbnailStatus`: `idle`, `queued`, `ready`, `error`.
+- Include optional `duration`, `width`, `height`, and `thumbnailBlobKey`.
+
+Libraries:
+
+- Already installed: `zustand`.
+
+Useful snippet:
+
+```js
+export function createMediaId(rootName, pathParts, fileName) {
+  return [rootName, ...pathParts, fileName].join("/");
+}
+```
+
+Done when:
+
+- Media assets are stable across rescans of the same route.
+- Explorer can select all assets from the store.
+- Player can derive previous and next ids from the same ordered list.
+
+### VOID-006: Render Explorer Grid With Placeholder Tiles
+
+Goal: Show discovered videos immediately, even before thumbnails are ready.
+
+Scope:
+
+- Add `MediaGrid`, `MediaTile`, and `ExplorerToolbar` under `src/features/explorer/components/`.
+- Render a generic video icon or shimmer while thumbnails are missing.
+- Support search by filename.
+- Use CSS grid first.
+- Keep virtualization out until the basic grid works.
+
+Libraries:
+
+- No new libraries for first pass.
+- Later candidate: `@tanstack/react-virtual`.
+
+Useful snippet:
+
+```css
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--tile-min, 220px), 1fr));
+  gap: 0;
+}
+```
+
+Done when:
+
+- 400 placeholder tiles can render without broken layout.
+- Search filters by filename.
+- Clicking a tile can call a placeholder `openPlayer(assetId)` handler.
+- Empty, scanning, ready, and error states are visually distinct.
+
+### VOID-007: Generate Thumbnails Progressively
+
+Goal: Create thumbnails in the browser without blocking initial scan or rendering.
+
+Scope:
+
+- Add `src/features/explorer/services/thumbnailQueue.js`.
+- Add `generateVideoThumbnail(fileHandle, options)`.
+- Queue thumbnail work with concurrency `1` or `2`.
+- Prioritize visible tiles first.
+- Cache thumbnail blobs in IndexedDB.
+- Revoke temporary object URLs after each thumbnail job.
+
+Libraries:
+
+- Already installed: `idb-keyval`.
+- No video processing library needed.
+
+Useful snippet:
+
+```js
+export async function generateVideoThumbnail(fileHandle, seekToSeconds = 1) {
+  const file = await fileHandle.getFile();
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.preload = "metadata";
+  video.src = url;
+
+  try {
+    await waitForEvent(video, "loadedmetadata");
+    video.currentTime = Math.min(seekToSeconds, video.duration * 0.1);
+    await waitForEvent(video, "seeked");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    return await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.76),
+    );
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(url);
+  }
+}
+```
+
+Done when:
+
+- Scan finishes before all thumbnails are generated.
+- Visible tiles receive thumbnails first.
+- Refreshing the app reuses cached thumbnails where possible.
+- Thumbnail generation can pause while the user is previewing or playing a video.
+- Object URLs are revoked after use.
+
+### VOID-008: Add Hover Preview With Snippet Scheduler
+
+Goal: Make a hovered tile preview several parts of a video, muted, without generating preview files.
+
+Scope:
+
+- Add `src/features/explorer/hooks/useHoverPreview.js`.
+- Add a hover delay, default 200ms.
+- Allow only one active preview globally.
+- Mount a muted `<video>` only while previewing.
+- Seek through sampled timestamps and play each snippet briefly.
+- Cancel timers and revoke object URL on mouse leave, blur, unmount, or route change.
+
+Libraries:
+
+- No new libraries.
+
+Useful snippet:
+
+```js
+function getSnippetPoints(duration) {
+  if (duration < 8) return [0];
+  if (duration < 30) return [0.1, 0.45, 0.75].map((p) => p * duration);
+  return [0.08, 0.25, 0.45, 0.65, 0.85].map((p) => p * duration);
+}
+```
+
+```js
+video.muted = true;
+video.playsInline = true;
+video.controls = false;
+```
+
+Done when:
+
+- Moving across tiles quickly does not start previews.
+- Hovering one tile starts a muted preview after the delay.
+- Preview cycles through multiple timestamps for longer videos.
+- Starting a new preview stops the previous one.
+- Leaving a tile stops playback and cleans timers/object URLs.
+
+### VOID-009: Implement Player Modal And Queue Navigation
+
+Goal: Open a clicked video in a focused overlay with audio and next/previous navigation.
+
+Scope:
+
+- Add `src/features/player/store/playerStore.js`.
+- Add `PlayerModal`, `PlayerVideo`, `PlayerOverlayMetadata`, and `PlayerEdgeZones`.
+- Use current Explorer order as the playback queue.
+- Support previous/next with buttons and keyboard.
+- Support fullscreen with the browser Fullscreen API.
+
+Libraries:
+
+- No new libraries initially.
+- Optional later: `react-hotkeys-hook` if keyboard logic grows.
+
+Useful snippet:
+
+```js
+function isTypingTarget(target) {
+  return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+}
+```
+
+```js
+containerRef.current?.requestFullscreen();
+```
+
+Done when:
+
+- Clicking a tile opens the modal with audio available.
+- `ArrowRight` and `ArrowLeft` navigate queue items.
+- `Escape` closes the modal.
+- Fullscreen preserves overlay controls.
+- Current, previous, and next object URLs are warmed or created quickly, while unused URLs are revoked.
+
+### VOID-010: Wire Library Route Screens
+
+Goal: Connect the folder designs to real state while keeping the flow understandable.
+
+Scope:
+
+- Replace the Folders placeholder with route selection states:
+  - configure route
+  - picker modal trigger
+  - scanning progress
+  - route confirmed
+- Keep the native browser picker as the actual file chooser.
+- Use the custom modal only for app-level confirmation or recent path selection, not for reading arbitrary OS directories.
+
+Libraries:
+
+- No new libraries.
+
+Useful snippet:
+
+```js
+const handlePickRoute = async () => {
+  const handle = await pickDirectory();
+  setDirectoryHandle(handle);
+  startScan(handle);
+};
+```
+
+Done when:
+
+- `Configure Library Route` starts the pick and scan flow.
+- Folders view can show selected route and scan status.
+- Recent paths are shown from persisted state.
+- Scanner errors are visible and recoverable.
+
+### VOID-011: Implement Settings Store And Controls
+
+Goal: Make the settings design control real app behavior.
+
+Scope:
+
+- Add `src/features/settings/store/settingsStore.js`.
+- Add settings for:
+  - autoplay previews on hover
+  - tile density
+  - scan subfolders
+  - enabled formats
+- Persist settings with `idb-keyval`.
+- Keep `.mp4` and `.webm` enabled by default.
+
+Libraries:
+
+- Already installed: `zustand`.
+- Already installed: `idb-keyval`.
+
+Useful snippet:
+
+```js
+const DEFAULT_SETTINGS = {
+  autoplayPreview: true,
+  tileDensity: "comfortable",
+  scanSubfolders: true,
+  enabledFormats: [".mp4", ".webm"],
+};
+```
+
+Done when:
+
+- Toggling autoplay disables hover video previews.
+- Tile density changes grid sizing.
+- Scan subfolders affects the next scan.
+- Settings survive refresh.
+
+### VOID-012: Add Virtualization For Large Libraries
+
+Goal: Keep Explorer smooth with hundreds or thousands of videos.
+
+Scope:
+
+- Replace or wrap the grid with virtualized rendering.
+- Keep keyboard/focus behavior intact.
+- Preserve visible-thumbnail prioritization.
+- Measure before and after with 400+ mock assets.
+
+Libraries:
+
+- Add one:
+  - `@tanstack/react-virtual`
+  - or `react-window`
+
+Suggested choice:
+
+- Prefer `@tanstack/react-virtual` because it is flexible for grids and modern React.
+
+Done when:
+
+- Explorer remains responsive with at least 400 media records.
+- Only visible rows/tiles are mounted.
+- Thumbnail queue prioritizes mounted/visible tiles.
+- Search and tile density still work.
+
+### VOID-013: Add Testing And Quality Gates
+
+Goal: Give future feature work a basic safety net.
+
+Scope:
+
+- Add unit tests for media helpers and file filtering.
+- Add component tests for view routing and placeholder navigation.
+- Add focused tests for snippet-point calculation.
+- Add manual QA checklist for local file API behavior.
+
+Libraries:
+
+- Add `vitest`.
+- Add `@testing-library/react`.
+- Add `@testing-library/jest-dom`.
+
+Useful snippet:
+
+```js
+expect(getSnippetPoints(120)).toHaveLength(5);
+expect(getSnippetPoints(5)).toEqual([0]);
+```
+
+Done when:
+
+- `npm test` exists.
+- Media helper tests pass.
+- Navigation smoke tests pass.
+- Manual QA checklist covers folder pick, scan, thumbnail generation, hover preview, and player modal.
