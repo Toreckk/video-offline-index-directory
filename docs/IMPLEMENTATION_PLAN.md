@@ -239,11 +239,32 @@ Avoid adding a video player framework early. Native `<video>` is enough for `.mp
 - Metadata depth: file name/duration/resolution is browser-friendly; codec/bitrate analysis likely needs a native layer or ffmpeg.
 - Preview caching: runtime hover snippets are simplest; generated preview assets are faster but require extra processing infrastructure.
 
+## Design Alignment Decisions
+
+The latest designs clarify a few product and implementation rules:
+
+- VOID remains a pure React web app. The app should use the browser-native folder picker and should not simulate an operating-system file browser.
+- The route modal is an app-level explanation/confirmation step. Its primary action is `Open Folder Picker`, which then calls `showDirectoryPicker()`.
+- Supported formats in v1 are `.mp4` and `.webm`. Other formats such as `.mov`, `.mkv`, and `.r3d` can appear as disabled `coming soon` chips, but the scanner should not accept them yet.
+- Scan progress should be phase-based:
+  - folders scanned
+  - videos found
+  - thumbnails generated
+  - ready
+- Exact percentages should only be used when a real total is known, such as thumbnail generation after video discovery.
+- `Run in Background` should let users return to Explorer or Folders while indexing continues. A compact sidebar/status chip should show background scan activity.
+- Successful indexing should use a banner/toast with `Start Exploring`, not a blocking route-confirmed modal.
+- Explorer should stop showing the homepage as soon as a library has discovered videos; tiles can render with placeholders while thumbnails are still being generated.
+- Settings are grouped as Playback, Library & Cache, Interface, and General.
+- `Restore Last Library` means the app stores the previous directory handle, checks permission on launch, and asks the user to reconnect if permission is missing.
+
 ## Implementation Tickets
 
 These tickets are intentionally scoped so each one can be implemented and reviewed independently. Each ticket should leave the app in a working state.
 
 ### VOID-001: Establish App Route And View Registry
+
+Status: Done.
 
 Goal: Keep navigation metadata in one place so the app shell, sidebar, and future breadcrumbs do not duplicate view ids.
 
@@ -281,6 +302,7 @@ Scope:
 - Add `src/features/library/services/fileSystem.js`.
 - Export `pickDirectory()`, `verifyPermission(handle)`, `requestPermission(handle)`, and `walkDirectory(handle, options)`.
 - Support `.mp4` and `.webm` only.
+- Treat `.mov`, `.mkv`, and `.r3d` as future formats only; do not include them in scan results.
 - Support optional recursive scanning through `scanSubfolders`.
 - Return normalized lightweight file records, not object URLs.
 
@@ -321,6 +343,7 @@ Done when:
 - Picking a folder returns a directory handle.
 - Walking a folder finds `.mp4` and `.webm` files.
 - Non-video files are ignored.
+- Coming-soon formats are ignored even if they appear in the picker modal.
 - Unsupported browser path shows a helpful error state.
 
 ### VOID-003: Add Library Store And Persistence
@@ -331,6 +354,8 @@ Scope:
 
 - Add `src/features/library/store/libraryStore.js`.
 - Track `directoryHandle`, `directoryName`, `scanStatus`, `scanProgress`, `scanError`, `recentPaths`, and `mediaIds`.
+- Track scan phases separately: `foldersScanned`, `videosFound`, `thumbnailsGenerated`, and `thumbnailTotal`.
+- Track whether a scan is running in the foreground or background.
 - Persist safe values with `idb-keyval`.
 - Persist directory handles separately from JSON-like metadata.
 - Revalidate permissions on app load before scanning.
@@ -357,6 +382,7 @@ export const useLibraryStore = create((set) => ({
 Done when:
 
 - Selected directory survives a refresh when permission is still granted.
+- If permission is missing, Restore Last Library prompts the user to reconnect instead of silently failing.
 - Scan status can move through `idle`, `scanning`, `ready`, and `error`.
 - Recent paths render from persisted state.
 - No object URLs are stored in IndexedDB.
@@ -372,6 +398,8 @@ Scope:
 - Process files in batches and yield to the browser between batches.
 - Store discovered media records in a media store.
 - Keep thumbnail generation out of this ticket.
+- Emit count-based discovery progress: folders scanned and videos found.
+- Avoid showing fake scan percentages while the total number of videos is still unknown.
 
 Libraries:
 
@@ -396,6 +424,7 @@ Done when:
 - A folder with hundreds of files begins showing progress quickly.
 - The scan can be aborted.
 - Scanning 400 videos does not attempt to decode all videos.
+- Explorer can start rendering discovered video placeholders before thumbnails are ready.
 - Scan results contain file handles and lightweight metadata only.
 
 ### VOID-005: Define Media Asset Store And Helpers
@@ -474,6 +503,7 @@ Scope:
 - Prioritize visible tiles first.
 - Cache thumbnail blobs in IndexedDB.
 - Revoke temporary object URLs after each thumbnail job.
+- Report `thumbnailsGenerated / thumbnailTotal` so the scanning screen can show a real percentage during the thumbnail phase.
 
 Libraries:
 
@@ -517,6 +547,7 @@ Done when:
 - Scan finishes before all thumbnails are generated.
 - Visible tiles receive thumbnails first.
 - Refreshing the app reuses cached thumbnails where possible.
+- The scanning UI can display a truthful thumbnail percentage.
 - Thumbnail generation can pause while the user is previewing or playing a video.
 - Object URLs are revoked after use.
 
@@ -600,17 +631,25 @@ Done when:
 
 ### VOID-010: Wire Library Route Screens
 
-Goal: Connect the folder designs to real state while keeping the flow understandable.
+Goal: Connect the folder and first-run route designs to real browser folder access while keeping the flow honest about pure web limitations.
 
 Scope:
 
 - Replace the Folders placeholder with route selection states:
   - configure route
-  - picker modal trigger
-  - scanning progress
-  - route confirmed
-- Keep the native browser picker as the actual file chooser.
-- Use the custom modal only for app-level confirmation or recent path selection, not for reading arbitrary OS directories.
+  - app-level `Choose a folder to index` modal
+  - native browser folder picker trigger
+  - scanning progress with phase checklist
+  - background indexing status
+  - indexed success banner
+- Reuse the same route modal from the Homepage CTA and the Folders `Browse Local` action.
+- Show `.mp4` and `.webm` as active supported formats; show `.mov`, `.mkv`, and `.r3d` only as disabled `coming soon` chips.
+- Keep the native browser picker as the actual file chooser through `showDirectoryPicker()`.
+- Use the custom modal only to explain what will happen and to configure `Scan Subfolders`.
+- After the picker returns a directory, show the scan screen with current directory, phase progress, `Abort Scan`, `Run in Background`, and `Scan Subfolders`.
+- `Run in Background` should collapse the scan into a compact status chip/banner while indexing continues.
+- On success, show a non-blocking banner/toast with `Start Exploring` instead of a route-confirmed modal.
+- Redirect to Explorer or make `Start Exploring` navigate there. Explorer should show discovered tiles, not the homepage, once media exists.
 
 Libraries:
 
@@ -630,6 +669,10 @@ Done when:
 
 - `Configure Library Route` starts the pick and scan flow.
 - Folders view can show selected route and scan status.
+- Homepage and Folders trigger the same route-picking modal.
+- The custom modal never pretends to browse arbitrary OS folders.
+- Background scans remain visible through a compact status indicator.
+- Successful indexing produces a banner/toast and makes Explorer show tiles.
 - Recent paths are shown from persisted state.
 - Scanner errors are visible and recoverable.
 
@@ -641,12 +684,17 @@ Scope:
 
 - Add `src/features/settings/store/settingsStore.js`.
 - Add settings for:
-  - autoplay previews on hover
-  - tile density
-  - scan subfolders
-  - enabled formats
+  - autoplay hover preview
+  - preview delay: `150ms`, `250ms`, `500ms`
+  - thumbnail priority: `visible-first`, `balanced`, `paused`
+  - local thumbnail cache controls
+  - show filenames
+  - reduce motion
+  - default sort order
+  - restore last library
 - Persist settings with `idb-keyval`.
 - Keep `.mp4` and `.webm` enabled by default.
+- Keep content formats in the scanner/config, but v1 Settings should not imply that coming-soon formats are active.
 
 Libraries:
 
@@ -657,18 +705,26 @@ Useful snippet:
 
 ```js
 const DEFAULT_SETTINGS = {
-  autoplayPreview: true,
-  tileDensity: "comfortable",
-  scanSubfolders: true,
-  enabledFormats: [".mp4", ".webm"],
+  autoplayHoverPreview: true,
+  previewDelayMs: 150,
+  thumbnailPriority: "visible-first",
+  showFilenames: false,
+  reduceMotion: false,
+  defaultSortOrder: "modified-date",
+  restoreLastLibrary: true,
 };
 ```
 
 Done when:
 
 - Toggling autoplay disables hover video previews.
-- Tile density changes grid sizing.
-- Scan subfolders affects the next scan.
+- Preview delay changes the hover preview start delay.
+- Thumbnail priority changes how background thumbnail work is scheduled.
+- Clear Cache removes persisted thumbnail blobs and resets thumbnail status.
+- Show Filenames toggles filename overlays on gallery tiles.
+- Reduce Motion disables or softens nonessential UI transitions.
+- Default Sort Order changes initial Explorer ordering.
+- Restore Last Library attempts to restore a stored directory handle and asks for reconnection when permission is missing.
 - Settings survive refresh.
 
 ### VOID-012: Add Virtualization For Large Libraries
