@@ -1,4 +1,4 @@
-import { FolderX, Info, PlusCircle } from "lucide-react";
+import { FolderX, Info, PlusCircle } from 'lucide-react'
 
 const ORBIT_DOTS = [
   "left-[8%] top-[28%] h-14 w-14",
@@ -11,7 +11,7 @@ const ORBIT_DOTS = [
   "right-[34%] top-[74%] h-10 w-10",
   "right-[18%] top-[68%] h-14 w-14",
   "right-[2%] top-[76%] h-8 w-8",
-];
+]
 
 export default function HomePage() {
   return (
@@ -20,8 +20,8 @@ export default function HomePage() {
         className="pointer-events-none absolute inset-0 opacity-[0.012]"
         style={{
           backgroundImage:
-            "radial-gradient(var(--color-on-primary) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
+            'radial-gradient(var(--color-on-primary) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
         }}
         aria-hidden="true"
       />
@@ -30,7 +30,7 @@ export default function HomePage() {
         className="pointer-events-none absolute left-1/2 top-1/2 h-[660px] w-[760px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-80"
         style={{
           background:
-            "radial-gradient(circle, rgba(167,139,250,0.055) 0%, rgba(25,28,31,0.035) 34%, rgba(0,0,0,0) 68%)",
+            'radial-gradient(circle, rgba(167,139,250,0.055) 0%, rgba(25,28,31,0.035) 34%, rgba(0,0,0,0) 68%)',
         }}
         aria-hidden="true"
       />
@@ -93,5 +93,5 @@ export default function HomePage() {
         </div>
       </section>
     </div>
-  );
+  )
 }

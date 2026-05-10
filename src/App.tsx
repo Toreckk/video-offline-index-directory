@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { APP_VIEWS, DEFAULT_VIEW_ID } from './app/views'
+import { APP_VIEWS, DEFAULT_VIEW_ID, type ViewId } from './app/views'
 import Sidebar from './components/sidebar/Sidebar'
 
 export default function App() {
-  const [activeView, setActiveView] = useState(DEFAULT_VIEW_ID)
+  const [activeView, setActiveView] = useState<ViewId>(DEFAULT_VIEW_ID)
 
   const activeViewConfig =
     APP_VIEWS.find((view) => view.id === activeView) ?? APP_VIEWS[0]

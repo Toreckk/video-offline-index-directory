@@ -6,10 +6,10 @@ This project is a local-first media explorer for video files. The first producti
 
 The current app is a good visual prototype, but the first implementation pass mixed navigation, view ownership, and feature assumptions in a few files:
 
-- `App.jsx` owned the active view map directly, which would become noisy as more views are added.
-- `Sidebar.jsx` owned its own navigation list, so routes and visible navigation could drift apart.
-- `Explorer.jsx` correctly chooses between empty and library states, but it will soon need data from a shared library store.
-- `components/library/Library.jsx` is currently a placeholder, but the future grid, media tile, hover preview, and filters should live in a dedicated feature area rather than one large component.
+- `App.tsx` owned the active view map directly, which would become noisy as more views are added.
+- `Sidebar.tsx` owned its own navigation list, so routes and visible navigation could drift apart.
+- `Explorer.tsx` correctly chooses between empty and library states, but it will soon need data from a shared library store.
+- `components/library/Library.tsx` is currently a placeholder, but the future grid, media tile, hover preview, and filters should live in a dedicated feature area rather than one large component.
 - `store/` and `utils/` exist but do not yet encode domain concepts such as selected route, indexed assets, scan progress, playback queue, or settings.
 
 The refactor in this pass creates a small view registry and placeholder views so navigation can scale without duplicating route metadata.
@@ -19,7 +19,7 @@ The refactor in this pass creates a small view registry and placeholder views so
 ```txt
 src/
   app/
-    views.jsx                 # Single registry for view ids, labels, icons, and components
+    views.ts                  # Single registry for view ids, labels, icons, and components
   components/
     homepage/                 # Empty-state landing for Explorer
     library/                  # Temporary location for the future library grid
@@ -42,12 +42,24 @@ src/
       components/             # Toggle rows, density slider, format filters
       store/                  # settings Zustand slice
   store/
-    appStore.js               # Optional shared root store once slices exist
+    appStore.ts               # Optional shared root store once slices exist
   utils/
-    media.js                  # extension helpers, duration formatting, stable ids
+    media.ts                  # extension helpers, duration formatting, stable ids
 ```
 
 The app can start with `components/` and grow into `features/` as behavior arrives. The important boundary is: views compose feature components, feature services do I/O and indexing, shared components stay presentation-only.
+
+## TypeScript Baseline
+
+The project now uses TypeScript `6.0.3` with Vite's recommended split config shape:
+
+- `tsconfig.json` coordinates project references.
+- `tsconfig.app.json` covers browser React source with `strict`, `react-jsx`, `moduleResolution: "Bundler"`, side-effect import checks, and unused-code checks.
+- `tsconfig.node.json` covers Vite and ESLint config files with Node types.
+- `npm run build` runs `tsc -b` before `vite build`, so production builds include type checking.
+- ESLint is configured through `eslint.config.ts` with `typescript-eslint` recommended rules plus the existing React Hooks and React Refresh rules.
+
+All app source and config files should use `.ts` or `.tsx`; avoid adding new `.js` or `.jsx` files unless a third-party tool explicitly requires them.
 
 ## File Access Strategy
 
@@ -270,9 +282,9 @@ Goal: Keep navigation metadata in one place so the app shell, sidebar, and futur
 
 Scope:
 
-- Keep `src/app/views.jsx` as the source of truth for view ids, labels, icons, and components.
-- Keep `App.jsx` responsible only for selecting the active view and rendering the shell.
-- Keep `Sidebar.jsx` presentational: it receives `navItems`, `activeView`, and `onNavigate`.
+- Keep `src/app/views.ts` as the source of truth for view ids, labels, icons, and components.
+- Keep `App.tsx` responsible only for selecting the active view and rendering the shell.
+- Keep `Sidebar.tsx` presentational: it receives `navItems`, `activeView`, and `onNavigate`.
 
 Libraries:
 
@@ -280,7 +292,7 @@ Libraries:
 
 Useful snippet:
 
-```jsx
+```tsx
 export const APP_VIEWS = [
   { id: "explorer", label: "Explorer", icon: Compass, component: Explorer },
   { id: "player", label: "Player", icon: PlayCircle, component: Player },
@@ -290,7 +302,7 @@ export const APP_VIEWS = [
 Done when:
 
 - Clicking every sidebar item renders the matching placeholder view.
-- Adding a new view only requires updating `src/app/views.jsx`.
+- Adding a new view only requires updating `src/app/views.ts`.
 - `npm run lint` and `npm run build` pass.
 
 ### VOID-002: Create Pure Web File System Adapter
@@ -299,7 +311,7 @@ Goal: Isolate browser file-system APIs behind a small service so UI components d
 
 Scope:
 
-- Add `src/features/library/services/fileSystem.js`.
+- Add `src/features/library/services/fileSystem.ts`.
 - Export `pickDirectory()`, `verifyPermission(handle)`, `requestPermission(handle)`, and `walkDirectory(handle, options)`.
 - Support `.mp4` and `.webm` only.
 - Treat `.mov`, `.mkv`, and `.r3d` as future formats only; do not include them in scan results.
@@ -313,7 +325,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 export async function pickDirectory() {
   if (!("showDirectoryPicker" in window)) {
     throw new Error("Directory picking is only supported in Chromium browsers.");
@@ -323,7 +335,7 @@ export async function pickDirectory() {
 }
 ```
 
-```js
+```ts
 export async function* walkDirectory(directoryHandle, pathParts = []) {
   for await (const [name, handle] of directoryHandle.entries()) {
     if (handle.kind === "directory") {
@@ -352,7 +364,7 @@ Goal: Store selected directory, scan state, settings needed by scanning, and rec
 
 Scope:
 
-- Add `src/features/library/store/libraryStore.js`.
+- Add `src/features/library/store/libraryStore.ts`.
 - Track `directoryHandle`, `directoryName`, `scanStatus`, `scanProgress`, `scanError`, `recentPaths`, and `mediaIds`.
 - Track scan phases separately: `foldersScanned`, `videosFound`, `thumbnailsGenerated`, and `thumbnailTotal`.
 - Track whether a scan is running in the foreground or background.
@@ -367,7 +379,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 import { create } from "zustand";
 import { get, set } from "idb-keyval";
 
@@ -393,7 +405,7 @@ Goal: Scan large folders without freezing the UI.
 
 Scope:
 
-- Add `src/features/library/hooks/useLibraryScanner.js`.
+- Add `src/features/library/hooks/useLibraryScanner.ts`.
 - Add an `AbortController`-based cancellation path.
 - Process files in batches and yield to the browser between batches.
 - Store discovered media records in a media store.
@@ -407,12 +419,12 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 const pauseForPaint = () =>
   new Promise((resolve) => requestAnimationFrame(resolve));
 ```
 
-```js
+```ts
 if (index % 25 === 0) {
   setProgress({ found: index });
   await pauseForPaint();
@@ -433,8 +445,8 @@ Goal: Normalize media assets once and make them easy to query from Explorer and 
 
 Scope:
 
-- Add `src/features/explorer/store/mediaStore.js` or `src/features/library/store/mediaStore.js`.
-- Add `src/utils/media.js` for extension parsing, stable ids, and display helpers.
+- Add `src/features/explorer/store/mediaStore.ts` or `src/features/library/store/mediaStore.ts`.
+- Add `src/utils/media.ts` for extension parsing, stable ids, and display helpers.
 - Store assets by id plus an ordered id list.
 - Include `thumbnailStatus`: `idle`, `queued`, `ready`, `error`.
 - Include optional `duration`, `width`, `height`, and `thumbnailBlobKey`.
@@ -445,7 +457,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 export function createMediaId(rootName, pathParts, fileName) {
   return [rootName, ...pathParts, fileName].join("/");
 }
@@ -497,7 +509,7 @@ Goal: Create thumbnails in the browser without blocking initial scan or renderin
 
 Scope:
 
-- Add `src/features/explorer/services/thumbnailQueue.js`.
+- Add `src/features/explorer/services/thumbnailQueue.ts`.
 - Add `generateVideoThumbnail(fileHandle, options)`.
 - Queue thumbnail work with concurrency `1` or `2`.
 - Prioritize visible tiles first.
@@ -512,7 +524,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 export async function generateVideoThumbnail(fileHandle, seekToSeconds = 1) {
   const file = await fileHandle.getFile();
   const url = URL.createObjectURL(file);
@@ -557,7 +569,7 @@ Goal: Make a hovered tile preview several parts of a video, muted, without gener
 
 Scope:
 
-- Add `src/features/explorer/hooks/useHoverPreview.js`.
+- Add `src/features/explorer/hooks/useHoverPreview.ts`.
 - Add a hover delay, default 200ms.
 - Allow only one active preview globally.
 - Mount a muted `<video>` only while previewing.
@@ -570,7 +582,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 function getSnippetPoints(duration) {
   if (duration < 8) return [0];
   if (duration < 30) return [0.1, 0.45, 0.75].map((p) => p * duration);
@@ -578,7 +590,7 @@ function getSnippetPoints(duration) {
 }
 ```
 
-```js
+```ts
 video.muted = true;
 video.playsInline = true;
 video.controls = false;
@@ -598,7 +610,7 @@ Goal: Open a clicked video in a focused overlay with audio and next/previous nav
 
 Scope:
 
-- Add `src/features/player/store/playerStore.js`.
+- Add `src/features/player/store/playerStore.ts`.
 - Add `PlayerModal`, `PlayerVideo`, `PlayerOverlayMetadata`, and `PlayerEdgeZones`.
 - Use current Explorer order as the playback queue.
 - Support previous/next with buttons and keyboard.
@@ -611,13 +623,13 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 function isTypingTarget(target) {
   return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
 }
 ```
 
-```js
+```ts
 containerRef.current?.requestFullscreen();
 ```
 
@@ -657,7 +669,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 const handlePickRoute = async () => {
   const handle = await pickDirectory();
   setDirectoryHandle(handle);
@@ -682,7 +694,7 @@ Goal: Make the settings design control real app behavior.
 
 Scope:
 
-- Add `src/features/settings/store/settingsStore.js`.
+- Add `src/features/settings/store/settingsStore.ts`.
 - Add settings for:
   - autoplay hover preview
   - preview delay: `150ms`, `250ms`, `500ms`
@@ -703,7 +715,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 const DEFAULT_SETTINGS = {
   autoplayHoverPreview: true,
   previewDelayMs: 150,
@@ -774,7 +786,7 @@ Libraries:
 
 Useful snippet:
 
-```js
+```ts
 expect(getSnippetPoints(120)).toHaveLength(5);
 expect(getSnippetPoints(5)).toEqual([0]);
 ```

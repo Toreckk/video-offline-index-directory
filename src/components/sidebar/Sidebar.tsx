@@ -1,6 +1,12 @@
-import { UserRound } from "lucide-react";
+import { UserRound } from 'lucide-react'
+import type { AppView, ViewId } from '../../app/views'
 
-const NavItem = ({ id, label, icon: Icon, isActive, onClick }) => {
+type NavItemProps = AppView & {
+  isActive: boolean
+  onClick: () => void
+}
+
+const NavItem = ({ id, label, icon: Icon, isActive, onClick }: NavItemProps) => {
   return (
     <button
       id={`nav-${id}`}
@@ -34,10 +40,20 @@ const NavItem = ({ id, label, icon: Icon, isActive, onClick }) => {
         {label}
       </span>
     </button>
-  );
-};
+  )
+}
 
-export default function Sidebar({ activeView, navItems, onNavigate }) {
+type SidebarProps = {
+  activeView: ViewId
+  navItems: AppView[]
+  onNavigate: (viewId: ViewId) => void
+}
+
+export default function Sidebar({
+  activeView,
+  navItems,
+  onNavigate,
+}: SidebarProps) {
   return (
     <aside className="fixed left-0 top-0 z-20 flex h-screen w-[var(--spacing-sidebar)] flex-col border-r border-white/[0.045] bg-surface">
       <header className="flex h-[135px] flex-col items-center justify-center border-b border-white/[0.035]">
@@ -70,5 +86,5 @@ export default function Sidebar({ activeView, navItems, onNavigate }) {
         </button>
       </footer>
     </aside>
-  );
+  )
 }
