@@ -9,4 +9,6 @@ export type IterableFileSystemDirectoryHandle = FileSystemDirectoryHandle & {
 export type NormalizedWalkDirectoryOptions = {
   scanSubfolders: boolean
   signal?: AbortSignal
+  onDirectoryVisited?: (pathParts: readonly string[]) => void
+  onError?: (details: { pathParts: readonly string[]; error: unknown }) => void
 }

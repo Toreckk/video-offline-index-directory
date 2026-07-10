@@ -6,20 +6,25 @@ export async function verifyPermission(
   handle: FileSystemDirectoryHandle,
   options: DirectoryPermissionOptions = {},
 ) {
-  const permission = await handle.queryPermission({
-    mode: options.mode ?? 'read',
-  })
+  const permission = await queryPermissionStatus(handle, options)
 
   return permission === 'granted'
+}
+
+export async function queryPermissionStatus(
+  handle: FileSystemDirectoryHandle,
+  options: DirectoryPermissionOptions = {},
+) {
+  return handle.queryPermission({
+    mode: options.mode ?? 'read',
+  })
 }
 
 export async function requestPermission(
   handle: FileSystemDirectoryHandle,
   options: DirectoryPermissionOptions = {},
 ) {
-  const permission = await handle.requestPermission({
-    mode: options.mode ?? 'read',
-  })
+  const permission = await requestPermissionStatus(handle, options)
 
   if (permission !== 'granted') {
     throw new FileSystemAccessError(
@@ -29,4 +34,13 @@ export async function requestPermission(
   }
 
   return true
+}
+
+export async function requestPermissionStatus(
+  handle: FileSystemDirectoryHandle,
+  options: DirectoryPermissionOptions = {},
+) {
+  return handle.requestPermission({
+    mode: options.mode ?? 'read',
+  })
 }

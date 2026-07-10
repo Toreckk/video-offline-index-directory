@@ -2,52 +2,74 @@
 
 This project is a local-first media explorer for video files. The first production goal is: choose a library root, index supported videos, show them in a dense visual grid, preview muted snippets on hover, and open a focused player overlay with keyboard navigation.
 
+## Implementation Status (2026-07-10)
+
+The MVP is implemented across tickets VOID-001 through VOID-011. The app now owns folder selection and permission restore behind a service boundary, scans progressively with cancellation, normalizes media in dedicated stores, caches single-concurrency thumbnails, renders a searchable grid, previews one muted video at a time, opens a queue-aware fullscreen player, and persists behavior-driven settings. Chromium uses persistent directory handles; Firefox and other current browsers use a session-file fallback and reconnect after restart.
+
+VOID-013 is also complete with unit/component coverage and a manual browser QA checklist. VOID-012 remains deliberately deferred until a 400+ item measurement demonstrates that virtualization is necessary and gives us concrete row sizing, overscan, focus, and thumbnail-priority requirements.
+
+The remaining release gate is to run `docs/MANUAL_QA.md` with real local videos in a Chromium browser. Automated tests cannot grant native directory permissions or validate hardware decoder behavior.
+
+## Post-MVP Enhancements (2026-07-10)
+
+- Removed the redundant Player route and account-like Profile affordance; playback remains a global Explorer-launched modal.
+- Removed native tile `title` tooltips so hover previews remain unobstructed.
+- Added IndexedDB-persisted favorites and media tags keyed by durable media ids.
+- Tag names are free text up to 32 characters, unique case-insensitively, and use a curated 12-color palette. Quick creation balances the least-used colors with a deterministic name-based tie break.
+- Player controls support favorite toggling, assigning existing tags, and creating/assigning a tag in one action.
+- Settings supports tag creation, curated color changes, usage counts, and guarded deletion.
+- Explorer supports Favorites, folder, and multiple tag filters. Multiple tags use `AND` semantics.
+- Thumbnail priority now uses actual viewport intersection plus displayed grid order instead of treating every mounted tile as visible.
+- Firefox session selection closes the route modal and navigates to Folders before asynchronous scanning continues.
+
 ## Current Architecture Review
 
-The current app is a good visual prototype, but the first implementation pass mixed navigation, view ownership, and feature assumptions in a few files:
+The implementation now has explicit ownership boundaries:
 
-- `App.tsx` owned the active view map directly, which would become noisy as more views are added.
-- `Sidebar.tsx` owned its own navigation list, so routes and visible navigation could drift apart.
-- `Explorer.tsx` correctly chooses between empty and library states, but it will soon need data from a shared library store.
-- `components/library/Library.tsx` is currently a placeholder, but the future grid, media tile, hover preview, and filters should live in a dedicated feature area rather than one large component.
-- `store/` and `utils/` exist but do not yet encode domain concepts such as selected route, indexed assets, scan progress, playback queue, or settings.
+- `App.tsx` composes providers, the registered active view, global player modal, and background-work coordinator.
+- `app/views.ts` is the single route/navigation registry; `Sidebar.tsx` remains presentational.
+- `LibraryRouteProvider` is the long-lived orchestration boundary for picker UI, permission reconnection, scanning, cancellation, and background status across view changes.
+- File-system modules normalize persistent handles and session files behind `MediaFileSource`; downstream media features do not depend on a browser-specific picker API.
+- Separate Zustand stores own library lifecycle, normalized media, playback queue, and persisted settings.
+- Explorer components own rendering and interaction; thumbnail generation/cache and preview scheduling remain service or hook concerns.
+- Player object URLs are scoped to the current/previous/next queue window and revoked by hook cleanup.
 
-The refactor in this pass creates a small view registry and placeholder views so navigation can scale without duplicating route metadata.
+This keeps browser I/O, application state, rendering, and short-lived media resources independently testable. Views remain composition surfaces instead of growing into feature controllers.
 
 ## Recommended Project Shape
 
 ```txt
 src/
   app/
+    navigation*.tsx          # Typed navigation provider/context
     views.ts                  # Single registry for view ids, labels, icons, and components
   components/
     homepage/                 # Empty-state landing for Explorer
-    library/                  # Temporary location for the future library grid
-    placeholder/              # Shared placeholder screens while designs are implemented
+    library/                  # Compatibility composition wrapper for MediaGrid
     sidebar/                  # App navigation shell
   features/
     library/
-      components/             # LibraryRouteCard, RecentPathList, ScanProgress, RouteConfirmed
-      hooks/                  # useLibraryScanner, useLibraryRoute
-      services/               # file-system adapters and indexing orchestration
-      store/                  # library Zustand slice
-      types/                  # media item shape, scan result shape
+      components/             # Route provider/dialog and global scan status
+      hooks/                  # Progressive library scanner
+      services/fileSystem/    # Browser file-system adapter modules
+      store/                  # Library lifecycle and persisted route state
     explorer/
-      components/             # MediaGrid, MediaTile, SearchBar, EmptyExplorerState
-      hooks/                  # useVisibleMedia, useHoverPreview
+      components/             # Grid, tile, toolbar, background coordinator
+      hooks/                  # Hover preview and cached-thumbnail URL lifetime
+      services/               # Thumbnail queue/cache/generator and preview schedule
+      store/                  # Normalized media records and Explorer UI state
     player/
-      components/             # PlayerModal, PlayerControls, NextPrevZones
-      hooks/                  # usePlayerKeyboardShortcuts
+      components/             # Modal, video, metadata, and edge zones
+      hooks/                  # Warm current/previous/next object URLs
+      store/                  # Selection and playback queue
     settings/
-      components/             # Toggle rows, density slider, format filters
-      store/                  # settings Zustand slice
-  store/
-    appStore.ts               # Optional shared root store once slices exist
+      store/                  # IndexedDB-persisted behavior settings
+  shared/persistence/         # Reusable Zustand IndexedDB storage adapter
   utils/
     media.ts                  # extension helpers, duration formatting, stable ids
 ```
 
-The app can start with `components/` and grow into `features/` as behavior arrives. The important boundary is: views compose feature components, feature services do I/O and indexing, shared components stay presentation-only.
+The important boundary is: views compose feature components, feature services do I/O and indexing, and shared infrastructure contains no feature policy.
 
 ## TypeScript Baseline
 
@@ -63,20 +85,22 @@ All app source and config files should use `.ts` or `.tsx`; avoid adding new `.j
 
 ## File Access Strategy
 
-For a browser-only React app, selecting a local folder should use the File System Access API:
+For a browser-only React app, folder selection uses a capability-based adapter:
 
 - `window.showDirectoryPicker()` opens a native directory picker in Chromium-based browsers.
 - `FileSystemDirectoryHandle` lets the app iterate entries and request persisted permission.
 - Recursive scanning can walk subdirectories when the setting is enabled.
 - Handles can be stored in IndexedDB, but permission must still be revalidated on future sessions.
+- Browsers without `showDirectoryPicker()` use `<input type="file" webkitdirectory multiple>` and normalize each `File.webkitRelativePath` into the same discovery model.
+- Session files cannot be reopened after a browser restart; persisted metadata keeps its durable `libraryId`, and the user reconnects the folder explicitly.
 
 Recommended libraries:
 
 - `idb-keyval` is already installed and is enough for persisting directory handles, app settings, indexed metadata, and recent paths.
 - `zustand` is already installed and is a good fit for selected route, scan state, media list, current player index, and settings.
-- `react-window` or `@tanstack/react-virtual` should be added before the real grid. Use virtualization once there are hundreds or thousands of videos.
+- `@tanstack/react-virtual` should be considered after measuring the real grid with 400+ videos; do not pay its focus/layout complexity without a demonstrated need.
 
-Fallback note: Firefox/Safari support for directory handles is limited. If broad browser support becomes important, use `<input type="file" webkitdirectory multiple>` as a degraded picker. It can read selected files but does not provide the same persistent directory handle.
+The fallback preserves scanning, thumbnails, previews, playback, search, and future annotations. Only automatic file access restoration differs because session `File` objects are intentionally not persisted.
 
 ## Data Model
 
@@ -85,10 +109,13 @@ A minimal media item should be normalized early:
 ```ts
 type MediaAsset = {
   id: string;
+  libraryId: string;
   name: string;
   extension: ".mp4" | ".webm";
   pathParts: string[];
-  fileHandle: FileSystemFileHandle;
+  source:
+    | { kind: "file-system-handle"; handle: FileSystemFileHandle }
+    | { kind: "session-file"; file: File };
   objectUrl?: string;
   size: number;
   lastModified: number;
@@ -99,12 +126,12 @@ type MediaAsset = {
 };
 ```
 
-Use stable ids based on the route id plus path parts, not random ids. Object URLs should be created lazily and revoked when tiles/player unmount to avoid memory leaks.
+Each configured library receives an opaque random `libraryId`, persisted independently of its display name. Media ids use that id plus relative path parts, preventing collisions between identically named roots. Object URLs should be created lazily and revoked when tiles/player unmount to avoid memory leaks.
 
 ## Library Route And Scanning Flow
 
 1. User clicks `Configure Library Route`.
-2. App opens `showDirectoryPicker()`.
+2. App opens `showDirectoryPicker()` when available or a `webkitdirectory` input fallback.
 3. App stores the selected directory handle and display path label in IndexedDB.
 4. App starts scan state: `idle -> scanning -> ready` or `error`.
 5. Scanner walks files and keeps only enabled formats: `.mp4`, `.webm` for now.
@@ -210,7 +237,7 @@ Avoid adding a video player framework early. Native `<video>` is enough for `.mp
 
 1. Navigation and skeleton views
    - Central view registry
-   - Placeholder views for Player, Folders, Settings
+   - Explorer, Folders, and Settings routes; playback is an app-level modal
    - Explorer keeps the current empty state
 
 2. Library route selection
@@ -247,7 +274,7 @@ Avoid adding a video player framework early. Native `<video>` is enough for `.mp
 
 ## Open Decisions
 
-- Browser support: the target should be Chromium-first because the File System Access API is the cleanest pure web path for selecting and revisiting local folders.
+- Browser support: Chromium receives persistent directory restoration; Firefox receives equivalent session behavior through `webkitdirectory` with an explicit reconnect after restart.
 - Metadata depth: file name/duration/resolution is browser-friendly; codec/bitrate analysis likely needs a native layer or ffmpeg.
 - Preview caching: runtime hover snippets are simplest; generated preview assets are faster but require extra processing infrastructure.
 
@@ -256,7 +283,7 @@ Avoid adding a video player framework early. Native `<video>` is enough for `.mp
 The latest designs clarify a few product and implementation rules:
 
 - VOID remains a pure React web app. The app should use the browser-native folder picker and should not simulate an operating-system file browser.
-- The route modal is an app-level explanation/confirmation step. Its primary action is `Open Folder Picker`, which then calls `showDirectoryPicker()`.
+- The route modal is an app-level explanation/confirmation step. Its primary action is `Open Folder Picker`, which selects the best supported native folder mechanism.
 - Supported formats in v1 are `.mp4` and `.webm`. Other formats such as `.mov`, `.mkv`, and `.r3d` can appear as disabled `coming soon` chips, but the scanner should not accept them yet.
 - Scan progress should be phase-based:
   - folders scanned
@@ -295,7 +322,8 @@ Useful snippet:
 ```tsx
 export const APP_VIEWS = [
   { id: "explorer", label: "Explorer", icon: Compass, component: Explorer },
-  { id: "player", label: "Player", icon: PlayCircle, component: Player },
+  { id: "folders", label: "Folders", icon: FolderOpen, component: Folders },
+  { id: "settings", label: "Settings", icon: Settings, component: SettingsView },
 ];
 ```
 
@@ -307,16 +335,21 @@ Done when:
 
 ### VOID-002: Create Pure Web File System Adapter
 
+Status: Done.
+
 Goal: Isolate browser file-system APIs behind a small service so UI components do not call `showDirectoryPicker()` directly.
 
 Scope:
 
-- Add `src/features/library/services/fileSystem.ts`.
-- Export `pickDirectory()`, `verifyPermission(handle)`, `requestPermission(handle)`, and `walkDirectory(handle, options)`.
+- Add `src/features/library/services/fileSystem.ts` and sub-module files under `src/features/library/services/fileSystem/`.
+- Export `pickDirectory()`, `verifyPermission(handle)`, `requestPermission(handle)`, `walkDirectory(handle, options)`, and `getFileMetadata(handle)`.
 - Support `.mp4` and `.webm` only.
 - Treat `.mov`, `.mkv`, and `.r3d` as future formats only; do not include them in scan results.
 - Support optional recursive scanning through `scanSubfolders`.
-- Return normalized lightweight file records, not object URLs.
+- Return lightweight `DiscoveredVideoFile` records containing only name, path, extension, and a browser-neutral source from the walk generator.
+- Normalize both `FileSystemFileHandle` and directory-input `File` values behind `MediaFileSource`.
+- Use a `webkitdirectory` input fallback when `showDirectoryPicker()` is unavailable.
+- Implement scan resilience in `walkDirectory` by wrapping directory entries and child walks in `try-catch` blocks, logging/swallowing filesystem access errors on specific directories while propagating `scan-aborted` errors immediately.
 
 Libraries:
 
@@ -336,16 +369,28 @@ export async function pickDirectory() {
 ```
 
 ```ts
-export async function* walkDirectory(directoryHandle, pathParts = []) {
-  for await (const [name, handle] of directoryHandle.entries()) {
-    if (handle.kind === "directory") {
-      yield* walkDirectory(handle, [...pathParts, name]);
-      continue;
-    }
+export async function* walkDirectory(directoryHandle, options = {}) {
+  yield* walkDirectoryEntries(directoryHandle, [], {
+    scanSubfolders: options.scanSubfolders ?? true,
+    signal: options.signal,
+  });
+}
 
-    if (handle.kind === "file" && /\.(mp4|webm)$/i.test(name)) {
-      yield { name, fileHandle: handle, pathParts };
+async function* walkDirectoryEntries(directoryHandle, pathParts, options) {
+  try {
+    for await (const [name, handle] of directoryHandle.entries()) {
+      if (handle.kind === "directory" && options.scanSubfolders) {
+        try {
+          yield* walkDirectoryEntries(handle, [...pathParts, name], options);
+        } catch (e) {
+          console.error(e);
+        }
+      } else if (handle.kind === "file" && /\.(mp4|webm)$/i.test(name)) {
+        yield { name, fileHandle: handle, pathParts };
+      }
     }
+  } catch (e) {
+    console.error(e);
   }
 }
 ```
@@ -360,17 +405,19 @@ Done when:
 
 ### VOID-003: Add Library Store And Persistence
 
+Status: Done.
+
 Goal: Store selected directory, scan state, settings needed by scanning, and recent paths in a predictable place.
 
 Scope:
 
 - Add `src/features/library/store/libraryStore.ts`.
 - Track `directoryHandle`, `directoryName`, `scanStatus`, `scanProgress`, `scanError`, `recentPaths`, and `mediaIds`.
+- Track a durable opaque `libraryId`, source kind, and non-persisted session files.
 - Track scan phases separately: `foldersScanned`, `videosFound`, `thumbnailsGenerated`, and `thumbnailTotal`.
 - Track whether a scan is running in the foreground or background.
-- Persist safe values with `idb-keyval`.
-- Persist directory handles separately from JSON-like metadata.
-- Revalidate permissions on app load before scanning.
+- Exclude `directoryHandle` (a live non-serializable object) from the default JSON Zustand persistence layer; persist and restore the handle manually using direct `idb-keyval` operations.
+- Revalidate permissions on app load via `handle.queryPermission()`. If permission is not `'granted'`, render a "Reconnect Library" warning/button in the UI to allow the user to trigger the prompt via an explicit gesture (as browsers block programmatic `requestPermission` on page load).
 
 Libraries:
 
@@ -401,6 +448,8 @@ Done when:
 
 ### VOID-004: Build Scanner With Progress And Cancellation
 
+Status: Done.
+
 Goal: Scan large folders without freezing the UI.
 
 Scope:
@@ -408,6 +457,7 @@ Scope:
 - Add `src/features/library/hooks/useLibraryScanner.ts`.
 - Add an `AbortController`-based cancellation path.
 - Process files in batches and yield to the browser between batches.
+- Resolve file metadata (`size` and `lastModified`) asynchronously in parallel chunks (e.g. batch size of 5-10) using `getFileMetadata` as items are discovered, instead of calling it sequentially during the walk generator.
 - Store discovered media records in a media store.
 - Keep thumbnail generation out of this ticket.
 - Emit count-based discovery progress: folders scanned and videos found.
@@ -441,6 +491,8 @@ Done when:
 
 ### VOID-005: Define Media Asset Store And Helpers
 
+Status: Done.
+
 Goal: Normalize media assets once and make them easy to query from Explorer and Player.
 
 Scope:
@@ -458,8 +510,8 @@ Libraries:
 Useful snippet:
 
 ```ts
-export function createMediaId(rootName, pathParts, fileName) {
-  return [rootName, ...pathParts, fileName].join("/");
+export function createMediaId(libraryId, pathParts, fileName) {
+  return [libraryId, ...pathParts, fileName].join("/");
 }
 ```
 
@@ -470,6 +522,8 @@ Done when:
 - Player can derive previous and next ids from the same ordered list.
 
 ### VOID-006: Render Explorer Grid With Placeholder Tiles
+
+Status: Done.
 
 Goal: Show discovered videos immediately, even before thumbnails are ready.
 
@@ -505,13 +559,16 @@ Done when:
 
 ### VOID-007: Generate Thumbnails Progressively
 
+Status: Done.
+
 Goal: Create thumbnails in the browser without blocking initial scan or rendering.
 
 Scope:
 
 - Add `src/features/explorer/services/thumbnailQueue.ts`.
-- Add `generateVideoThumbnail(fileHandle, options)`.
-- Queue thumbnail work with concurrency `1` or `2`.
+- Add `generateVideoThumbnail(source, options)`.
+- Queue thumbnail work with concurrency strictly limited to `1` on the main thread to avoid freezing the UI.
+- Implement timeout safety (e.g. 2000ms) for media events (`loadedmetadata`, `seeked`) during thumbnail extraction to prevent a corrupted video file from permanently stalling the queue.
 - Prioritize visible tiles first.
 - Cache thumbnail blobs in IndexedDB.
 - Revoke temporary object URLs after each thumbnail job.
@@ -525,8 +582,8 @@ Libraries:
 Useful snippet:
 
 ```ts
-export async function generateVideoThumbnail(fileHandle, seekToSeconds = 1) {
-  const file = await fileHandle.getFile();
+export async function generateVideoThumbnail(source, seekToSeconds = 1) {
+  const file = await openMediaFile(source);
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
   video.muted = true;
@@ -565,6 +622,8 @@ Done when:
 
 ### VOID-008: Add Hover Preview With Snippet Scheduler
 
+Status: Done.
+
 Goal: Make a hovered tile preview several parts of a video, muted, without generating preview files.
 
 Scope:
@@ -574,6 +633,7 @@ Scope:
 - Allow only one active preview globally.
 - Mount a muted `<video>` only while previewing.
 - Seek through sampled timestamps and play each snippet briefly.
+- Explicitly clean up video resource instances: when a hover preview ends or shifts, set the active video's `src = ""` and call `video.load()` before unmounting the element. This instantly releases the browser's hardware decoder and prevents performance degradation.
 - Cancel timers and revoke object URL on mouse leave, blur, unmount, or route change.
 
 Libraries:
@@ -605,6 +665,8 @@ Done when:
 - Leaving a tile stops playback and cleans timers/object URLs.
 
 ### VOID-009: Implement Player Modal And Queue Navigation
+
+Status: Done.
 
 Goal: Open a clicked video in a focused overlay with audio and next/previous navigation.
 
@@ -643,6 +705,8 @@ Done when:
 
 ### VOID-010: Wire Library Route Screens
 
+Status: Implemented; real-folder manual QA pending.
+
 Goal: Connect the folder and first-run route designs to real browser folder access while keeping the flow honest about pure web limitations.
 
 Scope:
@@ -656,7 +720,7 @@ Scope:
   - indexed success banner
 - Reuse the same route modal from the Homepage CTA and the Folders `Browse Local` action.
 - Show `.mp4` and `.webm` as active supported formats; show `.mov`, `.mkv`, and `.r3d` only as disabled `coming soon` chips.
-- Keep the native browser picker as the actual file chooser through `showDirectoryPicker()`.
+- Keep a native browser picker as the actual file chooser: `showDirectoryPicker()` for persistent access, `webkitdirectory` for session access.
 - Use the custom modal only to explain what will happen and to configure `Scan Subfolders`.
 - After the picker returns a directory, show the scan screen with current directory, phase progress, `Abort Scan`, `Run in Background`, and `Scan Subfolders`.
 - `Run in Background` should collapse the scan into a compact status chip/banner while indexing continues.
@@ -690,6 +754,8 @@ Done when:
 
 ### VOID-011: Implement Settings Store And Controls
 
+Status: Done.
+
 Goal: Make the settings design control real app behavior.
 
 Scope:
@@ -718,7 +784,7 @@ Useful snippet:
 ```ts
 const DEFAULT_SETTINGS = {
   autoplayHoverPreview: true,
-  previewDelayMs: 150,
+  previewDelayMs: 250,
   thumbnailPriority: "visible-first",
   showFilenames: false,
   reduceMotion: false,
@@ -740,6 +806,8 @@ Done when:
 - Settings survive refresh.
 
 ### VOID-012: Add Virtualization For Large Libraries
+
+Status: Deferred until the 400+ item performance baseline is measured.
 
 Goal: Keep Explorer smooth with hundreds or thousands of videos.
 
@@ -769,6 +837,8 @@ Done when:
 
 ### VOID-013: Add Testing And Quality Gates
 
+Status: Done.
+
 Goal: Give future feature work a basic safety net.
 
 Scope:
@@ -797,3 +867,38 @@ Done when:
 - Media helper tests pass.
 - Navigation smoke tests pass.
 - Manual QA checklist covers folder pick, scan, thumbnail generation, hover preview, and player modal.
+
+### VOID-014: Add Durable Annotations And Library Health
+
+Status: Done (MVP).
+
+Goal: Make local organization portable and make indexing failures explainable.
+
+Scope:
+
+- Persist favorites and free-text tags in IndexedDB, keyed by durable media ids.
+- Keep tag names case-insensitively unique and capped at 32 characters.
+- Assign curated, least-used colors for quick-created tags; allow explicit color management in Settings.
+- Support quick assignment from tiles and the player, plus bulk assignment from Explorer.
+- Filter by searchable tags using AND semantics and show global counts for favorites, folders, and tags.
+- Isolate untagged videos so large libraries can find and classify orphaned items.
+- Export/import versioned annotation JSON with case-insensitive tag reconciliation and union-based annotation merging.
+- Present source controls and scan/statistics information as separate Source and Health sections under Library.
+- Capture distinct discovery, metadata, and thumbnail diagnostics for the current scan session.
+
+Maintenance decisions:
+
+- Filter and bulk-selection state are ephemeral and excluded from persisted annotation data.
+- Imports merge rather than replace so an accidental import cannot erase local favorites or tag assignments.
+- Diagnostics are session-scoped and capped at 100 to avoid turning the primary store into an unbounded log.
+- Chromium libraries cache lightweight file handles and index metadata in IndexedDB so refresh can paint the prior catalog immediately, then reconcile it in the background. Session-file sources are deliberately excluded because persisting `File` objects would duplicate the video bytes and violate the app's storage expectations.
+- Explorer dropdowns use an app-owned listbox surface because native operating-system option popups cannot be styled consistently across browsers.
+- Annotation exports may reveal library-relative filenames and paths and are labeled as private metadata.
+
+Done when:
+
+- Tile and player tag controls share one component and identical behavior.
+- Bulk assignment is idempotent and can be cancelled without changing annotations.
+- Counts update immediately as annotations change.
+- A backup round-trip preserves favorites, tags, colors, and assignments.
+- Library Health shows useful totals and isolated per-file scan failures.

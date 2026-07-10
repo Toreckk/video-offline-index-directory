@@ -1,6 +1,6 @@
 import { FileSystemAccessError } from './errors'
 import type {
-  VideoFileRecord,
+  DiscoveredVideoFile,
   WalkDirectoryOptions,
 } from './apiTypes'
 import type {
@@ -9,14 +9,17 @@ import type {
   NormalizedWalkDirectoryOptions,
 } from './internalTypes'
 import { getSupportedVideoExtension } from './videoExtensions'
+import { createHandleMediaSource } from '../mediaFileSource'
 
 export async function* walkDirectory(
   directoryHandle: FileSystemDirectoryHandle,
   options: WalkDirectoryOptions = {},
-): AsyncGenerator<VideoFileRecord> {
+): AsyncGenerator<DiscoveredVideoFile> {
   yield* walkDirectoryEntries(directoryHandle, [], {
     scanSubfolders: options.scanSubfolders ?? true,
     signal: options.signal,
+    onDirectoryVisited: options.onDirectoryVisited,
+    onError: options.onError,
   })
 }
 
@@ -24,45 +27,71 @@ async function* walkDirectoryEntries(
   directoryHandle: FileSystemDirectoryHandle,
   pathParts: string[],
   options: NormalizedWalkDirectoryOptions,
-): AsyncGenerator<VideoFileRecord> {
+): AsyncGenerator<DiscoveredVideoFile> {
   throwIfAborted(options.signal)
+  options.onDirectoryVisited?.(pathParts)
 
-  for await (const [name, handle] of getDirectoryEntries(directoryHandle)) {
-    throwIfAborted(options.signal)
+  let entriesIterator: AsyncIterable<[string, FileSystemEntryHandle]>
+  try {
+    entriesIterator = getDirectoryEntries(directoryHandle)
+  } catch (error) {
+    options.onError?.({ pathParts, error })
+    console.error(
+      `Failed to retrieve entries for directory: ${pathParts.join('/') || 'root'}`,
+      error,
+    )
+    return
+  }
 
-    if (isDirectoryHandle(handle)) {
-      if (options.scanSubfolders) {
-        yield* walkDirectoryEntries(handle, [...pathParts, name], options)
+  try {
+    for await (const [name, handle] of entriesIterator) {
+      throwIfAborted(options.signal)
+
+      if (isDirectoryHandle(handle)) {
+        if (options.scanSubfolders) {
+          try {
+            yield* walkDirectoryEntries(handle, [...pathParts, name], options)
+          } catch (error) {
+            if (
+              error instanceof FileSystemAccessError &&
+              error.code === 'scan-aborted'
+            ) {
+              throw error
+            }
+            options.onError?.({ pathParts: [...pathParts, name], error })
+            console.error(
+              `Failed to scan subfolder: ${[...pathParts, name].join('/')}`,
+              error,
+            )
+          }
+        }
+        continue
       }
 
-      continue
+      const extension = getSupportedVideoExtension(name)
+      if (!extension) {
+        continue
+      }
+
+      yield {
+        name,
+        extension,
+        pathParts,
+        source: createHandleMediaSource(handle),
+      }
     }
-
-    const extension = getSupportedVideoExtension(name)
-
-    if (!extension) {
-      continue
+  } catch (error) {
+    if (
+      error instanceof FileSystemAccessError &&
+      error.code === 'scan-aborted'
+    ) {
+      throw error
     }
-
-    yield createVideoFileRecord(handle, name, extension, pathParts)
-  }
-}
-
-async function createVideoFileRecord(
-  fileHandle: FileSystemFileHandle,
-  name: string,
-  extension: VideoFileRecord['extension'],
-  pathParts: string[],
-): Promise<VideoFileRecord> {
-  const file = await fileHandle.getFile()
-
-  return {
-    name,
-    extension,
-    pathParts,
-    fileHandle,
-    size: file.size,
-    lastModified: file.lastModified,
+    options.onError?.({ pathParts, error })
+    console.error(
+      `Failed to iterate entries for directory: ${pathParts.join('/') || 'root'}`,
+      error,
+    )
   }
 }
 

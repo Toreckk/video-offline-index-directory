@@ -1,4 +1,6 @@
 import { FolderX, Info, PlusCircle } from 'lucide-react'
+import { useLibraryRoute } from '../../features/library/components/libraryRouteContext'
+import { useLibraryStore } from '../../features/library/store/libraryStore'
 
 const ORBIT_DOTS = [
   "left-[8%] top-[28%] h-14 w-14",
@@ -14,6 +16,10 @@ const ORBIT_DOTS = [
 ]
 
 export default function HomePage() {
+  const { openRouteDialog, reconnectAndScan } = useLibraryRoute()
+  const directoryName = useLibraryStore((state) => state.directoryName)
+  const permissionStatus = useLibraryStore((state) => state.permissionStatus)
+
   return (
     <div className="relative flex h-screen flex-1 flex-col items-center justify-center overflow-hidden border border-white/[0.035] bg-[#010102] px-6 text-center">
       <div
@@ -73,6 +79,8 @@ export default function HomePage() {
 
         <button
           id="btn-configure-library"
+          type="button"
+          onClick={openRouteDialog}
           className="group flex h-[74px] min-w-[375px] cursor-pointer items-center justify-center gap-4 border border-white/[0.23] bg-surface-container-high/95 px-10 text-on-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-300 hover:border-primary-fixed-dim/70 hover:bg-surface-bright"
         >
           <PlusCircle
@@ -85,10 +93,29 @@ export default function HomePage() {
           </span>
         </button>
 
+        {directoryName && permissionStatus !== 'granted' && (
+          <div className="mt-6 flex items-center gap-4 border border-amber-300/15 bg-amber-400/5 px-5 py-4 text-left">
+            <Info className="shrink-0 text-amber-200" size={19} />
+            <div>
+              <p className="text-sm font-bold">Reconnect {directoryName}</p>
+              <p className="mt-1 text-xs text-on-secondary">
+                Your browser needs permission before this library can be restored.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void reconnectAndScan()}
+              className="ml-3 border border-amber-200/20 px-3 py-2 text-xs font-black uppercase tracking-wider text-amber-100"
+            >
+              Reconnect
+            </button>
+          </div>
+        )}
+
         <div className="mt-16 flex items-center gap-3 text-on-secondary/70">
           <Info size={17} strokeWidth={2} />
           <span className="mt-0.5 text-[14px] font-bold tracking-[0.02em]">
-            Supports .mp4, .mov, .mxf, and .r3d formats
+            Supports .mp4 and .webm (.mov, .mkv, .r3d coming soon)
           </span>
         </div>
       </section>

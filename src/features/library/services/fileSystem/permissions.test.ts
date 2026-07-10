@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   FileSystemAccessError,
+  queryPermissionStatus,
   requestPermission,
+  requestPermissionStatus,
   verifyPermission,
 } from './index'
 
@@ -18,10 +20,22 @@ describe('directory permissions', () => {
     await expect(verifyPermission(handle)).resolves.toBe(false)
   })
 
+  it('returns the exact queried permission status', async () => {
+    const handle = createPermissionHandle('denied')
+
+    await expect(queryPermissionStatus(handle)).resolves.toBe('denied')
+  })
+
   it('requests read permission and resolves when granted', async () => {
     const handle = createPermissionHandle('granted')
 
     await expect(requestPermission(handle)).resolves.toBe(true)
+  })
+
+  it('returns the exact requested permission status', async () => {
+    const handle = createPermissionHandle('prompt')
+
+    await expect(requestPermissionStatus(handle)).resolves.toBe('prompt')
   })
 
   it('throws a typed error when permission is denied', async () => {

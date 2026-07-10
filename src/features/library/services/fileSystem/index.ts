@@ -3,8 +3,11 @@
 // This service returns handles and lightweight metadata only; object URLs belong
 // in preview/player layers.
 export * from './apiTypes'
+export * from './directoryFilePicker'
 export * from './errors'
+export * from './fileMetadata'
 export * from './permissions'
 export * from './picker'
 export * from './videoExtensions'
 export * from './walkDirectory'
+export * from './walkFileSelection'

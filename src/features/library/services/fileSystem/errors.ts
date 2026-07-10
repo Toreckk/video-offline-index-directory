@@ -2,6 +2,7 @@ export type FileSystemAccessErrorCode =
   | 'unsupported-browser'
   | 'permission-denied'
   | 'scan-aborted'
+  | 'empty-selection'
 
 export class FileSystemAccessError extends Error {
   code: FileSystemAccessErrorCode

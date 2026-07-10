@@ -45,8 +45,29 @@ body {
   overflow-x: hidden;
 }
 
+:root {
+  color-scheme: dark;
+}
+
+.themed-select,
+.themed-select option,
+select option {
+  color-scheme: dark;
+  background-color: var(--color-surface-container);
+  color: var(--color-on-primary);
+}
+
 #root {
   min-height: 100dvh;
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* ── Scrollbar Styling ── */

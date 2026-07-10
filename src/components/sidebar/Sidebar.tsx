@@ -1,4 +1,3 @@
-import { UserRound } from 'lucide-react'
 import type { AppView, ViewId } from '../../app/views'
 
 type NavItemProps = AppView & {
@@ -75,16 +74,6 @@ export default function Sidebar({
           />
         ))}
       </nav>
-
-      <footer className="flex h-[132px] items-center justify-center border-t border-white/[0.035]">
-        <button
-          id="nav-profile"
-          className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-white/[0.07] bg-surface-container-high text-on-secondary/80 transition-all duration-300 hover:border-primary-fixed-dim/45 hover:text-on-primary"
-          aria-label="Profile"
-        >
-          <UserRound size={22} strokeWidth={2} />
-        </button>
-      </footer>
     </aside>
   )
 }
