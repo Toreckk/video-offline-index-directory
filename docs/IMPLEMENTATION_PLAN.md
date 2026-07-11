@@ -872,6 +872,8 @@ Done when:
 
 Status: Done (MVP).
 
+Tagging architecture and future evolution are documented in `docs/TAGGING_STRATEGY.md`.
+
 Goal: Make local organization portable and make indexing failures explainable.
 
 Scope:
@@ -893,6 +895,8 @@ Maintenance decisions:
 - Diagnostics are session-scoped and capped at 100 to avoid turning the primary store into an unbounded log.
 - Chromium libraries cache lightweight file handles and index metadata in IndexedDB so refresh can paint the prior catalog immediately, then reconcile it in the background. Session-file sources are deliberately excluded because persisting `File` objects would duplicate the video bytes and violate the app's storage expectations.
 - Explorer dropdowns use an app-owned listbox surface because native operating-system option popups cannot be styled consistently across browsers.
+- Dropdowns and per-video tag menus share one dismissible-popover contract: only one can be open, outside pointer/Escape closes it, and body-level viewport clamping prevents grid clipping and right-edge overflow.
+- Cached thumbnails missing duration perform a one-time lightweight metadata read; refreshed scan records preserve enriched duration and dimension fields.
 - Annotation exports may reveal library-relative filenames and paths and are labeled as private metadata.
 
 Done when:

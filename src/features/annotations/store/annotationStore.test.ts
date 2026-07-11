@@ -18,6 +18,7 @@ describe('annotationStore', () => {
       tagsById: {},
       orderedTagIds: [],
       annotationsByMediaId: {},
+      favoriteTagIds: [],
       favoritesOnly: false,
       untaggedOnly: false,
       selectedTagIds: [],
@@ -37,6 +38,15 @@ describe('annotationStore', () => {
     expect(useAnnotationStore.getState().annotationsByMediaId.one?.tagIds).toEqual([tag.id])
     expect(useAnnotationStore.getState().annotationsByMediaId.two?.tagIds).toEqual([tag.id])
     expect(useAnnotationStore.getState().bulkTagId).toBeNull()
+    expect(useAnnotationStore.getState().tagsById[tag.id]?.lastUsedAt).toEqual(expect.any(Number))
+  })
+
+  it('persists user-selected favorite tags independently from video favorites', () => {
+    const tag = useAnnotationStore.getState().createTag('frequent')
+    useAnnotationStore.getState().toggleTagFavorite(tag.id)
+    expect(useAnnotationStore.getState().favoriteTagIds).toEqual([tag.id])
+    useAnnotationStore.getState().toggleTagFavorite(tag.id)
+    expect(useAnnotationStore.getState().favoriteTagIds).toEqual([])
   })
 
   it('creates case-insensitive unique tags and enforces the name limit', () => {
@@ -48,6 +58,14 @@ describe('annotationStore', () => {
     expect(() =>
       useAnnotationStore.getState().createTag('x'.repeat(MAX_TAG_NAME_LENGTH + 1)),
     ).toThrow('at most')
+  })
+
+  it('renames tags while preserving ids and rejecting name collisions', () => {
+    const first = useAnnotationStore.getState().createTag('archive')
+    useAnnotationStore.getState().createTag('history')
+    useAnnotationStore.getState().renameTag(first.id, 'Early archive')
+    expect(useAnnotationStore.getState().tagsById[first.id]?.name).toBe('Early archive')
+    expect(() => useAnnotationStore.getState().renameTag(first.id, 'HISTORY')).toThrow('already exists')
   })
 
   it('uses every curated color before repeating one', () => {

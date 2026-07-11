@@ -1,9 +1,15 @@
-import { useState } from 'react'
-import { Check, Folder, Heart, Search, SlidersHorizontal, Tag, Tags, X } from 'lucide-react'
+import { useMemo, useState, type RefObject } from 'react'
+import { Folder, Heart, Search, SlidersHorizontal, Tag, Tags, X } from 'lucide-react'
 import { useMediaStore } from '../store/mediaStore'
 import { useSettingsStore, type SortOrder, type TileDensity } from '../../settings/store/settingsStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { ThemedSelect } from '../../../components/controls/ThemedSelect'
+import { PopoverPortal } from '../../../components/controls/PopoverPortal'
+import { useDismissiblePopover } from '../../../components/controls/useDismissiblePopover'
+import { buildTagPickerSections, selectTags } from '../../annotations/services/tagCatalog'
+import { TagSearchInput } from '../../annotations/components/TagSearchInput'
+import { TagPickerList } from '../../annotations/components/TagPickerList'
+import { BulkTagSelector } from './BulkTagSelector'
 
 type ExplorerToolbarProps = {
   visibleCount: number
@@ -17,7 +23,7 @@ type ExplorerToolbarProps = {
 
 export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, favoriteCount, untaggedCount, tagCounts, folderCounts }: ExplorerToolbarProps) {
   const [tagSearch, setTagSearch] = useState('')
-  const [isTagFilterOpen, setIsTagFilterOpen] = useState(false)
+  const { isOpen: isTagFilterOpen, triggerRef: tagFilterTriggerRef, panelRef: tagFilterPanelRef, toggle: toggleTagFilterMenu } = useDismissiblePopover()
   const searchQuery = useMediaStore((state) => state.searchQuery)
   const folderFilter = useMediaStore((state) => state.folderFilter)
   const setSearchQuery = useMediaStore((state) => state.setSearchQuery)
@@ -28,24 +34,32 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
   const tagsById = useAnnotationStore((state) => state.tagsById)
   const orderedTagIds = useAnnotationStore((state) => state.orderedTagIds)
   const selectedTagIds = useAnnotationStore((state) => state.selectedTagIds)
+  const favoriteTagIds = useAnnotationStore((state) => state.favoriteTagIds)
   const favoritesOnly = useAnnotationStore((state) => state.favoritesOnly)
   const untaggedOnly = useAnnotationStore((state) => state.untaggedOnly)
   const bulkTagId = useAnnotationStore((state) => state.bulkTagId)
   const bulkSelectedMediaIds = useAnnotationStore((state) => state.bulkSelectedMediaIds)
   const toggleTagFilter = useAnnotationStore((state) => state.toggleTagFilter)
+  const toggleTagFavorite = useAnnotationStore((state) => state.toggleTagFavorite)
   const setFavoritesOnly = useAnnotationStore((state) => state.setFavoritesOnly)
   const setUntaggedOnly = useAnnotationStore((state) => state.setUntaggedOnly)
   const clearAnnotationFilters = useAnnotationStore((state) => state.clearFilters)
   const startBulkTagging = useAnnotationStore((state) => state.startBulkTagging)
   const cancelBulkTagging = useAnnotationStore((state) => state.cancelBulkTagging)
   const applyBulkTagging = useAnnotationStore((state) => state.applyBulkTagging)
-  const tags = orderedTagIds.flatMap((id) => tagsById[id] ? [tagsById[id]] : [])
-  const visibleTags = tags.filter((tag) => tag.name.toLocaleLowerCase().includes(tagSearch.trim().toLocaleLowerCase()))
+  const tags = useMemo(
+    () => selectTags(tagsById, orderedTagIds),
+    [orderedTagIds, tagsById],
+  )
+  const tagSections = useMemo(
+    () => buildTagPickerSections({ tags, assignedTagIds: selectedTagIds, favoriteTagIds, usageCounts: tagCounts, query: tagSearch }),
+    [favoriteTagIds, selectedTagIds, tagCounts, tagSearch, tags],
+  )
   const bulkTag = bulkTagId ? tagsById[bulkTagId] : undefined
   const hasFilters = favoritesOnly || untaggedOnly || selectedTagIds.length > 0 || folderFilter !== null
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/6 bg-surface-dim/95 px-8 py-5 backdrop-blur-xl">
+    <header className="sticky top-0 z-[80] border-b border-white/6 bg-surface-dim/98 px-8 py-5 backdrop-blur-xl">
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex h-11 min-w-[240px] flex-1 items-center gap-3 border border-white/8 bg-surface-container px-4 focus-within:border-primary/50">
           <Search size={18} className="text-on-secondary" />
@@ -77,31 +91,22 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
             <ThemedSelect ariaLabel="Folder filter" value={folderFilter ?? ''} onChange={(value) => setFolderFilter(value || null)} icon={<Folder size={14} />} className="w-60" options={[{ value: '', label: 'All folders', detail: String(totalCount) }, ...availableFolders.map((folder) => ({ value: folder, label: folder, detail: String(folderCounts[folder] ?? 0) }))]} />
           )}
 
-          <div className="relative">
-            <button type="button" onClick={() => setIsTagFilterOpen((open) => !open)} disabled={tags.length === 0} className="flex items-center gap-2 border border-white/8 bg-surface-container px-3 py-2 text-xs font-black uppercase tracking-wider text-on-secondary hover:text-white disabled:opacity-40" aria-expanded={isTagFilterOpen}>
+          <div>
+            <button ref={tagFilterTriggerRef as RefObject<HTMLButtonElement>} data-void-popover-trigger type="button" onClick={toggleTagFilterMenu} disabled={tags.length === 0} className="flex items-center gap-2 border border-white/8 bg-surface-container px-3 py-2 text-xs font-black uppercase tracking-wider text-on-secondary hover:text-white disabled:opacity-40" aria-expanded={isTagFilterOpen}>
               <Tags size={14} /> Tags {selectedTagIds.length > 0 ? `(${selectedTagIds.length})` : ''}
             </button>
             {isTagFilterOpen && (
-              <div className="absolute left-0 top-11 z-40 w-80 border border-white/10 bg-surface-container-high p-4 shadow-2xl">
-                <label className="flex items-center gap-2 border border-white/10 bg-surface-dim px-3 py-2">
-                  <Search size={14} className="text-on-secondary" /><input autoFocus type="search" value={tagSearch} onChange={(event) => setTagSearch(event.target.value)} placeholder="Search tags" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-                </label>
+              <PopoverPortal anchorRef={tagFilterTriggerRef} panelRef={tagFilterPanelRef} width={320} className="border border-white/10 bg-surface-container-high p-4">
+                <TagSearchInput autoFocus value={tagSearch} onChange={setTagSearch} />
                 <p className="mt-3 text-[10px] uppercase tracking-wider text-on-secondary">Multiple selections must all match</p>
-                <div className="mt-2 max-h-56 space-y-1 overflow-y-auto">
-                  {visibleTags.map((tag) => {
-                    const selected = selectedTagIds.includes(tag.id)
-                    return <button key={tag.id} type="button" onClick={() => toggleTagFilter(tag.id)} className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-white/5" aria-pressed={selected}>
-                      <span className="flex h-4 w-4 items-center justify-center border" style={{ borderColor: tag.color, backgroundColor: selected ? tag.color : 'transparent' }}>{selected && <Check size={12} className="text-black" />}</span>
-                      <span className="min-w-0 flex-1 truncate">{tag.name}</span><span className="text-xs tabular-nums text-on-secondary">{tagCounts[tag.id] ?? 0}</span>
-                    </button>
-                  })}
-                  {visibleTags.length === 0 && <p className="py-4 text-center text-xs text-on-secondary">No matching tags.</p>}
+                <div className="mt-3 max-h-72 overflow-y-auto pr-1">
+                  <TagPickerList sections={tagSections} selectedTagIds={selectedTagIds} favoriteTagIds={favoriteTagIds} usageCounts={tagCounts} onToggle={toggleTagFilter} onToggleFavorite={toggleTagFavorite} selectedLabel="On" unselectedLabel="Off" />
                 </div>
-              </div>
+              </PopoverPortal>
             )}
           </div>
 
-          {tags.length > 0 && <ThemedSelect ariaLabel="Start bulk tag assignment" value="" onChange={(value) => value && startBulkTagging(value)} className="w-52" options={[{ value: '', label: 'Add videos to tag...' }, ...tags.map((tag) => ({ value: tag.id, label: tag.name }))]} />}
+          {tags.length > 0 && <BulkTagSelector tags={tags} favoriteTagIds={favoriteTagIds} usageCounts={tagCounts} onSelect={startBulkTagging} onToggleFavorite={toggleTagFavorite} />}
 
           {hasFilters && <button type="button" onClick={() => { clearAnnotationFilters(); setFolderFilter(null) }} className="ml-auto flex items-center gap-1.5 px-2 py-2 text-xs font-bold text-on-secondary hover:text-white"><X size={14} /> Clear filters</button>}
         </div>

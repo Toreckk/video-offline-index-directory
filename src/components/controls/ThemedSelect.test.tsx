@@ -17,4 +17,29 @@ describe('ThemedSelect', () => {
     expect(onChange).toHaveBeenCalledWith('Trips')
     expect(screen.queryByRole('listbox', { name: 'Folder filter' })).not.toBeInTheDocument()
   })
+
+  it('keeps one popover open and closes it on an outside pointer', () => {
+    const options = [{ value: '', label: 'Default' }]
+    render(<><ThemedSelect ariaLabel="First dropdown" value="" onChange={() => undefined} options={options} /><ThemedSelect ariaLabel="Second dropdown" value="" onChange={() => undefined} options={options} /></>)
+
+    fireEvent.click(screen.getByRole('button', { name: 'First dropdown' }))
+    expect(screen.getByRole('listbox', { name: 'First dropdown' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Second dropdown' }))
+    expect(screen.queryByRole('listbox', { name: 'First dropdown' })).not.toBeInTheDocument()
+    expect(screen.getByRole('listbox', { name: 'Second dropdown' })).toBeInTheDocument()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('listbox', { name: 'Second dropdown' })).not.toBeInTheDocument()
+  })
+
+  it('uses the first outside click only to dismiss instead of activating content underneath', () => {
+    const activateBehind = vi.fn()
+    render(<><ThemedSelect ariaLabel="Open menu" value="" onChange={() => undefined} options={[{ value: '', label: 'Default' }]} /><button type="button" onClick={activateBehind}>Video behind menu</button></>)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    const behind = screen.getByRole('button', { name: 'Video behind menu' })
+    fireEvent.pointerDown(behind)
+    fireEvent.click(behind)
+    expect(activateBehind).not.toHaveBeenCalled()
+    expect(screen.queryByRole('listbox', { name: 'Open menu' })).not.toBeInTheDocument()
+  })
 })

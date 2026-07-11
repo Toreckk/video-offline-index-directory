@@ -13,7 +13,7 @@ import {
   useMediaStore,
 } from '../../explorer/store/mediaStore'
 import { createMediaId } from '../../../utils/media'
-import { generateVideoThumbnail } from '../../explorer/services/generateVideoThumbnail'
+import { generateVideoThumbnail, readVideoMetadata } from '../../explorer/services/generateVideoThumbnail'
 import {
   cacheThumbnail,
   createThumbnailBlobKey,
@@ -200,7 +200,9 @@ async function flushBatch(
 
 function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
   for (const asset of assets) {
-    useMediaStore.getState().updateAsset(asset.id, { thumbnailStatus: 'queued' })
+    if (asset.thumbnailStatus !== 'ready') {
+      useMediaStore.getState().updateAsset(asset.id, { thumbnailStatus: 'queued' })
+    }
     thumbnailQueue.enqueue({
       id: asset.id,
       priority: 'normal',
@@ -217,9 +219,15 @@ function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
           if (signal.aborted) return
 
           if (cachedBlob) {
+            const metadata = asset.duration === undefined
+              ? await readVideoMetadata(asset.source, { signal })
+              : { duration: asset.duration, width: asset.width, height: asset.height }
             useMediaStore.getState().updateAsset(asset.id, {
               thumbnailBlobKey,
               thumbnailStatus: 'ready',
+              duration: metadata.duration,
+              width: metadata.width,
+              height: metadata.height,
             })
           } else {
             const result = await generateVideoThumbnail(asset.source, { signal })

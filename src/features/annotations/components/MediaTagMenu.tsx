@@ -1,10 +1,15 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent, type RefObject } from 'react'
 import { Plus, Tags } from 'lucide-react'
 import {
   MAX_TAG_NAME_LENGTH,
   pickDistinctTagColor,
   useAnnotationStore,
 } from '../store/annotationStore'
+import { PopoverPortal } from '../../../components/controls/PopoverPortal'
+import { useDismissiblePopover } from '../../../components/controls/useDismissiblePopover'
+import { buildTagPickerSections, buildTagUsageCounts, selectTags } from '../services/tagCatalog'
+import { TagSearchInput } from './TagSearchInput'
+import { TagPickerList } from './TagPickerList'
 
 type MediaTagMenuProps = {
   mediaId: string
@@ -12,21 +17,35 @@ type MediaTagMenuProps = {
   compact?: boolean
 }
 
+const EMPTY_TAG_IDS: string[] = []
+
 export function MediaTagMenu({ mediaId, align = 'right', compact = false }: MediaTagMenuProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const { isOpen, triggerRef, panelRef, toggle } = useDismissiblePopover()
   const [tagName, setTagName] = useState('')
+  const [tagSearch, setTagSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   const annotation = useAnnotationStore((state) => state.annotationsByMediaId[mediaId])
   const tagsById = useAnnotationStore((state) => state.tagsById)
   const orderedTagIds = useAnnotationStore((state) => state.orderedTagIds)
+  const annotationsByMediaId = useAnnotationStore((state) => state.annotationsByMediaId)
+  const favoriteTagIds = useAnnotationStore((state) => state.favoriteTagIds)
   const createTag = useAnnotationStore((state) => state.createTag)
   const addMediaTag = useAnnotationStore((state) => state.addMediaTag)
   const toggleMediaTag = useAnnotationStore((state) => state.toggleMediaTag)
+  const toggleTagFavorite = useAnnotationStore((state) => state.toggleTagFavorite)
   const tags = useMemo(
-    () => orderedTagIds.flatMap((id) => tagsById[id] ? [tagsById[id]] : []),
+    () => selectTags(tagsById, orderedTagIds),
     [orderedTagIds, tagsById],
   )
-  const assignedTagIds = annotation?.tagIds ?? []
+  const assignedTagIds = annotation?.tagIds ?? EMPTY_TAG_IDS
+  const usageCounts = useMemo(
+    () => buildTagUsageCounts(annotationsByMediaId),
+    [annotationsByMediaId],
+  )
+  const sections = useMemo(
+    () => buildTagPickerSections({ tags, assignedTagIds, favoriteTagIds, usageCounts, query: tagSearch }),
+    [assignedTagIds, favoriteTagIds, tagSearch, tags, usageCounts],
+  )
   const suggestedColor = pickDistinctTagColor(tags, tagName || 'new tag')
 
   const handleCreate = (event: FormEvent) => {
@@ -43,10 +62,12 @@ export function MediaTagMenu({ mediaId, align = 'right', compact = false }: Medi
   }
 
   return (
-    <div className="relative" onClick={(event) => event.stopPropagation()}>
+    <div onClick={(event) => event.stopPropagation()}>
       <button
+        ref={triggerRef as RefObject<HTMLButtonElement>}
+        data-void-popover-trigger
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
+        onClick={toggle}
         className={`relative flex items-center justify-center rounded-full border border-white/10 bg-black/60 text-white backdrop-blur transition hover:bg-black/85 ${compact ? 'h-9 w-9' : 'h-10 w-10'}`}
         aria-label="Manage video tags"
         aria-expanded={isOpen}
@@ -60,29 +81,14 @@ export function MediaTagMenu({ mediaId, align = 'right', compact = false }: Medi
       </button>
 
       {isOpen && (
-        <div className={`absolute top-12 z-40 w-80 border border-white/10 bg-surface-container-high p-4 text-left shadow-2xl ${align === 'right' ? 'right-0' : 'left-0'}`}>
+        <PopoverPortal anchorRef={triggerRef} panelRef={panelRef} width={320} align={align} className="border border-white/10 bg-surface-container-high p-4 text-left">
           <h3 className="text-sm font-black">Video tags</h3>
           <p className="mt-1 text-xs leading-5 text-on-secondary">Add existing tags or create one without leaving the video.</p>
-          <div className="mt-4 max-h-48 space-y-2 overflow-y-auto">
+          <div className="mt-4"><TagSearchInput value={tagSearch} onChange={setTagSearch} /></div>
+          <div className="mt-4 max-h-64 overflow-y-auto pr-1">
             {tags.length === 0 ? (
               <p className="py-3 text-center text-xs text-on-secondary">No tags yet. Create the first one below.</p>
-            ) : tags.map((tag) => {
-              const assigned = assignedTagIds.includes(tag.id)
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => toggleMediaTag(mediaId, tag.id)}
-                  className="flex w-full items-center gap-3 border px-3 py-2 text-left text-sm"
-                  style={{ borderColor: assigned ? tag.color : `${tag.color}44`, backgroundColor: assigned ? `${tag.color}24` : 'transparent' }}
-                  aria-pressed={assigned}
-                >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
-                  <span className="min-w-0 flex-1 truncate">{tag.name}</span>
-                  <span className="text-xs text-on-secondary">{assigned ? 'Added' : 'Add'}</span>
-                </button>
-              )
-            })}
+            ) : <TagPickerList sections={sections} selectedTagIds={assignedTagIds} favoriteTagIds={favoriteTagIds} usageCounts={usageCounts} onToggle={(tagId) => toggleMediaTag(mediaId, tagId)} onToggleFavorite={toggleTagFavorite} />}
           </div>
           <form onSubmit={handleCreate} className="mt-4 border-t border-white/7 pt-4">
             <label className="text-xs font-bold text-on-secondary">Quick create</label>
@@ -104,7 +110,7 @@ export function MediaTagMenu({ mediaId, align = 'right', compact = false }: Medi
               <span>{tagName.length}/{MAX_TAG_NAME_LENGTH}</span>
             </div>
           </form>
-        </div>
+        </PopoverPortal>
       )}
     </div>
   )

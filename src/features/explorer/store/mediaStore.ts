@@ -59,8 +59,19 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
       const orderedIds = [...state.orderedIds]
 
       for (const asset of assets) {
-        if (!(asset.id in assetsById)) orderedIds.push(asset.id)
-        assetsById[asset.id] = asset
+        const existing = assetsById[asset.id]
+        if (!existing) orderedIds.push(asset.id)
+        assetsById[asset.id] = {
+          ...asset,
+          duration: asset.duration ?? existing?.duration,
+          width: asset.width ?? existing?.width,
+          height: asset.height ?? existing?.height,
+          thumbnailBlobKey: asset.thumbnailBlobKey ?? existing?.thumbnailBlobKey,
+          thumbnailStatus:
+            asset.thumbnailStatus === 'idle' && existing?.thumbnailStatus === 'ready'
+              ? 'ready'
+              : asset.thumbnailStatus,
+        }
       }
 
       return { assetsById, orderedIds }

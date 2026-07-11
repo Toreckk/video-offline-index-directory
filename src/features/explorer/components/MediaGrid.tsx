@@ -7,6 +7,7 @@ import { usePlayerStore } from '../../player/store/playerStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
+import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
 
 const TILE_SIZES = {
   compact: '180px',
@@ -32,7 +33,7 @@ export function MediaGrid() {
   const filterCounts = useMemo(() => {
     let favoriteCount = 0
     let untaggedCount = 0
-    const tagCounts: Record<string, number> = {}
+    const tagCounts = buildTagUsageCounts(annotationsByMediaId)
     const folderCounts: Record<string, number> = {}
     for (const id of orderedIds) {
       const asset = assetsById[id]
@@ -40,7 +41,6 @@ export function MediaGrid() {
       const annotation = annotationsByMediaId[id]
       if (annotation?.favorite) favoriteCount += 1
       if ((annotation?.tagIds.length ?? 0) === 0) untaggedCount += 1
-      for (const tagId of annotation?.tagIds ?? []) tagCounts[tagId] = (tagCounts[tagId] ?? 0) + 1
       for (let index = 1; index <= asset.pathParts.length; index += 1) {
         const folder = asset.pathParts.slice(0, index).join('/')
         folderCounts[folder] = (folderCounts[folder] ?? 0) + 1

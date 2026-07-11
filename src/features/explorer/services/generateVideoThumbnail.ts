@@ -5,6 +5,8 @@ export type GeneratedThumbnail = {
   height: number
 }
 
+export type VideoMetadata = Omit<GeneratedThumbnail, 'blob'>
+
 type ThumbnailOptions = {
   timeoutMs?: number
   signal?: AbortSignal
@@ -59,6 +61,30 @@ export async function generateVideoThumbnail(
     return { blob, duration, width, height }
   } finally {
     video.pause()
+    video.removeAttribute('src')
+    video.load()
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+export async function readVideoMetadata(
+  source: MediaFileSource,
+  options: ThumbnailOptions = {},
+): Promise<VideoMetadata> {
+  const file = await openMediaFile(source)
+  const objectUrl = URL.createObjectURL(file)
+  const video = document.createElement('video')
+  video.preload = 'metadata'
+  video.src = objectUrl
+  try {
+    await waitForMediaEvent(video, 'loadedmetadata', options.timeoutMs ?? 5_000, options.signal)
+    throwIfAborted(options.signal)
+    return {
+      duration: Number.isFinite(video.duration) ? video.duration : 0,
+      width: Math.max(1, video.videoWidth),
+      height: Math.max(1, video.videoHeight),
+    }
+  } finally {
     video.removeAttribute('src')
     video.load()
     URL.revokeObjectURL(objectUrl)

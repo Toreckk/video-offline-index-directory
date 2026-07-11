@@ -44,6 +44,7 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Open the Tags dropdown, search by a partial tag name, select multiple tags, and confirm the result requires every selected tag.
 - From a tile, open the quick tag control, create a tag, and confirm it is assigned without opening the player.
 - Choose `Add videos to tag...`, select several tile checkboxes, apply, and confirm all selected videos receive the tag. Repeat and confirm there are no duplicate assignments.
+- Click directly on the visible bulk checkbox/label and confirm the tile toggles selected state.
 - Cancel a bulk assignment and confirm it changes no annotations.
 - Repeat with 400+ videos and record scroll/input responsiveness before enabling virtualization work.
 - In Chromium, refresh a previously scanned library and confirm cached tiles paint before the background reconciliation scan completes; removed files should disappear when reconciliation finishes.
@@ -62,7 +63,19 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Click a tile and confirm the modal opens with native audio controls.
 - Favorite a video from the player and assign an existing tag.
 - Quick-create a tag from the player and confirm it is immediately assigned with an automatically selected curated color.
+- Open quick tags on tiles along the right and bottom viewport edges; confirm the menu remains fully visible and clicks never reach the tile behind it.
+- With more than six tags, search in the quick-tag menu and confirm the scrollable result list assigns the intended tag.
+- With 100+ tags, confirm quick assignment, Explorer filtering, and bulk-target selection all provide search and show assigned, favorite, recent, and remaining tags consistently.
+- Favorite several tags, refresh, and confirm those preferences persist and remain ahead of the general catalog.
+- In a section with more than 60 tags, confirm the initial list is bounded and `Show more` exposes the complete section.
+- Assign a previously unused tag and confirm it moves into Recently Used and its usage count updates immediately.
+- Open one dropdown and then another; confirm the first closes. Click outside or press Escape and confirm the active dropdown closes without opening/favoriting a video underneath.
+- Confirm tiles show at most three tag chips below the filename, followed by a `+N` overflow count, with size and duration aligned together at the lower right.
+- Rescan a library with existing cached thumbnails and confirm durations are populated instead of remaining `--:--`.
 - In Settings, change that tag color, verify its usage count, and delete it using the confirmation step.
+- Open Settings and confirm Experience, Library, and Tags are separate sections whose controls do not appear in the wrong section.
+- In Settings > Tags, rename a tag and confirm all existing video assignments keep the new name. Try renaming it to an existing tag with different capitalization and confirm the conflict is rejected.
+- Create at least 61 tags, then verify search, Name/Most used/Recently used sorting, Favorites/Unused scopes, summary counts, and the 50-row `Load more` boundary.
 - Export annotations, change local favorites/tags, then import the backup and confirm data is merged rather than destructively replaced.
 - Use left/right edge buttons and `ArrowLeft`/`ArrowRight` to navigate the current filtered/sorted Explorer queue.
 - Press Space outside form controls and confirm play/pause toggles.

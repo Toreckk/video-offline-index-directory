@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { MediaAnnotation } from '../../annotations/store/annotationStore'
+import type { MediaAnnotation } from '../../annotations/model/annotationTypes'
 import type { MediaAsset } from '../store/mediaStore'
 import { matchesMediaFilters } from './mediaFilters'
 

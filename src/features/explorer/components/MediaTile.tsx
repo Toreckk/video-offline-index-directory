@@ -36,12 +36,13 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
   const isFavorite = annotation?.favorite ?? false
   const isBulkSelected = bulkSelectedMediaIds.includes(asset.id)
   const bulkTag = bulkTagId ? tagsById[bulkTagId] : undefined
-  const visibleTags = (annotation?.tagIds ?? [])
+  const allTags = (annotation?.tagIds ?? [])
     .flatMap((tagId) => {
       const tag = tagsById[tagId]
       return tag ? [tag] : []
     })
-    .slice(0, 2)
+  const visibleTags = allTags.slice(0, 3)
+  const hiddenTagCount = Math.max(0, allTags.length - visibleTags.length)
 
   useEffect(() => {
     if (
@@ -124,43 +125,22 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
           {asset.extension.slice(1)}
         </span>
 
-        {visibleTags.length > 0 && (
-          <span className="absolute bottom-12 left-3 flex max-w-[75%] gap-1">
-            {visibleTags.map((tag) => (
-              <span
-                key={tag.id}
-                className="truncate border px-2 py-1 text-[9px] font-black uppercase tracking-wider"
-                style={{
-                  borderColor: `${tag.color}66`,
-                  backgroundColor: `${tag.color}22`,
-                  color: tag.color,
-                }}
-              >
-                {tag.name}
-              </span>
-            ))}
+        <span className="absolute bottom-0 left-0 right-0 flex flex-col gap-2 p-3">
+          {showFilenames && <span className="block truncate text-sm font-black leading-tight">{asset.name}</span>}
+          <span className="flex min-w-0 items-center justify-between gap-3">
+          <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+            {visibleTags.map((tag) => <span key={tag.id} className="min-w-0 truncate border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider" style={{ borderColor: `${tag.color}66`, backgroundColor: `${tag.color}22`, color: tag.color }}>{tag.name}</span>)}
+            {hiddenTagCount > 0 && <span className="shrink-0 border border-white/15 bg-black/35 px-1.5 py-0.5 text-[8px] font-black text-white/75">+{hiddenTagCount}</span>}
           </span>
-        )}
-
-        <span className="absolute bottom-0 left-0 right-0 flex items-end justify-between gap-3 p-3">
-          {showFilenames ? (
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black">{asset.name}</span>
-              <span className="mt-1 block text-[10px] text-white/65">
-                {formatBytes(asset.size)}
-              </span>
-            </span>
-          ) : (
-            <span />
-          )}
-          <span className="shrink-0 text-[10px] font-bold tabular-nums text-white/75">
-            {formatDuration(asset.duration)}
+          <span className="flex shrink-0 items-center gap-1.5 text-[9px] font-bold tabular-nums text-white/70">
+            <span>{formatBytes(asset.size)}</span><span aria-hidden="true">/</span><span>{formatDuration(asset.duration)}</span>
+          </span>
           </span>
         </span>
       </button>
 
       {bulkTagId ? (
-        <span className="absolute left-3 top-3 z-20 flex items-center gap-2 bg-black/75 px-3 py-2 text-xs font-black backdrop-blur">
+        <span className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 bg-black/75 px-3 py-2 text-xs font-black backdrop-blur">
           <input type="checkbox" checked={isBulkSelected} readOnly className="h-4 w-4 accent-primary" tabIndex={-1} />
           {isBulkSelected ? 'Selected' : 'Select'}
         </span>
@@ -178,7 +158,7 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
       >
         <Heart size={17} fill={isFavorite ? 'currentColor' : 'none'} />
       </button>
-      <div className="absolute left-14 top-3 z-30 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+      <div className="absolute left-14 top-3 z-20 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
         <MediaTagMenu mediaId={asset.id} align="left" compact />
       </div>
       </>}

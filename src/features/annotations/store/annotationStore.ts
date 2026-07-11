@@ -1,48 +1,27 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { idbStateStorage } from '../../../shared/persistence/idbStateStorage'
+import {
+  MAX_TAG_NAME_LENGTH,
+  TAG_COLOR_OPTIONS,
+  type AnnotationData,
+  type MediaAnnotation,
+  type TagColor,
+  type TagDefinition,
+} from '../model/annotationTypes'
+import { selectTags } from '../services/tagCatalog'
 
-export const MAX_TAG_NAME_LENGTH = 32
+export {
+  MAX_TAG_NAME_LENGTH,
+  TAG_COLOR_OPTIONS,
+  type AnnotationData,
+  type MediaAnnotation,
+  type TagColor,
+  type TagDefinition,
+} from '../model/annotationTypes'
 
-export const TAG_COLOR_OPTIONS = [
-  { label: 'Violet', value: '#A78BFA' },
-  { label: 'Rose', value: '#FB7185' },
-  { label: 'Amber', value: '#F59E0B' },
-  { label: 'Lime', value: '#A3E635' },
-  { label: 'Emerald', value: '#34D399' },
-  { label: 'Teal', value: '#2DD4BF' },
-  { label: 'Cyan', value: '#22D3EE' },
-  { label: 'Sky', value: '#38BDF8' },
-  { label: 'Blue', value: '#60A5FA' },
-  { label: 'Indigo', value: '#818CF8' },
-  { label: 'Purple', value: '#C084FC' },
-  { label: 'Orange', value: '#FB923C' },
-] as const
-
-export type TagColor = (typeof TAG_COLOR_OPTIONS)[number]['value']
-
-export type TagDefinition = {
-  id: string
-  name: string
-  color: TagColor
-  createdAt: number
-}
-
-export type MediaAnnotation = {
-  favorite: boolean
-  tagIds: string[]
-  updatedAt: number
-}
-
-export type AnnotationData = Pick<
-  AnnotationState,
-  'tagsById' | 'orderedTagIds' | 'annotationsByMediaId'
->
-
-type AnnotationState = {
-  tagsById: Record<string, TagDefinition>
-  orderedTagIds: string[]
-  annotationsByMediaId: Record<string, MediaAnnotation>
+type AnnotationState = AnnotationData & {
+  favoriteTagIds: string[]
   favoritesOnly: boolean
   untaggedOnly: boolean
   selectedTagIds: string[]
@@ -54,7 +33,9 @@ type AnnotationState = {
 type AnnotationActions = {
   createTag: (name: string, color?: TagColor) => TagDefinition
   updateTagColor: (tagId: string, color: TagColor) => void
+  renameTag: (tagId: string, name: string) => void
   deleteTag: (tagId: string) => void
+  toggleTagFavorite: (tagId: string) => void
   toggleFavorite: (mediaId: string) => void
   toggleMediaTag: (mediaId: string, tagId: string) => void
   addMediaTag: (mediaId: string, tagId: string) => void
@@ -80,6 +61,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
       tagsById: {},
       orderedTagIds: [],
       annotationsByMediaId: {},
+      favoriteTagIds: [],
       favoritesOnly: false,
       untaggedOnly: false,
       selectedTagIds: [],
@@ -94,10 +76,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           .find((tag) => tag?.name.toLocaleLowerCase() === name.toLocaleLowerCase())
         if (existing) return existing
 
-        const currentTags = get().orderedTagIds.flatMap((tagId) => {
-          const tag = get().tagsById[tagId]
-          return tag ? [tag] : []
-        })
+        const currentTags = selectTags(get().tagsById, get().orderedTagIds)
         const tag: TagDefinition = {
           id: `tag_${crypto.randomUUID()}`,
           name,
@@ -123,6 +102,26 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           }
         }),
 
+      renameTag: (tagId, rawName) => {
+        const name = normalizeTagName(rawName)
+        const duplicate = selectTags(get().tagsById, get().orderedTagIds).find(
+          (tag) =>
+            tag.id !== tagId &&
+            tag.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+        )
+        if (duplicate) throw new Error(`A tag named “${duplicate.name}” already exists.`)
+        set((state) => {
+          const tag = state.tagsById[tagId]
+          if (!tag) return state
+          return {
+            tagsById: {
+              ...state.tagsById,
+              [tagId]: { ...tag, name },
+            },
+          }
+        })
+      },
+
       deleteTag: (tagId) =>
         set((state) => {
           const tagsById = { ...state.tagsById }
@@ -145,10 +144,21 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
             tagsById,
             orderedTagIds: state.orderedTagIds.filter((id) => id !== tagId),
             annotationsByMediaId,
+            favoriteTagIds: state.favoriteTagIds.filter((id) => id !== tagId),
             selectedTagIds: state.selectedTagIds.filter((id) => id !== tagId),
             ...(state.bulkTagId === tagId
               ? { bulkTagId: null, bulkSelectedMediaIds: [] }
               : {}),
+          }
+        }),
+
+      toggleTagFavorite: (tagId) =>
+        set((state) => {
+          if (!state.tagsById[tagId]) return state
+          return {
+            favoriteTagIds: state.favoriteTagIds.includes(tagId)
+              ? state.favoriteTagIds.filter((id) => id !== tagId)
+              : [...state.favoriteTagIds, tagId],
           }
         }),
 
@@ -173,6 +183,9 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
             ? current.tagIds.filter((id) => id !== tagId)
             : [...current.tagIds, tagId]
           return {
+            tagsById: hasTag
+              ? state.tagsById
+              : touchTag(state.tagsById, tagId),
             annotationsByMediaId: updateAnnotationRecord(
               state.annotationsByMediaId,
               mediaId,
@@ -187,6 +200,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           const current = state.annotationsByMediaId[mediaId] ?? EMPTY_ANNOTATION
           if (current.tagIds.includes(tagId)) return state
           return {
+            tagsById: touchTag(state.tagsById, tagId),
             annotationsByMediaId: updateAnnotationRecord(
               state.annotationsByMediaId,
               mediaId,
@@ -217,11 +231,28 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
         })),
       cancelBulkTagging: () => set({ bulkTagId: null, bulkSelectedMediaIds: [] }),
       applyBulkTagging: () => {
-        const { bulkTagId, bulkSelectedMediaIds, addMediaTag } = get()
+        const { bulkTagId, bulkSelectedMediaIds } = get()
         if (!bulkTagId) return 0
-        for (const mediaId of bulkSelectedMediaIds) addMediaTag(mediaId, bulkTagId)
         const count = bulkSelectedMediaIds.length
-        set({ bulkTagId: null, bulkSelectedMediaIds: [] })
+        const updatedAt = Date.now()
+        set((state) => {
+          const annotationsByMediaId = { ...state.annotationsByMediaId }
+          for (const mediaId of state.bulkSelectedMediaIds) {
+            const current = annotationsByMediaId[mediaId] ?? EMPTY_ANNOTATION
+            if (current.tagIds.includes(bulkTagId)) continue
+            annotationsByMediaId[mediaId] = {
+              ...current,
+              tagIds: [...current.tagIds, bulkTagId],
+              updatedAt,
+            }
+          }
+          return {
+            tagsById: touchTag(state.tagsById, bulkTagId, updatedAt),
+            annotationsByMediaId,
+            bulkTagId: null,
+            bulkSelectedMediaIds: [],
+          }
+        })
         return count
       },
       mergeAnnotationData: (data) =>
@@ -238,6 +269,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
         tagsById: state.tagsById,
         orderedTagIds: state.orderedTagIds,
         annotationsByMediaId: state.annotationsByMediaId,
+        favoriteTagIds: state.favoriteTagIds,
       }),
       version: 1,
       onRehydrateStorage: () => () => {
@@ -290,4 +322,15 @@ function updateAnnotationRecord(
   if (!annotation.favorite && annotation.tagIds.length === 0) delete next[mediaId]
   else next[mediaId] = annotation
   return next
+}
+
+function touchTag(
+  tagsById: Record<string, TagDefinition>,
+  tagId: string,
+  lastUsedAt = Date.now(),
+) {
+  const tag = tagsById[tagId]
+  return tag
+    ? { ...tagsById, [tagId]: { ...tag, lastUsedAt } }
+    : tagsById
 }

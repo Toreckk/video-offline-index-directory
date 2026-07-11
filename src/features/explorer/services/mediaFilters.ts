@@ -1,4 +1,4 @@
-import type { MediaAnnotation } from '../../annotations/store/annotationStore'
+import type { MediaAnnotation } from '../../annotations/model/annotationTypes'
 import type { MediaAsset } from '../store/mediaStore'
 
 export type MediaFilters = {

@@ -4,7 +4,8 @@ import {
   type MediaAnnotation,
   type TagColor,
   type TagDefinition,
-} from '../store/annotationStore'
+} from '../model/annotationTypes'
+import { selectTags } from './tagCatalog'
 
 export const ANNOTATION_EXPORT_VERSION = 1
 
@@ -19,7 +20,7 @@ export function createAnnotationExport(data: AnnotationData): AnnotationExport {
   return {
     schemaVersion: ANNOTATION_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    tags: data.orderedTagIds.flatMap((id) => data.tagsById[id] ? [data.tagsById[id]] : []),
+    tags: selectTags(data.tagsById, data.orderedTagIds),
     annotations: Object.entries(data.annotationsByMediaId).map(([mediaId, annotation]) => ({
       mediaId,
       ...annotation,
@@ -40,7 +41,13 @@ export function parseAnnotationExport(value: unknown): AnnotationExport {
       typeof tag.color !== 'string' || !colors.has(tag.color) || typeof tag.createdAt !== 'number') {
       throw new Error('The backup contains an invalid tag.')
     }
-    return { id: tag.id, name: tag.name, color: tag.color as TagColor, createdAt: tag.createdAt }
+    return {
+      id: tag.id,
+      name: tag.name,
+      color: tag.color as TagColor,
+      createdAt: tag.createdAt,
+      ...(typeof tag.lastUsedAt === 'number' ? { lastUsedAt: tag.lastUsedAt } : {}),
+    }
   })
   const tagIds = new Set(tags.map((tag) => tag.id))
   const annotations = value.annotations.map((annotation) => {
