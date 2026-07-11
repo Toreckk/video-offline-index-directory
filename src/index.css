@@ -45,6 +45,11 @@ body {
   overflow-x: hidden;
 }
 
+button:not(:disabled),
+[role='option']:not([aria-disabled='true']) {
+  cursor: pointer;
+}
+
 :root {
   color-scheme: dark;
 }

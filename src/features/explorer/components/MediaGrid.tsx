@@ -8,6 +8,7 @@ import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
 import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
+import { usePlaybackStore } from '../../playback/store/playbackStore'
 
 const TILE_SIZES = {
   compact: '180px',
@@ -29,6 +30,7 @@ export function MediaGrid() {
   const favoritesOnly = useAnnotationStore((state) => state.favoritesOnly)
   const untaggedOnly = useAnnotationStore((state) => state.untaggedOnly)
   const selectedTagIds = useAnnotationStore((state) => state.selectedTagIds)
+  const playbackByMediaId = usePlaybackStore((state) => state.recordsByMediaId)
 
   const filterCounts = useMemo(() => {
     let favoriteCount = 0
@@ -78,7 +80,7 @@ export function MediaGrid() {
         : []
     })
 
-    return sortMediaAssets(assets, sortOrder)
+    return sortMediaAssets(assets, sortOrder, playbackByMediaId)
   }, [
     annotationsByMediaId,
     assetsById,
@@ -86,6 +88,7 @@ export function MediaGrid() {
     untaggedOnly,
     folderFilter,
     orderedIds,
+    playbackByMediaId,
     searchQuery,
     selectedTagIds,
     sortOrder,

@@ -20,7 +20,8 @@ export {
   type TagDefinition,
 } from '../model/annotationTypes'
 
-type AnnotationState = AnnotationData & {
+type AnnotationState = Omit<AnnotationData, 'tagImplications'> & {
+  tagImplications: Record<string, string[]>
   favoriteTagIds: string[]
   favoritesOnly: boolean
   untaggedOnly: boolean
@@ -34,6 +35,8 @@ type AnnotationActions = {
   createTag: (name: string, color?: TagColor) => TagDefinition
   updateTagColor: (tagId: string, color: TagColor) => void
   renameTag: (tagId: string, name: string) => void
+  mergeTag: (sourceTagId: string, targetTagId: string, deleteSource: boolean) => number
+  setTagImplications: (tagId: string, impliedTagIds: string[]) => void
   deleteTag: (tagId: string) => void
   toggleTagFavorite: (tagId: string) => void
   toggleFavorite: (mediaId: string) => void
@@ -61,6 +64,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
       tagsById: {},
       orderedTagIds: [],
       annotationsByMediaId: {},
+      tagImplications: {},
       favoriteTagIds: [],
       favoritesOnly: false,
       untaggedOnly: false,
@@ -122,10 +126,51 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
         })
       },
 
+      mergeTag: (sourceTagId, targetTagId, deleteSource) => {
+        if (sourceTagId === targetTagId) throw new Error('Choose two different tags to merge.')
+        const state = get()
+        if (!state.tagsById[sourceTagId] || !state.tagsById[targetTagId]) throw new Error('The source or destination tag no longer exists.')
+        const expandedTargetIds = expandTagIds([targetTagId], state.tagImplications)
+        let affected = 0
+        const annotationsByMediaId = Object.fromEntries(
+          Object.entries(state.annotationsByMediaId).map(([mediaId, annotation]) => {
+            if (!annotation.tagIds.includes(sourceTagId)) return [mediaId, annotation]
+            affected += 1
+            return [mediaId, { ...annotation, tagIds: Array.from(new Set([...annotation.tagIds.filter((id) => id !== sourceTagId), ...expandedTargetIds])), updatedAt: Date.now() }]
+          }),
+        )
+        const tagImplications = remapTagImplications(state.tagImplications, sourceTagId, targetTagId, deleteSource)
+        const tagsById = { ...state.tagsById }
+        if (deleteSource) delete tagsById[sourceTagId]
+        set({
+          annotationsByMediaId,
+          tagImplications,
+          tagsById,
+          orderedTagIds: deleteSource ? state.orderedTagIds.filter((id) => id !== sourceTagId) : state.orderedTagIds,
+          favoriteTagIds: deleteSource ? state.favoriteTagIds.filter((id) => id !== sourceTagId) : state.favoriteTagIds,
+          selectedTagIds: deleteSource ? state.selectedTagIds.filter((id) => id !== sourceTagId) : state.selectedTagIds,
+        })
+        return affected
+      },
+
+      setTagImplications: (tagId, impliedTagIds) => {
+        const state = get()
+        if (!state.tagsById[tagId]) throw new Error('The trigger tag no longer exists.')
+        const normalized = Array.from(new Set(impliedTagIds)).filter((id) => state.tagsById[id] && id !== tagId)
+        const candidate = { ...state.tagImplications, [tagId]: normalized }
+        if (hasImplicationCycle(candidate)) throw new Error('Tag links cannot contain a cycle.')
+        set({ tagImplications: candidate })
+      },
+
       deleteTag: (tagId) =>
         set((state) => {
           const tagsById = { ...state.tagsById }
           delete tagsById[tagId]
+          const tagImplications = Object.fromEntries(
+            Object.entries(state.tagImplications)
+              .filter(([sourceId]) => sourceId !== tagId)
+              .map(([sourceId, impliedIds]) => [sourceId, impliedIds.filter((id) => id !== tagId)]),
+          )
           const annotationsByMediaId = Object.fromEntries(
             Object.entries(state.annotationsByMediaId).flatMap(
               ([mediaId, annotation]) => {
@@ -142,6 +187,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           )
           return {
             tagsById,
+            tagImplications,
             orderedTagIds: state.orderedTagIds.filter((id) => id !== tagId),
             annotationsByMediaId,
             favoriteTagIds: state.favoriteTagIds.filter((id) => id !== tagId),
@@ -181,7 +227,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           const hasTag = current.tagIds.includes(tagId)
           const tagIds = hasTag
             ? current.tagIds.filter((id) => id !== tagId)
-            : [...current.tagIds, tagId]
+            : Array.from(new Set([...current.tagIds, ...expandTagIds([tagId], state.tagImplications)]))
           return {
             tagsById: hasTag
               ? state.tagsById
@@ -198,13 +244,14 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
         set((state) => {
           if (!state.tagsById[tagId]) return state
           const current = state.annotationsByMediaId[mediaId] ?? EMPTY_ANNOTATION
-          if (current.tagIds.includes(tagId)) return state
+          const expandedTagIds = expandTagIds([tagId], state.tagImplications)
+          if (expandedTagIds.every((id) => current.tagIds.includes(id))) return state
           return {
             tagsById: touchTag(state.tagsById, tagId),
             annotationsByMediaId: updateAnnotationRecord(
               state.annotationsByMediaId,
               mediaId,
-              { ...current, tagIds: [...current.tagIds, tagId], updatedAt: Date.now() },
+              { ...current, tagIds: Array.from(new Set([...current.tagIds, ...expandedTagIds])), updatedAt: Date.now() },
             ),
           }
         }),
@@ -239,10 +286,11 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           const annotationsByMediaId = { ...state.annotationsByMediaId }
           for (const mediaId of state.bulkSelectedMediaIds) {
             const current = annotationsByMediaId[mediaId] ?? EMPTY_ANNOTATION
-            if (current.tagIds.includes(bulkTagId)) continue
+            const expandedTagIds = expandTagIds([bulkTagId], state.tagImplications)
+            if (expandedTagIds.every((id) => current.tagIds.includes(id))) continue
             annotationsByMediaId[mediaId] = {
               ...current,
-              tagIds: [...current.tagIds, bulkTagId],
+              tagIds: Array.from(new Set([...current.tagIds, ...expandedTagIds])),
               updatedAt,
             }
           }
@@ -260,6 +308,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
           tagsById: data.tagsById,
           orderedTagIds: data.orderedTagIds,
           annotationsByMediaId: data.annotationsByMediaId,
+          tagImplications: data.tagImplications ?? {},
         }),
     }),
     {
@@ -269,6 +318,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
         tagsById: state.tagsById,
         orderedTagIds: state.orderedTagIds,
         annotationsByMediaId: state.annotationsByMediaId,
+        tagImplications: state.tagImplications,
         favoriteTagIds: state.favoriteTagIds,
       }),
       version: 1,
@@ -333,4 +383,41 @@ function touchTag(
   return tag
     ? { ...tagsById, [tagId]: { ...tag, lastUsedAt } }
     : tagsById
+}
+
+export function expandTagIds(tagIds: readonly string[], implications: Record<string, string[]>) {
+  const expanded = new Set<string>()
+  const visit = (tagId: string) => {
+    if (expanded.has(tagId)) return
+    expanded.add(tagId)
+    for (const impliedId of implications[tagId] ?? []) visit(impliedId)
+  }
+  for (const tagId of tagIds) visit(tagId)
+  return [...expanded]
+}
+
+function hasImplicationCycle(implications: Record<string, string[]>) {
+  const visited = new Set<string>()
+  const active = new Set<string>()
+  const visit = (tagId: string): boolean => {
+    if (active.has(tagId)) return true
+    if (visited.has(tagId)) return false
+    active.add(tagId)
+    for (const impliedId of implications[tagId] ?? []) if (visit(impliedId)) return true
+    active.delete(tagId)
+    visited.add(tagId)
+    return false
+  }
+  return Object.keys(implications).some(visit)
+}
+
+function remapTagImplications(implications: Record<string, string[]>, sourceId: string, targetId: string, deleteSource: boolean) {
+  const result: Record<string, string[]> = {}
+  for (const [triggerId, impliedIds] of Object.entries(implications)) {
+    const mappedTriggerId = deleteSource && triggerId === sourceId ? targetId : triggerId
+    const mappedImpliedIds = impliedIds.map((id) => deleteSource && id === sourceId ? targetId : id).filter((id) => id !== mappedTriggerId)
+    result[mappedTriggerId] = Array.from(new Set([...(result[mappedTriggerId] ?? []), ...mappedImpliedIds]))
+  }
+  if (hasImplicationCycle(result)) throw new Error('Merging these tags would create a link cycle.')
+  return result
 }

@@ -32,6 +32,8 @@ The current enhancements are:
 - Single-mutation bulk assignment rather than one persistence write per video.
 - A dedicated Tags settings tab with a searchable, sortable management catalog.
 - Stable-ID inline renaming with case-insensitive collision validation.
+- Conflict-aware migration into an existing or newly created destination tag.
+- Optional acyclic additive tag links with transitive expansion on assignment.
 - Favorite and unused scopes, catalog summary counts, and 50-row progressive loading.
 
 ## Why this choice
@@ -87,10 +89,11 @@ Large sections initially render a bounded number of tags and provide an explicit
 - Explorer tag filtering currently means all selected tags must match. It does not yet support explicit `ALL`, `ANY`, and `NONE` groups.
 - Usage counts are derived by scanning the in-memory annotation record. This is acceptable for the current MVP but should become an inverted index when measured libraries make it a bottleneck.
 - Favorite and recent tags are user-interface preferences, not semantic metadata.
-- Tags do not currently support aliases, descriptions, rename history, merging, or relationships.
+- Tags do not currently support aliases, descriptions, rename history, or reversible relationship provenance.
 - The 32-character name limit may need review for formal archival vocabularies.
 - Annotation identity is based on durable library ID plus relative path. File moves or renames can therefore detach existing annotations until content fingerprints or sidecars are introduced.
 - Browser-local persistence is not a preservation format. Export/import is a backup mechanism, not yet a full archival sidecar standard.
+- Annotation backup version 2 uses compact tuple records and numeric tag references, and is serialized without presentation whitespace. Imports remain compatible with the more verbose version-1 object format.
 - The Settings catalog renders in 50-row pages but is not virtualized. Virtualization should be added based on measured rendering cost rather than tag-count speculation alone.
 
 ## Viable improvements
@@ -99,7 +102,7 @@ Large sections initially render a bounded number of tags and provide an explicit
 
 - Explicit `ALL`, `ANY`, and `NONE` tag filters.
 - Saved filters and smart collections.
-- Tag merge operations with conflict previews and optional rename history.
+- Merge previews, undo history, and optional rename history.
 - Favorite-tag ordering and keyboard shortcuts.
 - A larger per-video metadata drawer for editing many assigned tags.
 - Bulk remove and replace operations.

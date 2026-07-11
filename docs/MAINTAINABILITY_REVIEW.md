@@ -1,5 +1,7 @@
 # Maintainability Review
 
+See `ARCHIVAL_METADATA_STRATEGY.md` for the proposed durable route-side metadata boundary, cross-browser write limitations, and duplicate-deletion safety requirements.
+
 Date: 2026-07-11
 
 This review records structural findings from the enhanced flat-tag implementation. It distinguishes changes completed now from larger refactors that should be deliberate follow-up work.

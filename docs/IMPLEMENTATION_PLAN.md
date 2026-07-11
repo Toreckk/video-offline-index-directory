@@ -906,3 +906,28 @@ Done when:
 - Counts update immediately as annotations change.
 - A backup round-trip preserves favorites, tags, colors, and assignments.
 - Library Health shows useful totals and isolated per-file scan failures.
+
+### VOID-015: Scalable Organization And Playback State
+
+Status: Done (MVP).
+
+Scope:
+
+- Persist resumable playback position, watched state, completion time, and completed-play count per durable media id.
+- Display progress, watched state, and nonzero completed-play counts on tiles; expose detailed video information from the overflow menu and allow sorting by most watched.
+- Add smart collections as a first-class navigation view with editable, nested AND/OR groups, negative rules, and watch-state predicates. Legacy fixed-bucket collections migrate without changing meaning.
+- Add safe tag migration into existing or new tags, with optional deletion of the empty source.
+- Add acyclic, transitive, additive tag implications for user-defined broad-to-specific vocabularies.
+- Keep quick tag discovery alphabetical while ordering the Explorer tag filter by library-wide usage.
+- Pin selected Explorer tag filters above both search results and the full tag catalog so active filters never disappear from view.
+- Keep player navigation outside the video image, support keyboard navigation, explain icon actions with hover/focus tooltips, and copy the safe library-relative path for external file management.
+- Persist default volume and playback speed across MP4 and WebM playback.
+- Keep the collection catalog and individual collection viewer as separate navigation modes with an explicit back action.
+- Export annotations using compact version-2 tuples and tag indexes while retaining version-1 import compatibility.
+- Auto-dismiss the Library ready notification after a configurable delay, defaulting to 10 seconds with `0` preserving manual dismissal.
+
+Deferred:
+
+- Route-side metadata synchronization follows `docs/ARCHIVAL_METADATA_STRATEGY.md` and requires explicit write permission, validation, conflict handling, and a Firefox export/import fallback.
+- Duplicate deletion remains deferred until media sources retain writable parent capabilities and the product has non-destructive duplicate verification.
+- Ratings and technical media intelligence remain documented future improvements.

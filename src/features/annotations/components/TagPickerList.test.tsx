@@ -16,4 +16,12 @@ describe('TagPickerList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show 1 more' }))
     expect(screen.getByText('Tag 61')).toBeInTheDocument()
   })
+
+  it('keeps assigned tags reachable without letting them dominate quick add', () => {
+    const tags: TagDefinition[] = [{ id: 'assigned', name: 'Assigned tag', color: '#A78BFA', createdAt: 1 }]
+    render(<TagPickerList sections={[{ id: 'assigned', label: 'Assigned', tags }]} selectedTagIds={['assigned']} favoriteTagIds={[]} usageCounts={{}} onToggle={() => undefined} onToggleFavorite={() => undefined} initiallyCollapsedSectionIds={['assigned']} />)
+    expect(screen.queryByText('Assigned tag')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Assigned (1) Show' }))
+    expect(screen.getByText('Assigned tag')).toBeInTheDocument()
+  })
 })

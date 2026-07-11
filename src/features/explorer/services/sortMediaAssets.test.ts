@@ -25,5 +25,9 @@ describe('sortMediaAssets', () => {
       'middle',
       'new-small',
     ])
+    expect(sortMediaAssets(assets, 'play-count', {
+      middle: { lastPlayedAt: 2, playCount: 3 },
+      'new-small': { lastPlayedAt: 3, playCount: 1 },
+    }).map(({ id }) => id)).toEqual(['middle', 'new-small', 'old-large'])
   })
 })

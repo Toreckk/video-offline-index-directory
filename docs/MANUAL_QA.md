@@ -70,17 +70,37 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - In a section with more than 60 tags, confirm the initial list is bounded and `Show more` exposes the complete section.
 - Assign a previously unused tag and confirm it moves into Recently Used and its usage count updates immediately.
 - Open one dropdown and then another; confirm the first closes. Click outside or press Escape and confirm the active dropdown closes without opening/favoriting a video underneath.
+- Confirm quick-tag search shows only one clear-search X and quick-create remains visible above the scrollable tag list.
+- Quick-create a differently-capitalized existing tag name and confirm no duplicate is created while the existing tag is assigned.
+- Confirm quick-tag sections are alphabetical, including Recently used, while the Explorer Tags filter is ordered by descending video count.
+- Open quick add on a heavily tagged video and confirm Assigned is collapsed by default, can be expanded to remove tags, and searching only shows assigned tags when they match the query.
+- Select an Explorer tag filter, search for another tag, then clear the search. Confirm every selected tag remains pinned in the Selected tags section and is not duplicated below.
 - Confirm tiles show at most three tag chips below the filename, followed by a `+N` overflow count, with size and duration aligned together at the lower right.
 - Rescan a library with existing cached thumbnails and confirm durations are populated instead of remaining `--:--`.
 - In Settings, change that tag color, verify its usage count, and delete it using the confirmation step.
 - Open Settings and confirm Experience, Library, and Tags are separate sections whose controls do not appear in the wrong section.
 - In Settings > Tags, rename a tag and confirm all existing video assignments keep the new name. Try renaming it to an existing tag with different capitalization and confirm the conflict is rejected.
+- Migrate a populated tag into an existing tag, confirm assignments are deduplicated, and test both keeping and deleting the empty source tag.
+- Link `year:1991` to `year:1900s` and that tag to `year:1000s`; assigning `year:1991` must add all three exactly once. Attempt a reverse link and confirm the cycle is rejected.
+- Create collections for `A AND B`, `A AND NOT C`, `A OR B`, and `(A OR B) AND NOT (C OR D)` using nested groups. Edit a saved collection and confirm counts and contents update immediately without recreating it.
+- Confirm the Collections catalog does not render any collection's videos. Open a collection, confirm its dedicated viewer and queue, then use Back to collections.
 - Create at least 61 tags, then verify search, Name/Most used/Recently used sorting, Favorites/Unused scopes, summary counts, and the 50-row `Load more` boundary.
 - Export annotations, change local favorites/tags, then import the backup and confirm data is merged rather than destructively replaced.
 - Use left/right edge buttons and `ArrowLeft`/`ArrowRight` to navigate the current filtered/sorted Explorer queue.
 - Press Space outside form controls and confirm play/pause toggles.
 - Press `f` and confirm the entire player container enters fullscreen with overlays intact.
 - Press Escape once in fullscreen to exit fullscreen, then again to close the player.
+- Confirm the Explorer header never appears over the player or fullscreen frame, and player tag popovers remain above the player.
+- Confirm always-visible previous/next buttons sit beside the video and keyboard Left/Right selects the same adjacent videos.
+- Watch part of a video, close it, reopen it, and confirm playback resumes near the saved position. Reach 90%, confirm Watched appears, then toggle it back to Unwatched.
+- Complete a video twice, confirm the tile shows an eye with `2`, open Video info to inspect completed plays and timestamps, and sort Explorer by Most watched.
+- Confirm tiles with zero completed plays show no watched badge or eye count; tiles with completed plays show a clearly readable eye/count directly below the file-type badge, unaffected by long or numerous tags.
+- Set default volume to 30% and playback speed to 1.25×, then open both MP4 and WebM files and confirm both defaults are applied.
+- Hover and keyboard-focus every player icon and confirm its tooltip explains the action. Copy a video's relative path and confirm it contains its library folders and filename.
+- Hover a tile and confirm the file type remains readable at the top left while the right-side action stack does not obscure the title or metadata.
+- Confirm the tile's overflow, favorite, and tag buttons form a vertical stack, while the overflow menu contains Play, Watched, Video info, and Copy relative path.
+- With a quick-tag popover open, wheel over both scrollable and non-scrollable areas and confirm the Explorer page never scrolls behind it.
+- Export a populated annotation backup, confirm the message reports its compact size, then import both version-1 and version-2 files and verify equivalent merged data.
 - Confirm opening/closing many videos does not leave playback audio running or steadily increase decoder usage.
 
 ## Accessibility and resilience
@@ -91,5 +111,7 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Open each native select in Chromium and Firefox and confirm option text and backgrounds follow the dark theme.
 - Open each Explorer dropdown and confirm its custom listbox, hover, selected state, and scroll area use the VOID theme.
 - Open Library > Health and confirm video/size/duration/format/annotation totals match the current library.
+- Set Library ready notification to 10 seconds and confirm it dismisses automatically. Repeat with Never (`0`) and confirm it remains until manually closed.
+- Complete a scan while Explorer is already active and confirm the Library ready notification never appears, including after navigating to another tab.
 - Include a corrupt or unreadable item and confirm its discovery, metadata, or thumbnail issue appears in Library > Health without stopping the rest of the scan.
 - Inspect the browser console through every flow and confirm no uncaught errors or object URL warnings.

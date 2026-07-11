@@ -25,4 +25,14 @@ describe('MediaTagMenu', () => {
     fireEvent.click(addButton!)
     expect(useAnnotationStore.getState().annotationsByMediaId['video-one']?.tagIds).toEqual(['tag-6'])
   })
+
+  it('quick-create reuses an existing tag and assigns it', () => {
+    const existing = useAnnotationStore.getState().createTag('Archive')
+    render(<MediaTagMenu mediaId="video-one" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Manage video tags' }))
+    fireEvent.change(screen.getByPlaceholderText('e.g. year:2025'), { target: { value: ' archive ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create and add tag' }))
+    expect(useAnnotationStore.getState().orderedTagIds.filter((id) => useAnnotationStore.getState().tagsById[id]?.name.toLocaleLowerCase() === 'archive')).toEqual([existing.id])
+    expect(useAnnotationStore.getState().annotationsByMediaId['video-one']?.tagIds).toEqual([existing.id])
+  })
 })

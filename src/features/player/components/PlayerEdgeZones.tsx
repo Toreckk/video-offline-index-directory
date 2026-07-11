@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { TooltipIconButton } from '../../../components/controls/TooltipIconButton'
 
 export function PlayerEdgeZones({
   canNavigate,
@@ -13,28 +14,28 @@ export function PlayerEdgeZones({
 
   return (
     <>
-      <button
-        type="button"
+      <TooltipIconButton
+        label="Previous video"
+        tooltipSide="right"
         onClick={(event) => {
           event.stopPropagation()
           onPrevious()
         }}
-        className="absolute bottom-20 left-0 top-20 z-10 flex w-20 items-center justify-center bg-linear-to-r from-black/45 to-transparent opacity-0 transition hover:opacity-100 focus-visible:opacity-100"
-        aria-label="Previous video"
+        className="absolute left-3 top-1/2 z-30 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-xl backdrop-blur transition hover:bg-primary/80 lg:-left-20"
       >
         <ChevronLeft size={38} />
-      </button>
-      <button
-        type="button"
+      </TooltipIconButton>
+      <TooltipIconButton
+        label="Next video"
+        tooltipSide="left"
         onClick={(event) => {
           event.stopPropagation()
           onNext()
         }}
-        className="absolute bottom-20 right-0 top-20 z-10 flex w-20 items-center justify-center bg-linear-to-l from-black/45 to-transparent opacity-0 transition hover:opacity-100 focus-visible:opacity-100"
-        aria-label="Next video"
+        className="absolute right-3 top-1/2 z-30 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-xl backdrop-blur transition hover:bg-primary/80 lg:-right-20"
       >
         <ChevronRight size={38} />
-      </button>
+      </TooltipIconButton>
     </>
   )
 }

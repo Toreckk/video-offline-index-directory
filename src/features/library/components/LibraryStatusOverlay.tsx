@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { CheckCircle2, LoaderCircle, X } from 'lucide-react'
 import { VIEW_IDS } from '../../../app/views'
 import { useAppNavigation } from '../../../app/navigationContext'
 import { useLibraryStore } from '../store/libraryStore'
+import { useSettingsStore } from '../../settings/store/settingsStore'
 
 type LibraryStatusOverlayProps = {
   successDismissed: boolean
@@ -12,13 +14,25 @@ export function LibraryStatusOverlay({
   successDismissed,
   onDismissSuccess,
 }: LibraryStatusOverlayProps) {
-  const { navigate } = useAppNavigation()
+  const { activeView, navigate } = useAppNavigation()
   const scanStatus = useLibraryStore((state) => state.scanStatus)
   const scanPhase = useLibraryStore((state) => state.scanPhase)
   const progress = useLibraryStore((state) => state.scanProgress)
   const isBackgroundScanning = useLibraryStore(
     (state) => state.isBackgroundScanning,
   )
+  const readyNotificationSeconds = useSettingsStore((state) => state.libraryReadyNotificationSeconds)
+
+  useEffect(() => {
+    if (scanStatus !== 'ready' || successDismissed) return
+    if (activeView === VIEW_IDS.explorer) {
+      onDismissSuccess()
+      return
+    }
+    if (readyNotificationSeconds <= 0) return
+    const timeoutId = window.setTimeout(onDismissSuccess, readyNotificationSeconds * 1000)
+    return () => window.clearTimeout(timeoutId)
+  }, [activeView, onDismissSuccess, readyNotificationSeconds, scanStatus, successDismissed])
 
   if (scanStatus === 'scanning' && isBackgroundScanning) {
     return (
@@ -38,7 +52,7 @@ export function LibraryStatusOverlay({
     )
   }
 
-  if (scanStatus === 'ready' && !successDismissed) {
+  if (scanStatus === 'ready' && !successDismissed && activeView !== VIEW_IDS.explorer) {
     const thumbnailsPending = scanPhase === 'thumbnails'
     return (
       <div className="fixed bottom-6 right-6 z-40 w-[360px] border border-emerald-300/20 bg-surface-container-high p-5 shadow-xl">

@@ -52,7 +52,7 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
     [orderedTagIds, tagsById],
   )
   const tagSections = useMemo(
-    () => buildTagPickerSections({ tags, assignedTagIds: selectedTagIds, favoriteTagIds, usageCounts: tagCounts, query: tagSearch }),
+    () => buildTagPickerSections({ tags, assignedTagIds: selectedTagIds, favoriteTagIds, usageCounts: tagCounts, query: tagSearch, order: 'usage', grouped: false, assignedLabel: 'Selected tags', pinAssignedDuringSearch: true }),
     [favoriteTagIds, selectedTagIds, tagCounts, tagSearch, tags],
   )
   const bulkTag = bulkTagId ? tagsById[bulkTagId] : undefined
@@ -66,7 +66,7 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
           <input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search filenames or paths" className="w-full bg-transparent text-sm outline-none placeholder:text-on-secondary/50" />
         </label>
         <span className="text-xs font-bold uppercase tracking-wider text-on-secondary">{visibleCount} of {totalCount}</span>
-        <ThemedSelect ariaLabel="Sort order" value={sortOrder} onChange={(value) => updateSetting('defaultSortOrder', value as SortOrder)} icon={<SlidersHorizontal size={16} />} className="w-48" options={[{ value: 'modified-date', label: 'Recently modified' }, { value: 'name', label: 'Filename' }, { value: 'size', label: 'File size' }]} />
+        <ThemedSelect ariaLabel="Sort order" value={sortOrder} onChange={(value) => updateSetting('defaultSortOrder', value as SortOrder)} icon={<SlidersHorizontal size={16} />} className="w-48" options={[{ value: 'modified-date', label: 'Recently modified' }, { value: 'name', label: 'Filename' }, { value: 'size', label: 'File size' }, { value: 'play-count', label: 'Most watched' }]} />
         <ThemedSelect ariaLabel="Tile density" value={tileDensity} onChange={(value) => updateSetting('tileDensity', value as TileDensity)} className="w-36" options={[{ value: 'compact', label: 'Compact' }, { value: 'comfortable', label: 'Comfortable' }, { value: 'large', label: 'Large' }]} />
       </div>
 

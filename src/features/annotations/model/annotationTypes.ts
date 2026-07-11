@@ -35,4 +35,5 @@ export type AnnotationData = {
   tagsById: Record<string, TagDefinition>
   orderedTagIds: string[]
   annotationsByMediaId: Record<string, MediaAnnotation>
+  tagImplications?: Record<string, string[]>
 }

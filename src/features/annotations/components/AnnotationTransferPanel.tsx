@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react'
 import { Download, Upload } from 'lucide-react'
 import { useAnnotationStore } from '../store/annotationStore'
 import { createAnnotationExport, mergeAnnotationExport, parseAnnotationExport } from '../services/annotationTransfer'
+import { formatBytes } from '../../../utils/media'
 
 export function AnnotationTransferPanel() {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -10,13 +11,14 @@ export function AnnotationTransferPanel() {
   const exportAnnotations = () => {
     const state = useAnnotationStore.getState()
     const data = createAnnotationExport(state)
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = `void-annotations-${new Date().toISOString().slice(0, 10)}.json`
     link.click()
     URL.revokeObjectURL(url)
-    setMessage(`Exported ${data.tags.length} tags and ${data.annotations.length} annotated videos.`)
+    setMessage(`Exported ${data.t.length} tags and ${data.a.length} annotated videos in ${formatBytes(blob.size)}.`)
   }
 
   const importAnnotations = async (event: ChangeEvent<HTMLInputElement>) => {

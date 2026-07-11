@@ -2,6 +2,7 @@ import type { MediaAnnotation, TagDefinition } from '../model/annotationTypes'
 
 export type TagUsageCounts = Record<string, number>
 export type TagManagementSort = 'name' | 'usage' | 'recent'
+export type TagPickerOrder = 'alphabetical' | 'usage'
 
 export type TagPickerSection = {
   id: 'assigned' | 'favorites' | 'recent' | 'all' | 'search'
@@ -69,6 +70,10 @@ export function buildTagPickerSections({
   usageCounts,
   query,
   recentLimit = 8,
+  order = 'alphabetical',
+  grouped = true,
+  assignedLabel = 'Assigned',
+  pinAssignedDuringSearch = false,
 }: {
   tags: readonly TagDefinition[]
   assignedTagIds: readonly string[]
@@ -76,10 +81,32 @@ export function buildTagPickerSections({
   usageCounts: TagUsageCounts
   query: string
   recentLimit?: number
+  order?: TagPickerOrder
+  grouped?: boolean
+  assignedLabel?: string
+  pinAssignedDuringSearch?: boolean
 }): TagPickerSection[] {
   const filtered = filterTags(tags, query)
+  const sortForPicker = (items: readonly TagDefinition[]) =>
+    order === 'usage' ? sortTagsForDiscovery(items, usageCounts) : [...items].sort(byName)
   if (query.trim()) {
-    return [{ id: 'search', label: 'Search results', tags: sortTagsForDiscovery(filtered, usageCounts) }]
+    if (!pinAssignedDuringSearch) {
+      return [{ id: 'search', label: 'Search results', tags: sortForPicker(filtered) }]
+    }
+    const assigned = new Set(assignedTagIds)
+    const assignedTags = sortForPicker(tags.filter((tag) => assigned.has(tag.id)))
+    const searchResults = sortForPicker(filtered.filter((tag) => !assigned.has(tag.id)))
+    return [
+      { id: 'assigned', label: assignedLabel, tags: assignedTags },
+      { id: 'search', label: 'Search results', tags: searchResults },
+    ].filter((section) => section.tags.length > 0) as TagPickerSection[]
+  }
+  if (!grouped) {
+    const assigned = new Set(assignedTagIds)
+    return [
+      { id: 'assigned', label: assignedLabel, tags: sortForPicker(tags.filter((tag) => assigned.has(tag.id))) },
+      { id: 'all', label: order === 'usage' ? 'Tags by video count' : 'All tags', tags: sortForPicker(tags.filter((tag) => !assigned.has(tag.id))) },
+    ].filter((section) => section.tags.length > 0) as TagPickerSection[]
   }
 
   const assigned = new Set(assignedTagIds)
@@ -97,16 +124,14 @@ export function buildTagPickerSections({
     .filter((tag) => !claimed.has(tag.id) && Boolean(tag.lastUsedAt))
     .sort((left, right) => (right.lastUsedAt ?? 0) - (left.lastUsedAt ?? 0))
     .slice(0, recentLimit)
+  const sortedRecentTags = sortForPicker(recentTags)
   for (const tag of recentTags) claimed.add(tag.id)
-  const remainingTags = sortTagsForDiscovery(
-    tags.filter((tag) => !claimed.has(tag.id)),
-    usageCounts,
-  )
+  const remainingTags = sortForPicker(tags.filter((tag) => !claimed.has(tag.id)))
 
   return [
-    { id: 'assigned', label: 'Assigned', tags: assignedTags },
+    { id: 'assigned', label: assignedLabel, tags: assignedTags },
     { id: 'favorites', label: 'Favorite tags', tags: favoriteTags },
-    { id: 'recent', label: 'Recently used', tags: recentTags },
+    { id: 'recent', label: 'Recently used', tags: sortedRecentTags },
     { id: 'all', label: 'All tags', tags: remainingTags },
   ].filter((section) => section.tags.length > 0) as TagPickerSection[]
 }

@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { Maximize, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CheckCircle2, ClipboardCheck, FolderSearch, Maximize, X } from 'lucide-react'
 import { useMediaStore } from '../../explorer/store/mediaStore'
 import { usePlayerStore } from '../store/playerStore'
 import { usePlayerMediaUrls } from '../hooks/usePlayerMediaUrls'
@@ -7,6 +7,11 @@ import { PlayerVideo } from './PlayerVideo'
 import { PlayerOverlayMetadata } from './PlayerOverlayMetadata'
 import { PlayerEdgeZones } from './PlayerEdgeZones'
 import { PlayerAnnotationControls } from './PlayerAnnotationControls'
+import { usePlaybackStore } from '../../playback/store/playbackStore'
+import { getLibraryRelativeMediaPath } from '../../library/services/mediaFileSource'
+import { copyTextToClipboard } from '../../../utils/clipboard'
+import { TooltipIconButton } from '../../../components/controls/TooltipIconButton'
+import { useSettingsStore } from '../../settings/store/settingsStore'
 
 export function PlayerModal() {
   const selectedAssetId = usePlayerStore((state) => state.selectedAssetId)
@@ -20,6 +25,14 @@ export function PlayerModal() {
   const src = usePlayerMediaUrls(selectedAssetId, queueIds)
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const [didCopyPath, setDidCopyPath] = useState(false)
+  const playback = usePlaybackStore((state) => selectedAssetId ? state.recordsByMediaId[selectedAssetId] : undefined)
+  const updateProgress = usePlaybackStore((state) => state.updateProgress)
+  const recordCompletion = usePlaybackStore((state) => state.recordCompletion)
+  const markWatched = usePlaybackStore((state) => state.markWatched)
+  const defaultVolume = useSettingsStore((state) => state.defaultVolume)
+  const defaultPlaybackRate = useSettingsStore((state) => state.defaultPlaybackRate)
 
   useEffect(() => {
     if (!selectedAssetId) return
@@ -33,7 +46,7 @@ export function PlayerModal() {
         if (document.fullscreenElement) void document.exitFullscreen()
         else closePlayer()
       } else if (event.key.toLowerCase() === 'f') {
-        void containerRef.current?.requestFullscreen()
+        void frameRef.current?.requestFullscreen()
       } else if (event.key === ' ') {
         event.preventDefault()
         const video = videoRef.current
@@ -51,7 +64,7 @@ export function PlayerModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-5 backdrop-blur-md"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-5 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label={`Playing ${asset.name}`}
@@ -59,11 +72,9 @@ export function PlayerModal() {
         if (event.target === event.currentTarget) closePlayer()
       }}
     >
-      <div
-        ref={containerRef}
-        className="relative aspect-video max-h-[calc(100vh-40px)] w-full max-w-[1500px] overflow-hidden border border-white/10 bg-black shadow-2xl"
-      >
-        <PlayerVideo ref={videoRef} src={src} title={asset.name} />
+      <div ref={frameRef} className="relative flex h-full w-full max-w-[1500px] items-center justify-center bg-black/95 px-0 lg:px-20">
+      <div ref={containerRef} className="relative aspect-video max-h-[calc(100vh-40px)] w-full overflow-hidden border border-white/10 bg-black shadow-2xl">
+        <PlayerVideo ref={videoRef} src={src} title={asset.name} resumeAt={playback?.positionSeconds ?? 0} defaultVolume={defaultVolume} defaultPlaybackRate={defaultPlaybackRate} onProgress={(position, duration) => updateProgress(asset.id, position, duration)} onComplete={(duration) => recordCompletion(asset.id, duration)} />
         <PlayerOverlayMetadata asset={asset} />
         <PlayerEdgeZones
           canNavigate={queueIds.length > 1}
@@ -72,23 +83,24 @@ export function PlayerModal() {
         />
         <div className="absolute right-4 top-4 z-20 flex gap-2">
           <PlayerAnnotationControls mediaId={asset.id} />
-          <button
-            type="button"
-            onClick={() => void containerRef.current?.requestFullscreen()}
+          <TooltipIconButton label={playback?.watched ? 'Mark as unwatched' : 'Mark as watched'} onClick={() => markWatched(asset.id, !playback?.watched)} className={`flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur ${playback?.watched ? 'border-emerald-300/50 bg-emerald-500/25 text-emerald-200' : 'border-white/10 bg-black/55 text-white hover:bg-black/80'}`} aria-pressed={playback?.watched ?? false}><CheckCircle2 size={18} /></TooltipIconButton>
+          <TooltipIconButton label={didCopyPath ? 'Relative path copied' : 'Copy library-relative path'} onClick={() => { void copyTextToClipboard(getLibraryRelativeMediaPath(asset.pathParts, asset.name)).then(() => { setDidCopyPath(true); window.setTimeout(() => setDidCopyPath(false), 1800) }).catch(() => setDidCopyPath(false)) }} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/80">{didCopyPath ? <ClipboardCheck size={18} /> : <FolderSearch size={18} />}</TooltipIconButton>
+          <TooltipIconButton
+            label="Enter fullscreen"
+            onClick={() => void frameRef.current?.requestFullscreen()}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/80"
-            aria-label="Enter fullscreen"
           >
             <Maximize size={18} />
-          </button>
-          <button
-            type="button"
+          </TooltipIconButton>
+          <TooltipIconButton
+            label="Close player"
             onClick={closePlayer}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/80"
-            aria-label="Close player"
           >
             <X size={20} />
-          </button>
+          </TooltipIconButton>
         </div>
+      </div>
       </div>
     </div>
   )

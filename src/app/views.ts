@@ -2,16 +2,19 @@ import type { ComponentType } from 'react'
 import {
   Compass,
   FolderOpen,
+  LibraryBig,
   Settings,
   type LucideIcon,
 } from 'lucide-react'
 import Explorer from '../views/Explorer'
 import Folders from '../views/Folders'
 import SettingsView from '../views/Settings'
+import Collections from '../views/Collections'
 
 export const VIEW_IDS = {
   explorer: 'explorer',
   folders: 'folders',
+  collections: 'collections',
   settings: 'settings',
 } as const
 
@@ -36,6 +39,12 @@ export const APP_VIEWS: AppView[] = [
     label: 'Library',
     icon: FolderOpen,
     component: Folders,
+  },
+  {
+    id: VIEW_IDS.collections,
+    label: 'Collections',
+    icon: LibraryBig,
+    component: Collections,
   },
   {
     id: VIEW_IDS.settings,

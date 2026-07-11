@@ -3,6 +3,7 @@ import {
   createHandleMediaSource,
   createSessionMediaSource,
   openMediaFile,
+  getLibraryRelativeMediaPath,
 } from './mediaFileSource'
 
 describe('MediaFileSource', () => {
@@ -19,5 +20,9 @@ describe('MediaFileSource', () => {
     const file = { name: 'clip.webm' } as File
 
     await expect(openMediaFile(createSessionMediaSource(file))).resolves.toBe(file)
+  })
+
+  it('formats a platform-friendly library-relative path without exposing an absolute path', () => {
+    expect(getLibraryRelativeMediaPath(['Archive', '1910s'], 'film.mp4')).toBe('Archive\\1910s\\film.mp4')
   })
 })

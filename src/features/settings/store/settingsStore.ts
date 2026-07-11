@@ -4,7 +4,7 @@ import { idbStateStorage } from '../../../shared/persistence/idbStateStorage'
 
 export type PreviewDelay = 150 | 250 | 500
 export type ThumbnailPriority = 'visible-first' | 'balanced' | 'paused'
-export type SortOrder = 'modified-date' | 'name' | 'size'
+export type SortOrder = 'modified-date' | 'name' | 'size' | 'play-count'
 export type TileDensity = 'compact' | 'comfortable' | 'large'
 
 export type SettingsState = {
@@ -17,6 +17,9 @@ export type SettingsState = {
   restoreLastLibrary: boolean
   scanSubfolders: boolean
   tileDensity: TileDensity
+  defaultVolume: number
+  defaultPlaybackRate: number
+  libraryReadyNotificationSeconds: number
   isHydrated: boolean
 }
 
@@ -40,6 +43,9 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   restoreLastLibrary: true,
   scanSubfolders: true,
   tileDensity: 'comfortable',
+  defaultVolume: 0.3,
+  defaultPlaybackRate: 1,
+  libraryReadyNotificationSeconds: 10,
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
@@ -63,6 +69,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         restoreLastLibrary: state.restoreLastLibrary,
         scanSubfolders: state.scanSubfolders,
         tileDensity: state.tileDensity,
+        defaultVolume: state.defaultVolume,
+        defaultPlaybackRate: state.defaultPlaybackRate,
+        libraryReadyNotificationSeconds: state.libraryReadyNotificationSeconds,
       }),
       onRehydrateStorage: () => () => {
         useSettingsStore.setState({ isHydrated: true })

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { mergeAnnotationExport, parseAnnotationExport, type AnnotationExport } from './annotationTransfer'
+import { createAnnotationExport, mergeAnnotationExport, parseAnnotationExport, type AnnotationExport } from './annotationTransfer'
 
 vi.mock('idb-keyval', () => ({
   get: vi.fn(async () => undefined),
@@ -27,5 +27,24 @@ describe('annotation transfer', () => {
 
   it('rejects malformed backups before mutating state', () => {
     expect(() => parseAnnotationExport({ schemaVersion: 99, tags: [], annotations: [] })).toThrow('supported')
+  })
+
+  it('round-trips the compact v2 format with indexed tag references', () => {
+    const compact = createAnnotationExport({
+      tagsById: {
+        action: { id: 'action', name: 'Action', color: '#A78BFA', createdAt: 1 },
+        archive: { id: 'archive', name: 'Archive', color: '#FB7185', createdAt: 2 },
+      },
+      orderedTagIds: ['action', 'archive'],
+      annotationsByMediaId: {
+        'library/folder/video.mp4': { favorite: true, tagIds: ['action', 'archive'], updatedAt: 3 },
+      },
+      tagImplications: { archive: ['action'] },
+    })
+    const parsed = parseAnnotationExport(compact)
+    expect(compact).toMatchObject({ v: 2 })
+    expect(parsed.tags).toHaveLength(2)
+    expect(parsed.annotations[0]).toMatchObject({ mediaId: 'library/folder/video.mp4', favorite: true, tagIds: ['action', 'archive'] })
+    expect(parsed.tagImplications).toEqual({ archive: ['action'] })
   })
 })

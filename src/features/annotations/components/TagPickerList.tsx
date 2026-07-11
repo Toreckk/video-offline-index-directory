@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Star } from 'lucide-react'
+import { ChevronDown, Star } from 'lucide-react'
 import type { TagPickerSection, TagUsageCounts } from '../services/tagCatalog'
 
 const INITIAL_TAG_LIMIT = 60
 
-export function TagPickerList({ sections, selectedTagIds, favoriteTagIds, usageCounts, onToggle, onToggleFavorite, selectedLabel = 'Added', unselectedLabel = 'Add' }: {
+export function TagPickerList({ sections, selectedTagIds, favoriteTagIds, usageCounts, onToggle, onToggleFavorite, selectedLabel = 'Added', unselectedLabel = 'Add', initiallyCollapsedSectionIds = [] }: {
   sections: TagPickerSection[]
   selectedTagIds: readonly string[]
   favoriteTagIds: readonly string[]
@@ -13,8 +13,10 @@ export function TagPickerList({ sections, selectedTagIds, favoriteTagIds, usageC
   onToggleFavorite: (tagId: string) => void
   selectedLabel?: string
   unselectedLabel?: string
+  initiallyCollapsedSectionIds?: TagPickerSection['id'][]
 }) {
   const [expandedSections, setExpandedSections] = useState<string[]>([])
+  const [collapsedSections, setCollapsedSections] = useState<string[]>(initiallyCollapsedSectionIds)
   const selected = new Set(selectedTagIds)
   const favorites = new Set(favoriteTagIds)
 
@@ -25,15 +27,17 @@ export function TagPickerList({ sections, selectedTagIds, favoriteTagIds, usageC
   return (
     <div className="space-y-4">
       {sections.map((section) => {
+        const isCollapsible = initiallyCollapsedSectionIds.includes(section.id)
+        const collapsed = collapsedSections.includes(section.id)
         const expanded = expandedSections.includes(section.id)
         const visibleTags = expanded ? section.tags : section.tags.slice(0, INITIAL_TAG_LIMIT)
         const remaining = section.tags.length - visibleTags.length
         return (
           <section key={section.id}>
-            <div className="mb-1.5 flex items-center justify-between px-1 text-[10px] font-black uppercase tracking-wider text-on-secondary">
-              <span>{section.label}</span><span>{section.tags.length}</span>
-            </div>
-            <div className="space-y-1">
+            {isCollapsible ? <button type="button" onClick={() => setCollapsedSections((current) => collapsed ? current.filter((id) => id !== section.id) : [...current, section.id])} className="mb-1.5 flex w-full items-center justify-between px-1 py-1 text-[10px] font-black uppercase tracking-wider text-on-secondary hover:text-white" aria-expanded={!collapsed} aria-label={`${section.label} (${section.tags.length}) ${collapsed ? 'Show' : 'Hide'}`}>
+              <span>{section.label} ({section.tags.length})</span><span className="flex items-center gap-1">{collapsed ? 'Show' : 'Hide'}<ChevronDown size={12} className={`transition ${collapsed ? '' : 'rotate-180'}`} /></span>
+            </button> : <div className="mb-1.5 flex items-center justify-between px-1 text-[10px] font-black uppercase tracking-wider text-on-secondary"><span>{section.label}</span><span>{section.tags.length}</span></div>}
+            {!collapsed && <div className="space-y-1">
               {visibleTags.map((tag) => {
                 const isSelected = selected.has(tag.id)
                 const isFavorite = favorites.has(tag.id)
@@ -51,8 +55,8 @@ export function TagPickerList({ sections, selectedTagIds, favoriteTagIds, usageC
                   </div>
                 )
               })}
-            </div>
-            {remaining > 0 && <button type="button" onClick={() => setExpandedSections((current) => [...current, section.id])} className="mt-2 w-full border border-dashed border-white/10 py-2 text-xs font-bold text-on-secondary hover:text-white">Show {remaining} more</button>}
+            </div>}
+            {!collapsed && remaining > 0 && <button type="button" onClick={() => setExpandedSections((current) => [...current, section.id])} className="mt-2 w-full border border-dashed border-white/10 py-2 text-xs font-bold text-on-secondary hover:text-white">Show {remaining} more</button>}
           </section>
         )
       })}

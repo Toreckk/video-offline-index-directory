@@ -41,3 +41,7 @@ export function openMediaFile(source: MediaFileSource): Promise<File> {
     ? source.handle.getFile()
     : Promise.resolve(source.file)
 }
+
+export function getLibraryRelativeMediaPath(pathParts: readonly string[], name: string) {
+  return [...pathParts, name].join('\\')
+}

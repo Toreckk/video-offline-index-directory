@@ -10,6 +10,10 @@ export function useDismissiblePopover() {
   const suppressNextClickRef = useRef(false)
 
   const close = useCallback(() => setIsOpen(false), [])
+  const open = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(OPEN_POPOVER_EVENT, { detail: id }))
+    setIsOpen(true)
+  }, [id])
   const toggle = useCallback(() => {
     if (!isOpen) window.dispatchEvent(new CustomEvent(OPEN_POPOVER_EVENT, { detail: id }))
     setIsOpen(!isOpen)
@@ -61,5 +65,5 @@ export function useDismissiblePopover() {
     return () => document.removeEventListener('click', suppressOutsideClick, true)
   }, [])
 
-  return { isOpen, triggerRef, panelRef, toggle, close }
+  return { isOpen, triggerRef, panelRef, toggle, open, close }
 }
