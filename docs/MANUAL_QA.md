@@ -111,6 +111,7 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Open the docked tagging workspace and confirm the video resizes beside it on desktop, quick tagging remains available, tag changes follow the selected video, and the panel can be closed without closing playback.
 - Under Library > Health > Duplicates, run analysis and confirm matching sampled-content groups and filename-only collisions are presented separately.
 - Choose a preferred duplicate, merge metadata, and confirm tags, favorite state, playback history, and play counts are copied to it while every source file and source metadata record remains unchanged.
+- Confirm an unsuffixed filename is listed before its `(1)`, `(2)`, and later copies. Copy a filename and confirm only the name plus extension reaches the clipboard, that its button changes to `Copied!`, and that the feedback resets after refresh.
 
 ## Accessibility and resilience
 

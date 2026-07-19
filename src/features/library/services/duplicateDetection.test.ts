@@ -29,4 +29,23 @@ describe('detectDuplicateMedia', () => {
     expect(result.highConfidenceGroups.map((group) => group.map((item) => item.id))).toEqual([['one', 'two']])
     expect(result.nameCollisionGroups.map((group) => group.map((item) => item.id))).toEqual([['one', 'two']])
   })
+
+  it('orders original filenames before numbered duplicate copies', async () => {
+    const assets = [
+      asset('copy-ten', 'Holiday (10).mp4', 10),
+      asset('copy-two', 'Holiday (2).mp4', 10),
+      asset('original', 'Holiday.mp4', 10),
+      asset('copy-one', 'Holiday (1).mp4', 10),
+    ]
+    const result = await detectDuplicateMedia(assets, {
+      fingerprintAsset: async () => 'matching',
+    })
+
+    expect(result.highConfidenceGroups[0]?.map((item) => item.name)).toEqual([
+      'Holiday.mp4',
+      'Holiday (1).mp4',
+      'Holiday (2).mp4',
+      'Holiday (10).mp4',
+    ])
+  })
 })

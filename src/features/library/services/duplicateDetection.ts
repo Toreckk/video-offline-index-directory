@@ -3,6 +3,7 @@ import { openMediaFile } from './mediaFileSource'
 
 const SAMPLE_BYTES = 256 * 1024
 const HASH_CONCURRENCY = 2
+const NATURAL_NAME_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
 export type DuplicateScanResult = {
   highConfidenceGroups: MediaAsset[][]
@@ -43,10 +44,56 @@ export async function detectDuplicateMedia(
   throwIfAborted(options.signal)
 
   return {
-    highConfidenceGroups: [...fingerprints.values()].filter((group) => group.length > 1),
+    highConfidenceGroups: sortDuplicateGroups(
+      [...fingerprints.values()].filter((group) => group.length > 1),
+    ),
     nameCollisionGroups: [...groupBy(assets, (asset) => asset.name.trim().toLocaleLowerCase()).values()]
-      .filter((group) => group.length > 1),
+      .filter((group) => group.length > 1)
+      .map(sortDuplicateGroup)
+      .sort(compareDuplicateGroups),
     filesHashed: candidates.length,
+  }
+}
+
+export function compareDuplicateAssets(left: MediaAsset, right: MediaAsset) {
+  const leftName = getDuplicateNameParts(left.name)
+  const rightName = getDuplicateNameParts(right.name)
+  return (
+    NATURAL_NAME_COLLATOR.compare(leftName.baseName, rightName.baseName) ||
+    leftName.copyNumber - rightName.copyNumber ||
+    NATURAL_NAME_COLLATOR.compare(left.name, right.name) ||
+    NATURAL_NAME_COLLATOR.compare(
+      [...left.pathParts, left.name].join('/'),
+      [...right.pathParts, right.name].join('/'),
+    ) ||
+    left.id.localeCompare(right.id)
+  )
+}
+
+function sortDuplicateGroups(groups: MediaAsset[][]) {
+  return groups.map(sortDuplicateGroup).sort(compareDuplicateGroups)
+}
+
+function sortDuplicateGroup(group: MediaAsset[]) {
+  return [...group].sort(compareDuplicateAssets)
+}
+
+function compareDuplicateGroups(left: MediaAsset[], right: MediaAsset[]) {
+  const leftFirst = left[0]
+  const rightFirst = right[0]
+  if (!leftFirst) return rightFirst ? 1 : 0
+  if (!rightFirst) return -1
+  return compareDuplicateAssets(leftFirst, rightFirst)
+}
+
+function getDuplicateNameParts(name: string) {
+  const extensionStart = name.lastIndexOf('.')
+  const extension = extensionStart > 0 ? name.slice(extensionStart) : ''
+  const stem = extensionStart > 0 ? name.slice(0, extensionStart) : name
+  const copySuffix = stem.match(/^(.*) \((\d+)\)$/)
+  return {
+    baseName: `${copySuffix?.[1] ?? stem}${extension}`,
+    copyNumber: copySuffix ? Number(copySuffix[2]) : 0,
   }
 }
 

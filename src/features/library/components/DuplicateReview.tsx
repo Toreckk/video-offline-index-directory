@@ -135,6 +135,17 @@ function DuplicateAssetRow({ asset, selected, annotation, playbackCount, onSelec
   onSelect: () => void
 }) {
   const thumbnailUrl = useThumbnailUrl(asset.thumbnailBlobKey, asset.thumbnailStatus)
+  const [copied, setCopied] = useState(false)
+
+  const copyFilename = async () => {
+    try {
+      await copyTextToClipboard(asset.name)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   return <div className={`grid gap-4 p-4 sm:grid-cols-[110px_minmax(0,1fr)_auto] ${selected ? 'bg-primary/8' : ''}`}>
     <button type="button" onClick={onSelect} className="relative aspect-video overflow-hidden border border-white/10 bg-black" aria-label={`Keep ${asset.name}`}>
       {thumbnailUrl ? <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center text-xs text-on-secondary">No preview</span>}
@@ -145,7 +156,7 @@ function DuplicateAssetRow({ asset, selected, annotation, playbackCount, onSelec
       <p className="mt-1 break-all text-xs leading-5 text-on-secondary">{getDisplayPath(asset.pathParts, asset.name)}</p>
       <p className="mt-2 text-xs text-on-secondary">{formatBytes(asset.size)} · {formatDuration(asset.duration)} · {asset.width && asset.height ? `${asset.width} × ${asset.height}` : 'dimensions unknown'} · {annotation?.tagIds.length ?? 0} tags · {annotation?.favorite ? 'favorite · ' : ''}{playbackCount} plays</p>
     </button>
-    <button type="button" onClick={() => void copyTextToClipboard(getDisplayPath(asset.pathParts, asset.name))} className="flex h-9 items-center gap-2 self-center border border-white/10 px-3 text-xs font-bold text-on-secondary hover:text-white" aria-label={`Copy path for ${asset.name}`}><Copy size={14} />Path</button>
+    <button type="button" onClick={() => void copyFilename()} className={`flex h-9 items-center gap-2 self-center border px-3 text-xs font-bold ${copied ? 'border-emerald-300/30 bg-emerald-500/10 text-emerald-200' : 'border-white/10 text-on-secondary hover:text-white'}`} aria-label={copied ? `Copied filename ${asset.name}` : `Copy filename for ${asset.name}`}>{copied ? <><CheckCircle2 size={14} />Copied!</> : <><Copy size={14} />Filename</>}</button>
   </div>
 }
 
