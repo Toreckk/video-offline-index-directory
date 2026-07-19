@@ -1,13 +1,18 @@
 import { del, get, keys, set } from 'idb-keyval'
 
 const THUMBNAIL_KEY_PREFIX = 'void-thumbnail:'
+const THUMBNAIL_CACHE_VERSION = 'v2'
 
 export function createThumbnailBlobKey(
   mediaId: string,
   lastModified: number,
   size: number,
 ) {
-  return `${THUMBNAIL_KEY_PREFIX}${mediaId}:${lastModified}:${size}`
+  return `${THUMBNAIL_KEY_PREFIX}${THUMBNAIL_CACHE_VERSION}:${mediaId}:${lastModified}:${size}`
+}
+
+export function isCurrentThumbnailBlobKey(key: string | undefined) {
+  return key?.startsWith(`${THUMBNAIL_KEY_PREFIX}${THUMBNAIL_CACHE_VERSION}:`) ?? false
 }
 
 export async function getCachedThumbnail(key: string) {

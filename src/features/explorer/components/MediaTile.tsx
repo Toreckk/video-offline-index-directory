@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Eye, Film, Heart, Play, TriangleAlert } from 'lucide-react'
 import type { MediaAsset } from '../store/mediaStore'
 import { useThumbnailUrl } from '../hooks/useThumbnailUrl'
@@ -11,14 +12,15 @@ import { MediaTagMenu } from '../../annotations/components/MediaTagMenu'
 import { getPlaybackProgress, usePlaybackStore } from '../../playback/store/playbackStore'
 import { TileActionsMenu } from './TileActionsMenu'
 import { VideoInfoDialog } from './VideoInfoDialog'
+import { usePlayerStore } from '../../player/store/playerStore'
 
 type MediaTileProps = {
   asset: MediaAsset
   priorityIndex: number
-  onOpen: () => void
+  queueIds: string[]
 }
 
-export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
+export const MediaTile = memo(function MediaTile({ asset, priorityIndex, queueIds }: MediaTileProps) {
   const tileRef = useRef<HTMLDivElement>(null)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const thumbnailUrl = useThumbnailUrl(
@@ -30,23 +32,24 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
   const annotation = useAnnotationStore(
     (state) => state.annotationsByMediaId[asset.id],
   )
-  const tagsById = useAnnotationStore((state) => state.tagsById)
   const toggleFavorite = useAnnotationStore((state) => state.toggleFavorite)
   const bulkTagId = useAnnotationStore((state) => state.bulkTagId)
-  const bulkSelectedMediaIds = useAnnotationStore((state) => state.bulkSelectedMediaIds)
+  const isBulkSelected = useAnnotationStore((state) => state.bulkSelectedMediaIds.includes(asset.id))
+  const bulkTag = useAnnotationStore((state) => state.bulkTagId ? state.tagsById[state.bulkTagId] : undefined)
   const toggleBulkMedia = useAnnotationStore((state) => state.toggleBulkMedia)
+  const openPlayer = usePlayerStore((state) => state.openPlayer)
   const playback = usePlaybackStore((state) => state.recordsByMediaId[asset.id])
   const markWatched = usePlaybackStore((state) => state.markWatched)
   const { objectUrl, videoRef, isPreviewing, previewHandlers } =
     useHoverPreview(asset)
   const isFavorite = annotation?.favorite ?? false
-  const isBulkSelected = bulkSelectedMediaIds.includes(asset.id)
-  const bulkTag = bulkTagId ? tagsById[bulkTagId] : undefined
-  const allTags = (annotation?.tagIds ?? [])
-    .flatMap((tagId) => {
-      const tag = tagsById[tagId]
+  const allTags = useAnnotationStore(useShallow((state) =>
+    (state.annotationsByMediaId[asset.id]?.tagIds ?? []).flatMap((tagId) => {
+      const tag = state.tagsById[tagId]
       return tag ? [tag] : []
-    })
+    }),
+  ))
+  const onOpen = () => openPlayer(asset.id, queueIds)
   const visibleTags = allTags.slice(0, 3)
   const hiddenTagCount = Math.max(0, allTags.length - visibleTags.length)
   const playbackProgress = getPlaybackProgress(playback)
@@ -86,7 +89,7 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
     <div
       ref={tileRef}
       {...previewHandlers}
-      className={`group relative aspect-video min-w-0 bg-surface-container ${isBulkSelected ? 'z-10 ring-2 ring-inset' : ''}`}
+      className={`media-tile group relative aspect-video min-w-0 bg-surface-container ${isBulkSelected ? 'z-10 ring-2 ring-inset' : ''}`}
       style={isBulkSelected ? { outlineColor: bulkTag?.color, boxShadow: `inset 0 0 0 3px ${bulkTag?.color ?? '#A78BFA'}` } : undefined}
     >
       <button
@@ -156,7 +159,7 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
       <div className="absolute right-2 top-2 z-20">
         <TileActionsMenu name={asset.name} pathParts={asset.pathParts} isWatched={playback?.watched ?? false} onOpen={onOpen} onToggleWatched={() => markWatched(asset.id, !playback?.watched)} onShowInfo={() => setIsInfoOpen(true)} />
       </div>
-      <button type="button" onClick={() => toggleFavorite(asset.id)} className={`absolute right-2 top-12 z-20 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition ${isFavorite ? 'border-rose-300/50 bg-rose-500/25 text-rose-200' : 'border-white/10 bg-black/65 text-white/75 opacity-80 hover:text-rose-200 hover:opacity-100'}`} aria-label={isFavorite ? `Remove ${asset.name} from favorites` : `Add ${asset.name} to favorites`} aria-pressed={isFavorite} title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
+      <button type="button" onClick={(event) => { event.stopPropagation(); toggleFavorite(asset.id) }} className={`absolute right-2 top-12 z-20 flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition ${isFavorite ? 'border-rose-300/50 bg-rose-500/25 text-rose-200' : 'border-white/10 bg-black/65 text-white/75 opacity-80 hover:text-rose-200 hover:opacity-100'}`} aria-label={isFavorite ? `Remove ${asset.name} from favorites` : `Add ${asset.name} to favorites`} aria-pressed={isFavorite} title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}>
         <Heart size={17} fill={isFavorite ? 'currentColor' : 'none'} />
       </button>
       <div className="absolute right-2 top-[5.5rem] z-20">
@@ -166,4 +169,4 @@ export function MediaTile({ asset, priorityIndex, onOpen }: MediaTileProps) {
       {isInfoOpen && <VideoInfoDialog asset={asset} tags={allTags} playback={playback} onClose={() => setIsInfoOpen(false)} />}
     </div>
   )
-}
+})

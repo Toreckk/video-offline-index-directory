@@ -102,6 +102,15 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - With a quick-tag popover open, wheel over both scrollable and non-scrollable areas and confirm the Explorer page never scrolls behind it.
 - Export a populated annotation backup, confirm the message reports its compact size, then import both version-1 and version-2 files and verify equivalent merged data.
 - Confirm opening/closing many videos does not leave playback audio running or steadily increase decoder usage.
+- Open a video from a filtered Explorer result and from a smart collection; confirm Displayed order, Shuffle, and Smart shuffle stay inside the queue that was visible when playback opened.
+- Confirm Smart shuffle does not repeat a video before its current queue is exhausted, Repeat all starts a new cycle, Repeat one records completion and restarts the same video, and Repeat off stops at the scope boundary.
+- Confirm the high-contrast previous/next buttons remain visible over the video edges in the maximized player and in fullscreen without reserving side gutters.
+- Confirm the player title, action menu, and navigation arrows fade after three seconds without pointer activity, hide immediately when the pointer leaves the player, and return on pointer movement or focus.
+- Confirm the default playback controls open in Displayed order with Repeat one selected, and that both chevrons remain geometrically centered inside their circular buttons.
+- Confirm videos with black opening frames retry later thumbnail positions and show a useful poster after the refreshed thumbnail cache is generated.
+- Open the docked tagging workspace and confirm the video resizes beside it on desktop, quick tagging remains available, tag changes follow the selected video, and the panel can be closed without closing playback.
+- Under Library > Health > Duplicates, run analysis and confirm matching sampled-content groups and filename-only collisions are presented separately.
+- Choose a preferred duplicate, merge metadata, and confirm tags, favorite state, playback history, and play counts are copied to it while every source file and source metadata record remains unchanged.
 
 ## Accessibility and resilience
 

@@ -42,6 +42,7 @@ type AnnotationActions = {
   toggleFavorite: (mediaId: string) => void
   toggleMediaTag: (mediaId: string, tagId: string) => void
   addMediaTag: (mediaId: string, tagId: string) => void
+  mergeMediaAnnotations: (targetMediaId: string, sourceMediaIds: readonly string[]) => void
   setFavoritesOnly: (enabled: boolean) => void
   setUntaggedOnly: (enabled: boolean) => void
   toggleTagFilter: (tagId: string) => void
@@ -253,6 +254,21 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
               mediaId,
               { ...current, tagIds: Array.from(new Set([...current.tagIds, ...expandedTagIds])), updatedAt: Date.now() },
             ),
+          }
+        }),
+
+      mergeMediaAnnotations: (targetMediaId, sourceMediaIds) =>
+        set((state) => {
+          const annotations = [...new Set([targetMediaId, ...sourceMediaIds])]
+            .flatMap((mediaId) => state.annotationsByMediaId[mediaId] ? [state.annotationsByMediaId[mediaId]] : [])
+          if (annotations.length === 0) return state
+          const merged: MediaAnnotation = {
+            favorite: annotations.some((annotation) => annotation.favorite),
+            tagIds: [...new Set(annotations.flatMap((annotation) => annotation.tagIds))],
+            updatedAt: Date.now(),
+          }
+          return {
+            annotationsByMediaId: updateAnnotationRecord(state.annotationsByMediaId, targetMediaId, merged),
           }
         }),
 

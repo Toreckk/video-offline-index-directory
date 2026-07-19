@@ -71,13 +71,22 @@ Firefox directory uploads expose session `File` objects and cannot write a metad
 
 ## Duplicate handling and deletion
 
-Duplicate discovery should be implemented before deletion:
+VOID now provides a non-destructive duplicate review under Library > Health > Duplicates:
+
+- It groups same-size files and compares SHA-256 fingerprints built from bounded samples at the beginning, middle, and end of each candidate.
+- It lists same-name files separately because matching filenames in different folders are not evidence of matching content.
+- The review shows relative paths and media details, opens a candidate group as a player queue, and lets the user select a preferred copy.
+- Metadata merge is additive and non-destructive: tags, favorite state, playback history, and completed-play counts are copied into the preferred record while source records and files remain unchanged.
+
+Sampled fingerprints are high-confidence evidence, not a mathematical guarantee that every byte matches. A future confirmation pass should calculate a complete streaming content hash before any destructive workflow is enabled.
+
+Duplicate discovery should continue to develop before deletion:
 
 1. Exact candidates from size plus a sampled or complete content hash.
 2. Probable versions from duration, dimensions, codec metadata, and filename similarity.
 3. A comparison screen that explains why items match and lets the user choose a preferred copy.
 
-Direct deletion is not a low-risk addition today. Chromium would require read/write permission and the parent directory handle so it can call `removeEntry`; the current `MediaFileSource` intentionally exposes neither. Firefox's session-file source cannot delete the original at all. Deletion also needs recycle-bin expectations, confirmations, duplicate verification, and protection against deleting the final copy.
+Direct deletion remains a future feature and is not a low-risk addition today. Chromium would require read/write permission and the parent directory handle so it can call `removeEntry`; the current `MediaFileSource` intentionally exposes neither. Firefox's session-file source cannot delete the original at all. Deletion also needs recycle-bin expectations, confirmations, complete-hash verification, recovery expectations, and protection against deleting the final copy.
 
 The safe near-term design is non-destructive: identify duplicates, copy the chosen video's library-relative path, and let the user manage files in the operating system. A web page cannot retrieve the absolute local path or command Windows Explorer to reveal a `FileSystemFileHandle`; true reveal-in-folder requires a trusted desktop wrapper such as Tauri/Electron or a deliberately installed local companion. A future delete action should be Chromium-only, explicitly enabled, and require confirmation immediately before the filesystem mutation.
 

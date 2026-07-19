@@ -9,7 +9,6 @@ import { useMediaStore } from '../features/explorer/store/mediaStore'
 import { usePlaybackStore } from '../features/playback/store/playbackStore'
 import { matchesCollectionRules } from '../features/collections/services/collectionMatcher'
 import { MediaTile } from '../features/explorer/components/MediaTile'
-import { usePlayerStore } from '../features/player/store/playerStore'
 
 export default function Collections() {
   const collectionsById = useCollectionStore((state) => state.collectionsById)
@@ -23,7 +22,6 @@ export default function Collections() {
   const playback = usePlaybackStore((state) => state.recordsByMediaId)
   const assetsById = useMediaStore((state) => state.assetsById)
   const orderedIds = useMediaStore((state) => state.orderedIds)
-  const openPlayer = usePlayerStore((state) => state.openPlayer)
   const tags = useMemo(() => selectTags(tagsById, orderedTagIds), [orderedTagIds, tagsById])
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -77,7 +75,7 @@ export default function Collections() {
       </header>
       {isEditing && <CollectionEditor name={name} rules={rules} tags={tags} error={error} isUpdate onNameChange={(value) => { setName(value); setError(null) }} onRulesChange={setRules} onSave={save} />}
       <section className="mt-7">
-        {matchingAssets.length === 0 ? <div className="border border-dashed border-white/10 py-20 text-center text-on-secondary">No videos currently match this collection.</div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-px">{matchingAssets.map((asset, index) => <MediaTile key={asset.id} asset={asset} priorityIndex={index} onOpen={() => openPlayer(asset.id, queueIds)} />)}</div>}
+        {matchingAssets.length === 0 ? <div className="border border-dashed border-white/10 py-20 text-center text-on-secondary">No videos currently match this collection.</div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-px">{matchingAssets.map((asset, index) => <MediaTile key={asset.id} asset={asset} priorityIndex={index} queueIds={queueIds} />)}</div>}
       </section>
     </div>
   }

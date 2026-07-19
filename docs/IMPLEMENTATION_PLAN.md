@@ -17,6 +17,9 @@ The remaining release gate is to run `docs/MANUAL_QA.md` with real local videos 
 - Added IndexedDB-persisted favorites and media tags keyed by durable media ids.
 - Tag names are free text up to 32 characters, unique case-insensitively, and use a curated 12-color palette. Quick creation balances the least-used colors with a deterministic name-based tie break.
 - Player controls support favorite toggling, assigning existing tags, and creating/assigning a tag in one action.
+- Player completion now follows the queue captured from the visible Explorer filters or selected smart collection. Displayed order, random shuffle, and no-repeat smart shuffle are independent from Off, Repeat all, and Repeat one behavior.
+- The maximized/fullscreen player includes high-contrast queue arrows and an optional docked tagging workspace while retaining tile and player quick-tag popovers.
+- Library Health includes on-demand, non-destructive sampled-fingerprint duplicate review, same-name collision review, player comparison queues, and additive metadata merging into a user-selected preferred copy.
 - Settings supports tag creation, curated color changes, usage counts, and guarded deletion.
 - Explorer supports Favorites, folder, and multiple tag filters. Multiple tags use `AND` semantics.
 - Thumbnail priority now uses actual viewport intersection plus displayed grid order instead of treating every mounted tile as visible.

@@ -34,6 +34,7 @@ type MediaActions = {
   addAssets: (assets: MediaAsset[]) => void
   retainAssets: (ids: readonly string[]) => void
   updateAsset: (id: string, patch: Partial<MediaAsset>) => void
+  updateAssets: (patches: readonly { id: string; patch: Partial<MediaAsset> }[]) => void
   setSearchQuery: (query: string) => void
   setFolderFilter: (folder: string | null) => void
   setActivePreviewId: (id: string | null) => void
@@ -94,6 +95,17 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
           [id]: { ...asset, ...patch },
         },
       }
+    }),
+  updateAssets: (patches) =>
+    set((state) => {
+      let assetsById: Record<string, MediaAsset> | null = null
+      for (const { id, patch } of patches) {
+        const asset = state.assetsById[id]
+        if (!asset) continue
+        assetsById ??= { ...state.assetsById }
+        assetsById[id] = { ...asset, ...patch }
+      }
+      return assetsById ? { assetsById } : state
     }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setFolderFilter: (folderFilter) => set({ folderFilter }),

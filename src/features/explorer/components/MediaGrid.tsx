@@ -3,12 +3,13 @@ import { useMediaStore } from '../store/mediaStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { ExplorerToolbar } from './ExplorerToolbar'
 import { MediaTile } from './MediaTile'
-import { usePlayerStore } from '../../player/store/playerStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
 import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
+
+const EMPTY_PLAYBACK_RECORDS = {}
 
 const TILE_SIZES = {
   compact: '180px',
@@ -23,14 +24,13 @@ export function MediaGrid() {
   const folderFilter = useMediaStore((state) => state.folderFilter)
   const sortOrder = useSettingsStore((state) => state.defaultSortOrder)
   const tileDensity = useSettingsStore((state) => state.tileDensity)
-  const openPlayer = usePlayerStore((state) => state.openPlayer)
   const annotationsByMediaId = useAnnotationStore(
     (state) => state.annotationsByMediaId,
   )
   const favoritesOnly = useAnnotationStore((state) => state.favoritesOnly)
   const untaggedOnly = useAnnotationStore((state) => state.untaggedOnly)
   const selectedTagIds = useAnnotationStore((state) => state.selectedTagIds)
-  const playbackByMediaId = usePlaybackStore((state) => state.recordsByMediaId)
+  const playbackByMediaId = usePlaybackStore((state) => sortOrder === 'play-count' ? state.recordsByMediaId : EMPTY_PLAYBACK_RECORDS)
 
   const filterCounts = useMemo(() => {
     let favoriteCount = 0
@@ -94,7 +94,7 @@ export function MediaGrid() {
     sortOrder,
   ])
 
-  const queueIds = visibleAssets.map((asset) => asset.id)
+  const queueIds = useMemo(() => visibleAssets.map((asset) => asset.id), [visibleAssets])
   const gridStyle = {
     '--tile-min': TILE_SIZES[tileDensity],
   } as CSSProperties
@@ -124,7 +124,7 @@ export function MediaGrid() {
               key={asset.id}
               asset={asset}
               priorityIndex={priorityIndex}
-              onOpen={() => openPlayer(asset.id, queueIds)}
+              queueIds={queueIds}
             />
           ))}
         </div>

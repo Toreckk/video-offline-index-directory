@@ -14,28 +14,32 @@ export function PlayerEdgeZones({
 
   return (
     <>
-      <TooltipIconButton
-        label="Previous video"
-        tooltipSide="right"
-        onClick={(event) => {
-          event.stopPropagation()
-          onPrevious()
-        }}
-        className="absolute left-3 top-1/2 z-30 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-xl backdrop-blur transition hover:bg-primary/80 lg:-left-20"
-      >
-        <ChevronLeft size={38} />
-      </TooltipIconButton>
-      <TooltipIconButton
-        label="Next video"
-        tooltipSide="left"
-        onClick={(event) => {
-          event.stopPropagation()
-          onNext()
-        }}
-        className="absolute right-3 top-1/2 z-30 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white shadow-xl backdrop-blur transition hover:bg-primary/80 lg:-right-20"
-      >
-        <ChevronRight size={38} />
-      </TooltipIconButton>
+      <div className="absolute left-4 top-1/2 z-50 -translate-y-1/2">
+        <TooltipIconButton
+          label="Previous video"
+          tooltipSide="right"
+          onClick={(event) => {
+            event.stopPropagation()
+            onPrevious()
+          }}
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-black/75 text-white shadow-[0_8px_30px_rgba(0,0,0,0.75)] backdrop-blur transition hover:border-primary/80 hover:bg-primary"
+        >
+          <ChevronLeft aria-hidden="true" size={32} strokeWidth={2.5} />
+        </TooltipIconButton>
+      </div>
+      <div className="absolute right-4 top-1/2 z-50 -translate-y-1/2">
+        <TooltipIconButton
+          label="Next video"
+          tooltipSide="left"
+          onClick={(event) => {
+            event.stopPropagation()
+            onNext()
+          }}
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-black/75 text-white shadow-[0_8px_30px_rgba(0,0,0,0.75)] backdrop-blur transition hover:border-primary/80 hover:bg-primary"
+        >
+          <ChevronRight aria-hidden="true" size={32} strokeWidth={2.5} />
+        </TooltipIconButton>
+      </div>
     </>
   )
 }

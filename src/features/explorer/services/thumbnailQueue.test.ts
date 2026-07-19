@@ -45,4 +45,20 @@ describe('ThumbnailQueue', () => {
 
     expect(completed).toEqual(['normal-first', 'leaving-view'])
   })
+
+  it('keeps dark-frame refinement behind every first-pass job', async () => {
+    const queue = new ThumbnailQueue()
+    const completed: string[] = []
+    queue.setPaused(true)
+    queue.enqueue({ id: 'refine', priority: 'deferred', run: async () => { completed.push('refine') } })
+    queue.enqueue({ id: 'visible', priority: 'normal', run: async () => { completed.push('visible') } })
+    queue.enqueue({ id: 'normal', priority: 'normal', run: async () => { completed.push('normal') } })
+    queue.prioritize('refine', 0)
+    queue.prioritize('visible', 1)
+
+    queue.setPaused(false)
+    await queue.waitForIdle()
+
+    expect(completed).toEqual(['visible', 'normal', 'refine'])
+  })
 })

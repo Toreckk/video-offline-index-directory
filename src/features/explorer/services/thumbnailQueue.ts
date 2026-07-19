@@ -1,4 +1,4 @@
-type QueuePriority = 'visible' | 'normal'
+type QueuePriority = 'visible' | 'normal' | 'deferred'
 
 type ThumbnailJob = {
   id: string
@@ -17,22 +17,25 @@ export class ThumbnailQueue {
   private nextSequence = 0
 
   enqueue(job: ThumbnailJob) {
-    if (this.jobs.some((queuedJob) => queuedJob.id === job.id)) return
+    if (this.jobs.some((queuedJob) => queuedJob.id === job.id)) return false
     this.jobs.push({
       ...job,
-      priority: this.visibleRanks.has(job.id) ? 'visible' : job.priority,
+      priority: job.priority === 'deferred'
+        ? 'deferred'
+        : this.visibleRanks.has(job.id) ? 'visible' : job.priority,
       priorityRank: this.visibleRanks.get(job.id) ?? job.priorityRank,
       sequence: this.nextSequence,
     })
     this.nextSequence += 1
     this.sortJobs()
     void this.drain()
+    return true
   }
 
   prioritize(id: string, rank = 0) {
     this.visibleRanks.set(id, rank)
     const job = this.jobs.find((queuedJob) => queuedJob.id === id)
-    if (!job) return
+    if (!job || job.priority === 'deferred') return
     job.priority = 'visible'
     job.priorityRank = rank
     this.sortJobs()
@@ -41,7 +44,7 @@ export class ThumbnailQueue {
   deprioritize(id: string) {
     this.visibleRanks.delete(id)
     const job = this.jobs.find((queuedJob) => queuedJob.id === id)
-    if (!job) return
+    if (!job || job.priority === 'deferred') return
     job.priority = 'normal'
     job.priorityRank = undefined
     this.sortJobs()
@@ -74,7 +77,7 @@ export class ThumbnailQueue {
       if (left.priority === right.priority) {
         return (left.sequence ?? 0) - (right.sequence ?? 0)
       }
-      return left.priority === 'visible' ? -1 : 1
+      return PRIORITY_ORDER[left.priority] - PRIORITY_ORDER[right.priority]
     })
   }
 
@@ -114,3 +117,9 @@ function pauseForPaint() {
 }
 
 export const thumbnailQueue = new ThumbnailQueue()
+
+const PRIORITY_ORDER: Record<QueuePriority, number> = {
+  visible: 0,
+  normal: 1,
+  deferred: 2,
+}

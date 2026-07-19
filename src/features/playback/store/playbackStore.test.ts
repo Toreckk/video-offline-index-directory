@@ -19,4 +19,18 @@ describe('playbackStore', () => {
     usePlaybackStore.getState().markWatched('one', false)
     expect(usePlaybackStore.getState().recordsByMediaId.one?.watched).toBe(false)
   })
+
+  it('merges duplicate watch history into a keeper without clearing sources', () => {
+    usePlaybackStore.getState().recordCompletion('keeper', 100)
+    usePlaybackStore.getState().recordCompletion('duplicate', 100)
+    usePlaybackStore.getState().recordCompletion('duplicate', 100)
+
+    usePlaybackStore.getState().mergePlaybackRecords('keeper', ['duplicate'])
+
+    expect(usePlaybackStore.getState().recordsByMediaId.keeper).toMatchObject({ watched: true, playCount: 2 })
+    expect(usePlaybackStore.getState().recordsByMediaId.duplicate).toMatchObject({ watched: true, playCount: 2 })
+
+    usePlaybackStore.getState().mergePlaybackRecords('keeper', ['duplicate'])
+    expect(usePlaybackStore.getState().recordsByMediaId.keeper?.playCount).toBe(2)
+  })
 })

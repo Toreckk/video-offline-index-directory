@@ -120,4 +120,17 @@ describe('annotationStore', () => {
       tagIds: [year.id, christmas.id],
     })
   })
+
+  it('copies duplicate annotations into a keeper without clearing source records', () => {
+    const first = useAnnotationStore.getState().createTag('first')
+    const second = useAnnotationStore.getState().createTag('second')
+    useAnnotationStore.getState().addMediaTag('keeper', first.id)
+    useAnnotationStore.getState().addMediaTag('duplicate', second.id)
+    useAnnotationStore.getState().toggleFavorite('duplicate')
+
+    useAnnotationStore.getState().mergeMediaAnnotations('keeper', ['duplicate'])
+
+    expect(useAnnotationStore.getState().annotationsByMediaId.keeper).toMatchObject({ favorite: true, tagIds: [first.id, second.id] })
+    expect(useAnnotationStore.getState().annotationsByMediaId.duplicate).toMatchObject({ favorite: true, tagIds: [second.id] })
+  })
 })

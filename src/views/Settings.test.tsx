@@ -8,6 +8,12 @@ vi.mock('idb-keyval', () => ({ get: vi.fn(async () => undefined), set: vi.fn(asy
 afterEach(cleanup)
 
 describe('Settings', () => {
+  it('defaults to displayed order and repeats the current video', () => {
+    render(<Settings />)
+    expect(screen.getByRole('combobox', { name: /Playback order/ })).toHaveValue('displayed')
+    expect(screen.getByRole('combobox', { name: /RepeatStop/ })).toHaveValue('one')
+  })
+
   it('separates tag administration from general preferences', () => {
     render(<Settings />)
     expect(screen.getByText('Playback')).toBeInTheDocument()

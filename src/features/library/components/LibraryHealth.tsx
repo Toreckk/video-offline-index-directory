@@ -1,10 +1,13 @@
-import { Activity, CircleCheck, TriangleAlert } from 'lucide-react'
+import { useState } from 'react'
+import { Activity, CircleCheck, Files, Gauge, TriangleAlert } from 'lucide-react'
 import { useMediaStore } from '../../explorer/store/mediaStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { useLibraryStore } from '../store/libraryStore'
 import { formatBytes, formatDuration } from '../../../utils/media'
+import { DuplicateReview } from './DuplicateReview'
 
 export function LibraryHealth() {
+  const [section, setSection] = useState<'overview' | 'duplicates'>('overview')
   const assetsById = useMediaStore((state) => state.assetsById)
   const orderedIds = useMediaStore((state) => state.orderedIds)
   const annotations = useAnnotationStore((state) => state.annotationsByMediaId)
@@ -36,7 +39,12 @@ export function LibraryHealth() {
         <Stat label="Annotations" value={`${favorites} favorites`} detail={`${tagCount} tags · ${assignments} assignments`} />
       </section>
 
-      <section className="border border-white/7 bg-surface-container p-6">
+      <div className="flex gap-2" role="tablist" aria-label="Library health sections">
+        <button type="button" role="tab" aria-selected={section === 'overview'} onClick={() => setSection('overview')} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-black ${section === 'overview' ? 'bg-primary text-white' : 'border border-white/8 text-on-secondary hover:text-white'}`}><Gauge size={16} />Overview</button>
+        <button type="button" role="tab" aria-selected={section === 'duplicates'} onClick={() => setSection('duplicates')} className={`flex items-center gap-2 px-4 py-2.5 text-sm font-black ${section === 'duplicates' ? 'bg-primary text-white' : 'border border-white/8 text-on-secondary hover:text-white'}`}><Files size={16} />Duplicates</button>
+      </div>
+
+      {section === 'duplicates' ? <DuplicateReview assets={assets} /> : <section className="border border-white/7 bg-surface-container p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="flex items-center gap-2 text-lg font-black"><Activity size={19} className="text-primary-fixed-dim" /> Scan health</h3>
@@ -61,7 +69,7 @@ export function LibraryHealth() {
             ))}
           </ul>
         )}
-      </section>
+      </section>}
     </div>
   )
 }

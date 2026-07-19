@@ -66,6 +66,11 @@ select option {
   min-height: 100dvh;
 }
 
+.media-tile {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px 135px;
+}
+
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {

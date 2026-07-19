@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MediaAsset } from '../store/mediaStore'
 import { restoreMediaCatalog, saveMediaCatalog } from './mediaCatalogCache'
+import { createThumbnailBlobKey } from './thumbnailCache'
 
 const database = vi.hoisted(() => new Map<string, unknown>())
 vi.mock('idb-keyval', () => ({
@@ -24,8 +25,14 @@ describe('media catalog cache', () => {
     await saveMediaCatalog('lib_test', [asset])
     expect(await restoreMediaCatalog('lib_test')).toEqual([])
   })
+
+  it('invalidates thumbnails produced by an older cache version', async () => {
+    const asset = { ...createAsset('old'), thumbnailBlobKey: 'void-thumbnail:old-key' }
+    await saveMediaCatalog('lib_test', [asset])
+    expect(await restoreMediaCatalog('lib_test')).toMatchObject([{ id: 'old', thumbnailStatus: 'idle', thumbnailBlobKey: undefined }])
+  })
 })
 
 function createAsset(id: string): MediaAsset {
-  return { id, libraryId: 'lib_test', rootName: 'Videos', name: `${id}.mp4`, extension: '.mp4', pathParts: [], source: { kind: 'file-system-handle', handle: {} as FileSystemFileHandle }, size: 10, lastModified: 1, thumbnailStatus: 'ready' }
+  return { id, libraryId: 'lib_test', rootName: 'Videos', name: `${id}.mp4`, extension: '.mp4', pathParts: [], source: { kind: 'file-system-handle', handle: {} as FileSystemFileHandle }, size: 10, lastModified: 1, thumbnailStatus: 'ready', thumbnailBlobKey: createThumbnailBlobKey(id, 1, 10) }
 }

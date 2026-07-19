@@ -13,7 +13,7 @@ import {
   useMediaStore,
 } from '../../explorer/store/mediaStore'
 import { createMediaId } from '../../../utils/media'
-import { generateVideoThumbnail, readVideoMetadata } from '../../explorer/services/generateVideoThumbnail'
+import { generateRefinedVideoThumbnail, generateVideoThumbnail, readVideoMetadata } from '../../explorer/services/generateVideoThumbnail'
 import {
   cacheThumbnail,
   createThumbnailBlobKey,
@@ -24,7 +24,7 @@ import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { saveMediaCatalog } from '../../explorer/services/mediaCatalogCache'
 
-const METADATA_BATCH_SIZE = 8
+const METADATA_BATCH_SIZE = 32
 
 export function useLibraryScanner() {
   const activeScanRef = useRef<AbortController | null>(null)
@@ -199,23 +199,65 @@ async function flushBatch(
 }
 
 function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
+  let pendingRefinements = 0
+
+  const scheduleDarkFrameRefinement = (asset: MediaAsset, thumbnailBlobKey: string) => {
+    pendingRefinements += 1
+    const didEnqueue = thumbnailQueue.enqueue({
+      id: asset.id,
+      priority: 'deferred',
+      run: async () => {
+        try {
+          if (signal.aborted) return
+          const result = await generateRefinedVideoThumbnail(asset.source, { signal })
+          if (signal.aborted || result.isDark) return
+
+          const refinedBlobKey = `${thumbnailBlobKey}:refined`
+          await cacheThumbnail(refinedBlobKey, result.blob)
+          if (signal.aborted) return
+          useMediaStore.getState().updateAsset(asset.id, {
+            thumbnailBlobKey: refinedBlobKey,
+            thumbnailStatus: 'ready',
+            duration: result.duration,
+            width: result.width,
+            height: result.height,
+          })
+        } catch (error) {
+          if (!signal.aborted) {
+            console.warn(`Could not refine dark thumbnail for ${asset.name}`, error)
+          }
+        } finally {
+          pendingRefinements -= 1
+          const libraryId = useLibraryStore.getState().libraryId
+          if (!signal.aborted && pendingRefinements === 0 && libraryId) {
+            void persistCatalog(libraryId, getCurrentAssets())
+          }
+        }
+      },
+    })
+    if (!didEnqueue) pendingRefinements -= 1
+  }
+
+  useMediaStore.getState().updateAssets(
+    assets.flatMap((asset) => asset.thumbnailStatus === 'ready'
+      ? []
+      : [{ id: asset.id, patch: { thumbnailStatus: 'queued' as const } }]),
+  )
   for (const asset of assets) {
-    if (asset.thumbnailStatus !== 'ready') {
-      useMediaStore.getState().updateAsset(asset.id, { thumbnailStatus: 'queued' })
-    }
     thumbnailQueue.enqueue({
       id: asset.id,
       priority: 'normal',
       run: async () => {
         if (signal.aborted) return
-        const thumbnailBlobKey = createThumbnailBlobKey(
+        const generatedBlobKey = createThumbnailBlobKey(
           asset.id,
           asset.lastModified,
           asset.size,
         )
+        const cachedBlobKey = asset.thumbnailBlobKey ?? generatedBlobKey
 
         try {
-          const cachedBlob = await getCachedThumbnail(thumbnailBlobKey)
+          const cachedBlob = await getCachedThumbnail(cachedBlobKey)
           if (signal.aborted) return
 
           if (cachedBlob) {
@@ -223,7 +265,7 @@ function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
               ? await readVideoMetadata(asset.source, { signal })
               : { duration: asset.duration, width: asset.width, height: asset.height }
             useMediaStore.getState().updateAsset(asset.id, {
-              thumbnailBlobKey,
+              thumbnailBlobKey: cachedBlobKey,
               thumbnailStatus: 'ready',
               duration: metadata.duration,
               width: metadata.width,
@@ -232,14 +274,17 @@ function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
           } else {
             const result = await generateVideoThumbnail(asset.source, { signal })
             if (signal.aborted) return
-            await cacheThumbnail(thumbnailBlobKey, result.blob)
+            await cacheThumbnail(generatedBlobKey, result.blob)
             useMediaStore.getState().updateAsset(asset.id, {
-              thumbnailBlobKey,
+              thumbnailBlobKey: generatedBlobKey,
               thumbnailStatus: 'ready',
               duration: result.duration,
               width: result.width,
               height: result.height,
             })
+            if (result.isDark) {
+              scheduleDarkFrameRefinement(asset, generatedBlobKey)
+            }
           }
         } catch (error) {
           if (signal.aborted) return

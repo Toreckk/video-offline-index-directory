@@ -6,6 +6,8 @@ export type PreviewDelay = 150 | 250 | 500
 export type ThumbnailPriority = 'visible-first' | 'balanced' | 'paused'
 export type SortOrder = 'modified-date' | 'name' | 'size' | 'play-count'
 export type TileDensity = 'compact' | 'comfortable' | 'large'
+export type PlaybackOrder = 'displayed' | 'shuffle' | 'smart-shuffle'
+export type RepeatMode = 'off' | 'all' | 'one'
 
 export type SettingsState = {
   autoplayHoverPreview: boolean
@@ -19,21 +21,24 @@ export type SettingsState = {
   tileDensity: TileDensity
   defaultVolume: number
   defaultPlaybackRate: number
+  playbackOrder: PlaybackOrder
+  repeatMode: RepeatMode
   libraryReadyNotificationSeconds: number
   isHydrated: boolean
 }
 
-type PersistedSettings = Omit<SettingsState, 'isHydrated'>
+type SettingsValues = Omit<SettingsState, 'isHydrated'>
+type PersistedSettings = Omit<SettingsValues, 'playbackOrder' | 'repeatMode'>
 
 type SettingsActions = {
-  updateSetting: <Key extends keyof PersistedSettings>(
+  updateSetting: <Key extends keyof SettingsValues>(
     key: Key,
-    value: PersistedSettings[Key],
+    value: SettingsValues[Key],
   ) => void
   resetSettings: () => void
 }
 
-export const DEFAULT_SETTINGS: PersistedSettings = {
+export const DEFAULT_SETTINGS: SettingsValues = {
   autoplayHoverPreview: true,
   previewDelayMs: 250,
   thumbnailPriority: 'visible-first',
@@ -45,6 +50,8 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   tileDensity: 'comfortable',
   defaultVolume: 0.3,
   defaultPlaybackRate: 1,
+  playbackOrder: 'displayed',
+  repeatMode: 'one',
   libraryReadyNotificationSeconds: 10,
 }
 
@@ -72,6 +79,14 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         defaultVolume: state.defaultVolume,
         defaultPlaybackRate: state.defaultPlaybackRate,
         libraryReadyNotificationSeconds: state.libraryReadyNotificationSeconds,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<PersistedSettings>),
+        // Playback choices are intentionally page-session settings. Keep changes
+        // while VOID is open, but never restore them on the next launch.
+        playbackOrder: DEFAULT_SETTINGS.playbackOrder,
+        repeatMode: DEFAULT_SETTINGS.repeatMode,
       }),
       onRehydrateStorage: () => () => {
         useSettingsStore.setState({ isHydrated: true })
