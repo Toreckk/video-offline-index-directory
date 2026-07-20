@@ -50,15 +50,15 @@ describe('PlayerModal chrome', () => {
     const previousButton = screen.getByRole('button', { name: 'Previous video' })
     const chrome = previousButton.parentElement?.parentElement
 
-    expect(chrome).toHaveClass('opacity-100')
+    expect(chrome).toHaveClass('pointer-events-none', 'visible', 'opacity-100')
     act(() => vi.advanceTimersByTime(3_000))
-    expect(chrome).toHaveClass('pointer-events-none', 'opacity-0')
+    expect(chrome).toHaveClass('invisible', 'opacity-0')
 
     fireEvent.pointerMove(frame)
-    expect(chrome).toHaveClass('opacity-100')
+    expect(chrome).toHaveClass('visible', 'opacity-100')
 
     fireEvent.pointerLeave(frame)
-    expect(chrome).toHaveClass('pointer-events-none', 'opacity-0')
+    expect(chrome).toHaveClass('invisible', 'opacity-0')
   })
 })
 

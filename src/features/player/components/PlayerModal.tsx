@@ -133,7 +133,7 @@ export function PlayerModal() {
             void videoRef.current.play()
           }
         }} />
-        <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${isChromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+        <div className={`pointer-events-none absolute inset-0 z-10 transition-opacity duration-300 ${isChromeVisible ? 'visible opacity-100' : 'invisible opacity-0'}`}>
           <PlayerOverlayMetadata asset={asset} />
           <PlayerEdgeZones
             canNavigate={queueIds.length > 1}

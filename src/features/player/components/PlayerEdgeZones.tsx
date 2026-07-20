@@ -14,7 +14,7 @@ export function PlayerEdgeZones({
 
   return (
     <>
-      <div className="absolute left-4 top-1/2 z-50 -translate-y-1/2">
+      <div className="pointer-events-auto absolute left-4 top-1/2 z-50 -translate-y-1/2">
         <TooltipIconButton
           label="Previous video"
           tooltipSide="right"
@@ -27,7 +27,7 @@ export function PlayerEdgeZones({
           <ChevronLeft aria-hidden="true" size={32} strokeWidth={2.5} />
         </TooltipIconButton>
       </div>
-      <div className="absolute right-4 top-1/2 z-50 -translate-y-1/2">
+      <div className="pointer-events-auto absolute right-4 top-1/2 z-50 -translate-y-1/2">
         <TooltipIconButton
           label="Next video"
           tooltipSide="left"

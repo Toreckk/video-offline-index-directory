@@ -20,8 +20,8 @@ describe('PlayerEdgeZones', () => {
 
     const previousButton = screen.getByRole('button', { name: 'Previous video' })
     const nextButton = screen.getByRole('button', { name: 'Next video' })
-    expect(previousButton.parentElement).toHaveClass('absolute', 'left-4', 'z-50')
-    expect(nextButton.parentElement).toHaveClass('absolute', 'right-4', 'z-50')
+    expect(previousButton.parentElement).toHaveClass('pointer-events-auto', 'absolute', 'left-4', 'z-50')
+    expect(nextButton.parentElement).toHaveClass('pointer-events-auto', 'absolute', 'right-4', 'z-50')
 
     fireEvent.click(previousButton)
     fireEvent.click(nextButton)

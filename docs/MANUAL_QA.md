@@ -105,6 +105,7 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Open a video from a filtered Explorer result and from a smart collection; confirm Displayed order, Shuffle, and Smart shuffle stay inside the queue that was visible when playback opened.
 - Confirm Smart shuffle does not repeat a video before its current queue is exhausted, Repeat all starts a new cycle, Repeat one records completion and restarts the same video, and Repeat off stops at the scope boundary.
 - Confirm the high-contrast previous/next buttons remain visible over the video edges in the maximized player and in fullscreen without reserving side gutters.
+- In both the maximized player and fullscreen, move the pointer over the bottom of the video and confirm the native pause, timeline, and volume controls appear and remain clickable beneath the custom overlay chrome.
 - Confirm the player title, action menu, and navigation arrows fade after three seconds without pointer activity, hide immediately when the pointer leaves the player, and return on pointer movement or focus.
 - Confirm the default playback controls open in Displayed order with Repeat one selected, and that both chevrons remain geometrically centered inside their circular buttons.
 - Confirm videos with black opening frames retry later thumbnail positions and show a useful poster after the refreshed thumbnail cache is generated.
