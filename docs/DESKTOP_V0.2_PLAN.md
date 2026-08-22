@@ -77,7 +77,8 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 - Done: repeatable 2,500/5,000-video benchmark harness and native discovery/catalog timings in `docs/performance/v0.2.md`.
 - Decision: virtualize Explorer rows in v0.2; live desktop QA confirms scrolling and responsive columns with 2,436 real videos.
 - Decision: defer bundled FFmpeg, document the licensing/size tradeoff, and prototype it behind the media port for v0.3.
-- Next: installer regression QA and final release-proposal preparation.
+- Verified locally: v0.2.0 application binary and NSIS/MSI artifacts are produced with matching product versions and SHA-256 hashes. The current workstation's unavailable Windows Installer service prevents local WiX ICE execution, so the release runner remains responsible for the normal MSI validation and the clean-machine smoke checklist remains a proposal gate.
+- Next: confirm branch CI, complete clean-machine installer smoke testing, and merge the final release proposal.
 
 ## Acceptance gates
 

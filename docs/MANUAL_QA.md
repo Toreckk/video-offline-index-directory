@@ -126,3 +126,21 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Complete a scan while Explorer is already active and confirm the Library ready notification never appears, including after navigating to another tab.
 - Include a corrupt or unreadable item and confirm its discovery, metadata, or thumbnail issue appears in Library > Health without stopping the rest of the scan.
 - Inspect the browser console through every flow and confirm no uncaught errors or object URL warnings.
+
+## Desktop v0.2.0 regression
+
+- Relaunch a previously indexed desktop library and confirm cached videos paint before background reconciliation finishes.
+- While Explorer is open, add, replace, rename, and remove videos in the selected folder. Confirm each change appears without a manual rescan and the non-blocking `Updating library` status clears afterward.
+- Rename a tagged or favorited video and confirm its tags, favorite state, and playback history follow the new path.
+- Add or rename several files quickly and confirm the coalesced update produces no duplicate tiles or lost metadata.
+- With roughly 5,000 videos, scroll rapidly from the beginning toward the end and confirm tiles keep filling without a multi-second initial freeze. Open a video and confirm its playback queue still covers the complete filtered result.
+- Confirm the VOID title bar can drag the window, double-click to maximize/restore, and exposes working minimize, maximize/restore, and close buttons with visible keyboard focus.
+- Enable `Use native Windows title bar` in Settings, relaunch, and confirm native decorations return. Disable it and relaunch to restore the themed title bar.
+
+## Windows installer smoke test
+
+- On a clean Windows 10 or Windows 11 x64 account, install the NSIS `.exe`, launch V.O.I.D., select a disposable library, and complete one scan and playback check.
+- Uninstall the NSIS build and confirm the application entry and installed program files are removed without touching the selected video library.
+- Repeat install, launch, scan, playback, and uninstall with the MSI package.
+- Confirm both installed applications report the release version from `release-manifest.json` and Windows identifies them as unsigned rather than as a trusted publisher.
+- Hash both downloaded installers and confirm they match `SHA256SUMS.txt` from the GitHub Release.
