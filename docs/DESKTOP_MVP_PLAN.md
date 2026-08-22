@@ -49,6 +49,7 @@ v0.1.0 proves that VOID can ship one shared product as both a web application an
 - Automatic mutation of a library-side `.void` metadata file.
 - Filesystem watching and continuous background reconciliation.
 - Native FFmpeg thumbnail extraction and bundled codec tooling.
+- A custom VOID-themed desktop title bar with draggable regions and themed minimize, maximize/restore, and close controls. It must retain Windows snapping, keyboard/system-menu access, DPI scaling, and accessibility behavior before replacing native decorations.
 - macOS, Linux, and Microsoft Store distribution.
 
 These items require separate security, licensing, recovery, or platform work. They can be introduced in later `0.x` releases without blocking the first useful Windows desktop build.
