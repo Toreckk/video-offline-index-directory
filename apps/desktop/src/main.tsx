@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { installVoidPlatform } from '@void/core'
 import { createDesktopPlatform } from '@void/platform-desktop'
 import '../../../packages/app/src/index.css'
+import './desktopShell.css'
 import App from '../../../packages/app/src/App'
+import { DesktopShell } from './DesktopShell'
 
 installVoidPlatform(createDesktopPlatform())
 
@@ -15,6 +17,6 @@ if (rootElement === null) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <DesktopShell><App /></DesktopShell>
   </StrictMode>,
 )

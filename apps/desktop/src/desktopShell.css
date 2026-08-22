@@ -1,0 +1,90 @@
+.desktop-shell {
+  height: 100dvh;
+  overflow: hidden;
+  background: #0b0f11;
+}
+
+.desktop-shell--themed {
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+}
+
+.desktop-shell__content {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.desktop-shell--themed .desktop-shell__content > .min-h-screen {
+  min-height: 100%;
+}
+
+.desktop-titlebar {
+  position: relative;
+  z-index: 10000;
+  display: flex;
+  height: 32px;
+  align-items: stretch;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  background: #101417;
+  color: #aeb4bd;
+  font: 500 12px/1 "Inter", "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+.desktop-titlebar__identity {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding-left: 10px;
+}
+
+.desktop-titlebar__icon {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.desktop-titlebar__controls {
+  display: flex;
+  height: 100%;
+}
+
+.desktop-titlebar__button {
+  display: grid;
+  width: 46px;
+  height: 100%;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #d8dce2;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.desktop-titlebar__button:hover {
+  background: #2a2e32;
+  color: #fff;
+}
+
+.desktop-titlebar__button:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: -2px;
+}
+
+.desktop-titlebar__button--close:hover {
+  background: #c42b1c;
+}
+
+.desktop-titlebar__button svg {
+  width: 11px;
+  height: 11px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 1;
+}

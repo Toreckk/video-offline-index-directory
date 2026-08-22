@@ -1,10 +1,33 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import type {
   NativeCatalog,
   NativeLibrarySelection,
   NativeMediaFile,
   VoidPlatform,
 } from '@void/core'
+
+export type DesktopWindowController = {
+  close: () => Promise<void>
+  isMaximized: () => Promise<boolean>
+  minimize: () => Promise<void>
+  onResized: (listener: () => void) => Promise<() => void>
+  setDecorations: (decorated: boolean) => Promise<void>
+  toggleMaximize: () => Promise<void>
+}
+
+export function createDesktopWindowController(): DesktopWindowController {
+  const appWindow = getCurrentWindow()
+
+  return {
+    close: () => appWindow.close(),
+    isMaximized: () => appWindow.isMaximized(),
+    minimize: () => appWindow.minimize(),
+    onResized: (listener) => appWindow.onResized(listener),
+    setDecorations: (decorated) => appWindow.setDecorations(decorated),
+    toggleMaximize: () => appWindow.toggleMaximize(),
+  }
+}
 
 export function createDesktopPlatform(): VoidPlatform {
   return {

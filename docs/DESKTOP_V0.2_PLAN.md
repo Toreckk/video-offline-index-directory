@@ -69,7 +69,9 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 - Done: shared `features/media` ownership boundary with the v0.1.0 test and build baseline preserved.
 - Done: store-free discovery pipeline with batched assets, progress events, cancellation, and isolated diagnostics.
 - Done: store-free thumbnail-enrichment pipeline covering cache reuse, generation, black-frame refinement, diagnostics, and completion events.
-- Next: themed Windows title bar with native-decoration fallback.
+- Done: VOID-themed Windows title bar with drag regions, accessible window controls, maximize/restore state, and a persisted native-decoration fallback in Settings.
+- Verified: live Windows development build, themed layout, and maximize/restore round trip at the original window bounds.
+- Next: native watcher port and Windows adapter, followed by incremental catalog reconciliation.
 
 ## Acceptance gates
 

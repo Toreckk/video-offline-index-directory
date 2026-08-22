@@ -1,8 +1,10 @@
 import { Database } from 'lucide-react'
+import { getVoidPlatform } from '@void/core'
 import { useSettingsStore, type PlaybackOrder, type PreviewDelay, type RepeatMode, type SortOrder, type TileDensity } from '../store/settingsStore'
 import { SelectRow, SettingsGroup, ToggleRow } from './SettingsPrimitives'
 
 export function ExperienceSettingsPanel() {
+  const platform = getVoidPlatform()
   const settings = useSettingsStore()
   return <div className="space-y-7">
     <SettingsGroup title="Playback" description="Preview behavior in Explorer.">
@@ -14,6 +16,7 @@ export function ExperienceSettingsPanel() {
       <SelectRow label="Preview delay" description="Wait before allocating a video decoder for a tile." value={String(settings.previewDelayMs)} onChange={(value) => settings.updateSetting('previewDelayMs', Number(value) as PreviewDelay)} options={[["150", "150 ms"], ["250", "250 ms"], ["500", "500 ms"]]} />
     </SettingsGroup>
     <SettingsGroup title="Interface" description="Gallery density and motion.">
+      {platform.kind === 'desktop' && <ToggleRow label="Themed desktop title bar" description="Use VOID window controls. Turn this off to restore the native Windows title bar if needed." checked={settings.themedDesktopTitleBar} onChange={(value) => settings.updateSetting('themedDesktopTitleBar', value)} />}
       <ToggleRow label="Show filenames" description="Overlay filenames and file size on gallery tiles." checked={settings.showFilenames} onChange={(value) => settings.updateSetting('showFilenames', value)} />
       <ToggleRow label="Reduce motion" description="Disable nonessential transitions and animations." checked={settings.reduceMotion} onChange={(value) => settings.updateSetting('reduceMotion', value)} />
       <SelectRow label="Tile density" description="Choose the minimum width of media tiles." value={settings.tileDensity} onChange={(value) => settings.updateSetting('tileDensity', value as TileDensity)} options={[["compact", "Compact"], ["comfortable", "Comfortable"], ["large", "Large"]]} />
