@@ -1,6 +1,6 @@
-type QueuePriority = 'visible' | 'normal' | 'deferred'
+export type QueuePriority = 'visible' | 'normal' | 'deferred'
 
-type ThumbnailJob = {
+export type ThumbnailJob = {
   id: string
   priority: QueuePriority
   priorityRank?: number
