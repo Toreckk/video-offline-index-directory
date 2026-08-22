@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getThumbnailSeekTargets } from './generateVideoThumbnail'
+import { getThumbnailSeekTargets, setCanvasSafeMediaSource } from './generateVideoThumbnail'
 
 describe('getThumbnailSeekTargets', () => {
   it('tries an early frame before later fallback frames', () => {
@@ -14,5 +14,36 @@ describe('getThumbnailSeekTargets', () => {
 
   it('uses the current frame when duration is unavailable', () => {
     expect(getThumbnailSeekTargets(Number.NaN)).toEqual([0])
+  })
+})
+
+describe('setCanvasSafeMediaSource', () => {
+  it('opts into CORS before loading an asset-protocol video', () => {
+    const changes: string[] = []
+    let crossOrigin = ''
+    let src = ''
+    const video = {
+      get crossOrigin() {
+        return crossOrigin
+      },
+      set crossOrigin(value: string | null) {
+        crossOrigin = value ?? ''
+        changes.push(`crossOrigin:${value}`)
+      },
+      get src() {
+        return src
+      },
+      set src(value: string) {
+        src = value
+        changes.push(`src:${value}`)
+      },
+    }
+
+    setCanvasSafeMediaSource(video, 'http://asset.localhost/C%3A/video.mp4')
+
+    expect(changes).toEqual([
+      'crossOrigin:anonymous',
+      'src:http://asset.localhost/C%3A/video.mp4',
+    ])
   })
 })

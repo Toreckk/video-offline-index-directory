@@ -52,7 +52,7 @@ async function captureVideoThumbnail(
   video.muted = true
   video.playsInline = true
   video.preload = 'metadata'
-  video.src = mediaResource.url
+  setCanvasSafeMediaSource(video, mediaResource.url)
 
   try {
     await waitForMediaEvent(video, 'loadedmetadata', timeoutMs, options.signal)
@@ -118,6 +118,16 @@ export function getThumbnailSeekTargets(duration: number) {
   ].map((value) => Math.max(0, Number(value.toFixed(3)))))]
 }
 
+export function setCanvasSafeMediaSource(
+  video: Pick<HTMLVideoElement, 'crossOrigin' | 'src'>,
+  sourceUrl: string,
+) {
+  // Desktop files are served from Tauri's asset origin. Opt into its CORS
+  // response before loading so frames remain readable by the thumbnail canvas.
+  video.crossOrigin = 'anonymous'
+  video.src = sourceUrl
+}
+
 function isNearlyBlackFrame(context: CanvasRenderingContext2D, video: HTMLVideoElement) {
   context.drawImage(video, 0, 0, 32, 18)
   const pixels = context.getImageData(0, 0, 32, 18).data
@@ -140,7 +150,7 @@ export async function readVideoMetadata(
   const mediaResource = await createMediaUrl(source)
   const video = document.createElement('video')
   video.preload = 'metadata'
-  video.src = mediaResource.url
+  setCanvasSafeMediaSource(video, mediaResource.url)
   try {
     await waitForMediaEvent(video, 'loadedmetadata', options.timeoutMs ?? 5_000, options.signal)
     throwIfAborted(options.signal)
