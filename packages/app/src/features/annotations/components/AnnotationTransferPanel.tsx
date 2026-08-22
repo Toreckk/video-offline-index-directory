@@ -6,8 +6,10 @@ import { formatBytes } from '../../../utils/media'
 import { useCollectionStore } from '../../collections/store/collectionStore'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
 import { useLibraryStore } from '../../library/store/libraryStore'
+import { useMediaStore } from '../../explorer/store/mediaStore'
 import {
   createLibraryMetadataExport,
+  mapAnnotationExportToLibrary,
   mergeLibraryMetadata,
   parseLibraryMetadataExport,
 } from '../../library/services/libraryMetadataTransfer'
@@ -48,10 +50,16 @@ export function AnnotationTransferPanel() {
       const raw = JSON.parse(await file.text()) as unknown
       if (isLibraryMetadataBackup(raw)) {
         const imported = parseLibraryMetadataExport(raw)
+        const libraryId = useLibraryStore.getState().libraryId
+        const currentMediaIds = new Set(useMediaStore.getState().orderedIds)
+        const matchedAnnotations = mapAnnotationExportToLibrary(
+          imported.annotations,
+          libraryId,
+        ).annotations.filter((annotation) => currentMediaIds.has(annotation.mediaId)).length
         const annotationState = useAnnotationStore.getState()
         const collectionState = useCollectionStore.getState()
         const merged = mergeLibraryMetadata({
-          libraryId: useLibraryStore.getState().libraryId,
+          libraryId,
           annotations: annotationState,
           favoriteTagIds: annotationState.favoriteTagIds,
           collectionsById: collectionState.collectionsById,
@@ -65,14 +73,22 @@ export function AnnotationTransferPanel() {
           orderedCollectionIds: merged.orderedCollectionIds,
         })
         usePlaybackStore.setState(merged.playback)
-        setMessage(`Imported ${imported.annotations.tags.length} tags, ${merged.importedCollections} new collections, and ${Object.keys(imported.playback.recordsByMediaId).length} playback records. Media paths were mapped to the current library.`)
+        setMessage(`Imported ${imported.annotations.tags.length} tags, ${merged.importedCollections} new collections, and ${Object.keys(imported.playback.recordsByMediaId).length} playback records. Matched ${matchedAnnotations} of ${imported.annotations.annotations.length} annotated videos in the current library.`)
         return
       }
       const imported = parseAnnotationExport(raw)
+      const mapped = mapAnnotationExportToLibrary(
+        imported,
+        useLibraryStore.getState().libraryId,
+      )
+      const currentMediaIds = new Set(useMediaStore.getState().orderedIds)
+      const matchedAnnotations = mapped.annotations.filter((annotation) =>
+        currentMediaIds.has(annotation.mediaId),
+      ).length
       const state = useAnnotationStore.getState()
-      const merged = mergeAnnotationExport(state, imported)
+      const merged = mergeAnnotationExport(state, mapped)
       state.mergeAnnotationData(merged)
-      setMessage(`Imported ${imported.tags.length} tags and ${imported.annotations.length} annotated videos. Existing data was merged.`)
+      setMessage(`Imported ${imported.tags.length} tags and matched ${matchedAnnotations} of ${imported.annotations.length} annotated videos in the current library. Existing data was merged.`)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not import this backup.')
     }

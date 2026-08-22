@@ -14,6 +14,18 @@ describe('tag catalog', () => {
     expect(buildTagUsageCounts({ one: { favorite: false, tagIds: ['common'], updatedAt: 1 }, two: { favorite: false, tagIds: ['common', 'recent'], updatedAt: 1 } })).toEqual({ common: 2, recent: 1 })
   })
 
+  it('limits usage counts to videos in the active library', () => {
+    const annotations = {
+      'old-library/video.mp4': { favorite: false, tagIds: ['common'], updatedAt: 1 },
+      'active-library/video.mp4': { favorite: false, tagIds: ['common', 'recent'], updatedAt: 1 },
+    }
+
+    expect(buildTagUsageCounts(annotations, ['active-library/video.mp4', 'active-library/new.mp4'])).toEqual({
+      common: 1,
+      recent: 1,
+    })
+  })
+
   it('creates non-overlapping picker sections with assigned tags first', () => {
     const sections = buildTagPickerSections({ tags, assignedTagIds: ['assigned'], favoriteTagIds: ['favorite', 'assigned'], usageCounts: { common: 2 }, query: '' })
     expect(sections.map((section) => [section.id, section.tags.map((tag) => tag.id)])).toEqual([

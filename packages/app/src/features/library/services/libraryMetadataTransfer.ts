@@ -105,15 +105,13 @@ export function mergeLibraryMetadata(
   },
   imported: ParsedLibraryMetadata,
 ): MergedLibraryMetadata {
-  const remapMediaId = (mediaId: string) =>
-    current.libraryId ? replaceLibraryId(mediaId, current.libraryId) : mediaId
-  const remappedAnnotations: AnnotationExport = {
-    ...imported.annotations,
-    annotations: imported.annotations.annotations.map((annotation) => ({
-      ...annotation,
-      mediaId: remapMediaId(annotation.mediaId),
-    })),
-  }
+  const remapMediaId = (mediaId: string) => current.libraryId
+    ? replaceLibraryId(mediaId, current.libraryId)
+    : mediaId
+  const remappedAnnotations = mapAnnotationExportToLibrary(
+    imported.annotations,
+    current.libraryId,
+  )
   const annotations = mergeAnnotationExport(current.annotations, remappedAnnotations)
   const mergedTagIdByName = new Map(
     annotations.orderedTagIds.flatMap((id) => {
@@ -169,6 +167,20 @@ export function mergeLibraryMetadata(
     orderedCollectionIds,
     playback: { recordsByMediaId },
     importedCollections,
+  }
+}
+
+export function mapAnnotationExportToLibrary(
+  imported: AnnotationExport,
+  libraryId: string | null,
+): AnnotationExport {
+  if (!libraryId) return imported
+  return {
+    ...imported,
+    annotations: imported.annotations.map((annotation) => ({
+      ...annotation,
+      mediaId: replaceLibraryId(annotation.mediaId, libraryId),
+    })),
   }
 }
 

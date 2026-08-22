@@ -8,6 +8,7 @@ import {
 import { buildTagPickerSections, buildTagUsageCounts, selectTags } from '../services/tagCatalog'
 import { TagPickerList } from './TagPickerList'
 import { TagSearchInput } from './TagSearchInput'
+import { useMediaStore } from '../../explorer/store/mediaStore'
 
 const EMPTY_TAG_IDS: string[] = []
 
@@ -19,6 +20,7 @@ export function MediaTagEditor({ mediaId, spacious = false }: { mediaId: string;
   const tagsById = useAnnotationStore((state) => state.tagsById)
   const orderedTagIds = useAnnotationStore((state) => state.orderedTagIds)
   const annotationsByMediaId = useAnnotationStore((state) => state.annotationsByMediaId)
+  const mediaIds = useMediaStore((state) => state.orderedIds)
   const favoriteTagIds = useAnnotationStore((state) => state.favoriteTagIds)
   const createTag = useAnnotationStore((state) => state.createTag)
   const addMediaTag = useAnnotationStore((state) => state.addMediaTag)
@@ -26,7 +28,10 @@ export function MediaTagEditor({ mediaId, spacious = false }: { mediaId: string;
   const toggleTagFavorite = useAnnotationStore((state) => state.toggleTagFavorite)
   const tags = useMemo(() => selectTags(tagsById, orderedTagIds), [orderedTagIds, tagsById])
   const assignedTagIds = annotation?.tagIds ?? EMPTY_TAG_IDS
-  const usageCounts = useMemo(() => buildTagUsageCounts(annotationsByMediaId), [annotationsByMediaId])
+  const usageCounts = useMemo(
+    () => buildTagUsageCounts(annotationsByMediaId, mediaIds),
+    [annotationsByMediaId, mediaIds],
+  )
   const sections = useMemo(
     () => buildTagPickerSections({ tags, assignedTagIds, favoriteTagIds, usageCounts, query: tagSearch }),
     [assignedTagIds, favoriteTagIds, tagSearch, tags, usageCounts],

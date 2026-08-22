@@ -35,7 +35,7 @@ export function MediaGrid() {
   const filterCounts = useMemo(() => {
     let favoriteCount = 0
     let untaggedCount = 0
-    const tagCounts = buildTagUsageCounts(annotationsByMediaId)
+    const tagCounts = buildTagUsageCounts(annotationsByMediaId, orderedIds)
     const folderCounts: Record<string, number> = {}
     for (const id of orderedIds) {
       const asset = assetsById[id]

@@ -22,9 +22,16 @@ export function selectTags(
 
 export function buildTagUsageCounts(
   annotationsByMediaId: Record<string, MediaAnnotation>,
+  mediaIds?: readonly string[],
 ): TagUsageCounts {
   const counts: TagUsageCounts = {}
-  for (const annotation of Object.values(annotationsByMediaId)) {
+  const annotations = mediaIds
+    ? mediaIds.flatMap((mediaId) => {
+      const annotation = annotationsByMediaId[mediaId]
+      return annotation ? [annotation] : []
+    })
+    : Object.values(annotationsByMediaId)
+  for (const annotation of annotations) {
     for (const tagId of annotation.tagIds) counts[tagId] = (counts[tagId] ?? 0) + 1
   }
   return counts

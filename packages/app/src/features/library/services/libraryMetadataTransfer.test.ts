@@ -3,6 +3,7 @@ import type { AnnotationData } from '../../annotations/model/annotationTypes'
 import type { SmartCollection } from '../../collections/model/collectionTypes'
 import {
   createLibraryMetadataExport,
+  mapAnnotationExportToLibrary,
   mergeLibraryMetadata,
   parseLibraryMetadataExport,
   replaceLibraryId,
@@ -78,6 +79,25 @@ describe('library metadata transfer', () => {
 
   it('preserves the relative path while replacing only the library segment', () => {
     expect(replaceLibraryId('old/Folder%20A/video.mp4', 'new id')).toBe('new%20id/Folder%20A/video.mp4')
+  })
+
+  it('maps older annotation-only backups onto the active library', () => {
+    const mapped = mapAnnotationExportToLibrary({
+      schemaVersion: 2,
+      exportedAt: new Date(0).toISOString(),
+      tags: annotations.orderedTagIds.map((id) => annotations.tagsById[id]!),
+      annotations: Object.entries(annotations.annotationsByMediaId).map(([mediaId, annotation]) => ({
+        mediaId,
+        ...annotation,
+      })),
+    }, 'desktop-library')
+
+    expect(mapped.annotations).toEqual([{
+      mediaId: 'desktop-library/Trips/clip.mp4',
+      favorite: true,
+      tagIds: ['holiday'],
+      updatedAt: 10,
+    }])
   })
 
   it('round-trips the target 5,000-video and 300-tag metadata fixture', () => {

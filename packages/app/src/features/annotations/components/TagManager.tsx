@@ -11,6 +11,7 @@ import { TagSearchInput } from './TagSearchInput'
 import { TagColorSelect } from './TagColorSelect'
 import { ManagedTagRow } from './ManagedTagRow'
 import { ThemedSelect } from '../../../components/controls/ThemedSelect'
+import { useMediaStore } from '../../explorer/store/mediaStore'
 
 const TAG_PAGE_SIZE = 50
 type TagScope = 'all' | 'favorites' | 'unused'
@@ -28,6 +29,7 @@ export function TagManager() {
   const annotationsByMediaId = useAnnotationStore(
     (state) => state.annotationsByMediaId,
   )
+  const mediaIds = useMediaStore((state) => state.orderedIds)
   const favoriteTagIds = useAnnotationStore((state) => state.favoriteTagIds)
   const createTag = useAnnotationStore((state) => state.createTag)
   const renameTag = useAnnotationStore((state) => state.renameTag)
@@ -39,8 +41,8 @@ export function TagManager() {
     [orderedTagIds, tagsById],
   )
   const usageCounts = useMemo(
-    () => buildTagUsageCounts(annotationsByMediaId),
-    [annotationsByMediaId],
+    () => buildTagUsageCounts(annotationsByMediaId, mediaIds),
+    [annotationsByMediaId, mediaIds],
   )
   const matchingTags = useMemo(
     () => sortTagsForManagement(
