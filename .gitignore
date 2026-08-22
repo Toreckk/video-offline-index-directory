@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Rust and Tauri build output
+target
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+
+# Generated installers, updater metadata, and local databases
+artifacts
+*.db
+*.db-shm
+*.db-wal
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
