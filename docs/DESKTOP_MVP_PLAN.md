@@ -1,7 +1,7 @@
 # Windows Desktop MVP Plan
 
 - Release: v0.1.0
-- Status: In progress
+- Status: Ready for release proposal
 - Release branch: `release/v0.1.0`
 - Supported desktop platform: Windows 10 and Windows 11, x86-64
 
@@ -40,7 +40,7 @@ v0.1.0 proves that VOID can ship one shared product as both a web application an
 
 - CI validates TypeScript, React tests, web production build, Rust tests, and Windows desktop packaging.
 - Merging the reviewed release proposal into `master` creates tag `v0.1.0` and a GitHub Release.
-- Windows installers, SHA-256 checksums, updater signatures, and release notes are release assets; generated binaries are ignored by Git.
+- Windows installers, SHA-256 checksums, and release notes are release assets; generated binaries are ignored by Git.
 - Releases are constructed as drafts and published only after every required artifact succeeds.
 
 ## Explicitly deferred
@@ -77,9 +77,17 @@ These items require separate security, licensing, recovery, or platform work. Th
 - Catalog writes are transactional and a failed scan does not erase the last valid catalog.
 - Metadata export from web can be imported on desktop without dropping supported fields.
 - Native commands reject paths outside the selected library.
-- No workflow publishes a release if tests, packaging, signing, or checksum generation fails.
+- No workflow publishes a release if tests, packaging, or checksum generation fails.
+
+## v0.1.0 validation record
+
+- Shared TypeScript suite: 123 passing tests.
+- Native Rust suite: path-boundary enforcement, schema initialization, cache-key safety, supported formats, and a real 5,000-file discovery fixture.
+- Scale metadata fixture: 5,000 videos and 300 tags export, parse, remap, and merge successfully.
+- Strict linting: ESLint and Rust Clippy with warnings denied.
+- Production builds: web bundle, desktop UI bundle, x64 NSIS installer, and x64 MSI installer.
+- Manual browser smoke test: startup, navigation, playback defaults, library settings, and a clean runtime console.
 
 ## v1.0.0 readiness
 
 The project reaches v1.0.0 when the shared platform contracts and metadata schema are stable, migration and recovery are proven, supported native file operations are recoverable, performance targets are met on representative 5,000+ video libraries, installation/update behavior is reliable, and the documented v1 capability set is complete.
-

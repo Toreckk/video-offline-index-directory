@@ -25,8 +25,8 @@ The publication workflow runs after `release-manifest.json` changes on `master`.
 1. Validates the manifest and verifies that its tag does not already exist.
 2. Runs all web and desktop quality gates.
 3. Builds Windows installers from the merged commit.
-4. Generates SHA-256 checksums and signed updater artifacts.
-5. Creates an annotated version tag and draft GitHub Release.
+4. Generates SHA-256 checksums.
+5. Creates a version tag and draft GitHub Release.
 6. Uploads artifacts and generated release notes.
 7. Publishes the release only when every upload succeeds.
 
@@ -40,7 +40,6 @@ The publish job alone receives `contents: write`. Build and test jobs use read-o
 - If a published build is unusable, mark it clearly in its notes and publish a patch release.
 - SQLite migrations must be forward-only and transactional. The application retains the previous valid database until a migration commits.
 
-## Windows signing
+## Windows signing and updates
 
-Tauri updater signatures and Windows Authenticode signing solve different problems. Updater signing protects update integrity and is required before automatic updates are enabled. Authenticode improves Windows publisher trust and SmartScreen behavior. The release workflow supports both through repository environment secrets; an unsigned early build must be identified clearly in its release notes.
-
+Tauri updater signatures and Windows Authenticode signing solve different problems. Updater signing protects update integrity and is required before automatic updates are enabled. Authenticode improves Windows publisher trust and SmartScreen behavior. Both are deferred for v0.1.0; its unsigned status is called out in release notes. Automatic updates must not be enabled until updater signing and key-management procedures are in place.
