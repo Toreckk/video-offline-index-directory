@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { getVoidPlatform } from '@void/core'
 import { FolderCog, RotateCcw, SlidersHorizontal, Tags } from 'lucide-react'
 import { useSettingsStore } from '../features/settings/store/settingsStore'
 import { ExperienceSettingsPanel } from '../features/settings/components/ExperienceSettingsPanel'
@@ -14,6 +15,7 @@ const SETTINGS_TABS = [
 ] as const
 
 export default function Settings() {
+  const platform = getVoidPlatform()
   const [activeTab, setActiveTab] = useState<SettingsTab>('experience')
   const resetSettings = useSettingsStore((state) => state.resetSettings)
   const contentWidth = activeTab === 'tags' ? 'max-w-6xl' : 'max-w-4xl'
@@ -21,7 +23,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen w-full bg-surface-dim px-10 py-12">
       <header className="mx-auto flex max-w-6xl items-end justify-between gap-6 border-b border-white/6 pb-8">
-        <div><p className="text-xs font-black uppercase tracking-[0.2em] text-primary-fixed-dim">Preferences</p><h2 className="mt-3 text-4xl font-black">Settings</h2><p className="mt-3 text-on-secondary">Persisted locally in this browser. No account required.</p></div>
+        <div><p className="text-xs font-black uppercase tracking-[0.2em] text-primary-fixed-dim">Preferences</p><h2 className="mt-3 text-4xl font-black">Settings</h2><p className="mt-3 text-on-secondary">Persisted locally {platform.kind === 'desktop' ? 'on this computer' : 'in this browser'}. No account required.</p></div>
         {activeTab === 'experience' && <button type="button" onClick={resetSettings} className="flex items-center gap-2 border border-white/8 px-4 py-2.5 text-sm font-bold text-on-secondary hover:text-white"><RotateCcw size={16} />Reset defaults</button>}
       </header>
 

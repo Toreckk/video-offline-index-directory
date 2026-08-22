@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMediaStore } from '../../explorer/store/mediaStore'
-import { openMediaFile } from '../../library/services/mediaFileSource'
+import { createMediaUrl } from '../../library/services/mediaFileSource'
 
 export function usePlayerMediaUrls(
   selectedAssetId: string | null,
@@ -22,18 +22,20 @@ export function usePlayerMediaUrls(
 
   useEffect(() => {
     let active = true
-    const createdUrls: string[] = []
+    const revokeUrls: (() => void)[] = []
 
     void Promise.all(
       warmedIds.map(async (id) => {
         const asset = useMediaStore.getState().assetsById[id]
         if (!asset) return null
         try {
-          const file = await openMediaFile(asset.source)
-          if (!active) return null
-          const url = URL.createObjectURL(file)
-          createdUrls.push(url)
-          return [id, url] as const
+          const resource = await createMediaUrl(asset.source)
+          if (!active) {
+            resource.revoke()
+            return null
+          }
+          revokeUrls.push(resource.revoke)
+          return [id, resource.url] as const
         } catch (error) {
           console.error(`Could not prepare ${asset.name} for playback`, error)
           return null
@@ -49,7 +51,7 @@ export function usePlayerMediaUrls(
 
     return () => {
       active = false
-      for (const url of createdUrls) URL.revokeObjectURL(url)
+      for (const revoke of revokeUrls) revoke()
     }
   }, [warmKey, warmedIds])
 

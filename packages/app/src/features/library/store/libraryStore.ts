@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
+import { getVoidPlatform, type NativeLibrarySelection } from '@void/core'
 import {
   del as deleteFromIndexedDb,
   get as getFromIndexedDb,
@@ -18,7 +19,7 @@ export const DIRECTORY_HANDLE_KEY = 'void-directory-handle'
 export const LIBRARY_STATE_KEY = 'void-library-store'
 
 export type LibraryPermissionStatus = 'unknown' | 'granted' | 'prompt' | 'denied'
-export type LibrarySourceKind = 'persistent-handle' | 'session-files'
+export type LibrarySourceKind = 'persistent-handle' | 'session-files' | 'native-directory'
 
 export type RecentDirectory = {
   libraryId: string
@@ -48,6 +49,7 @@ export type LibraryState = {
   sourceKind: LibrarySourceKind | null
   directoryHandle: FileSystemDirectoryHandle | null
   sessionFiles: File[]
+  rootPath: string | null
   directoryName: string | null
   permissionStatus: LibraryPermissionStatus
   scanStatus: ScanStatus
@@ -69,6 +71,10 @@ export type LibraryActions = {
   ) => Promise<string>
   selectSessionDirectory: (
     selection: DirectoryFileSelection,
+    options?: { libraryId?: string },
+  ) => Promise<string>
+  selectNativeDirectory: (
+    selection: NativeLibrarySelection,
     options?: { libraryId?: string },
   ) => Promise<string>
   restorePersistedDirectoryHandle: () => Promise<void>
@@ -110,6 +116,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
       sourceKind: null,
       directoryHandle: null,
       sessionFiles: [],
+      rootPath: null,
       directoryName: null,
       permissionStatus: 'unknown',
       ...resetScanState,
@@ -142,6 +149,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           sourceKind: 'persistent-handle',
           directoryHandle: handle,
           sessionFiles: [],
+          rootPath: null,
           directoryName: handle.name,
           permissionStatus,
         })
@@ -157,6 +165,29 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           sourceKind: 'session-files',
           directoryHandle: null,
           sessionFiles: selection.files,
+          rootPath: null,
+          directoryName: selection.rootName,
+          permissionStatus: 'granted',
+        })
+        await deleteFromIndexedDb(DIRECTORY_HANDLE_KEY)
+        get().addRecentDirectory(libraryId, selection.rootName)
+        return libraryId
+      },
+
+      selectNativeDirectory: async (selection, options = {}) => {
+        const current = get()
+        const sameDirectory =
+          current.sourceKind === 'native-directory' &&
+          current.rootPath === selection.rootPath
+        const libraryId =
+          options.libraryId ??
+          (sameDirectory && current.libraryId ? current.libraryId : createLibraryId())
+        set({
+          libraryId,
+          sourceKind: 'native-directory',
+          directoryHandle: null,
+          sessionFiles: [],
+          rootPath: selection.rootPath,
           directoryName: selection.rootName,
           permissionStatus: 'granted',
         })
@@ -171,6 +202,22 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           const persisted = get()
 
           if (
+            getVoidPlatform().kind === 'desktop' &&
+            persisted.sourceKind === 'native-directory' &&
+            persisted.libraryId &&
+            persisted.directoryName &&
+            persisted.rootPath
+          ) {
+            set({
+              directoryHandle: null,
+              sessionFiles: [],
+              permissionStatus: 'granted',
+              ...resetScanState,
+            })
+            return
+          }
+
+          if (
             persisted.sourceKind === 'session-files' &&
             persisted.libraryId &&
             persisted.directoryName
@@ -178,6 +225,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
             set({
               directoryHandle: null,
               sessionFiles: [],
+              rootPath: null,
               permissionStatus: 'prompt',
               ...resetScanState,
             })
@@ -200,6 +248,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
               sourceKind: 'persistent-handle',
               directoryHandle: handle,
               sessionFiles: [],
+              rootPath: null,
               directoryName: handle.name,
               permissionStatus,
               ...resetScanState,
@@ -208,6 +257,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
             set({
               directoryHandle: null,
               sessionFiles: [],
+              rootPath: null,
               permissionStatus: persisted.libraryId ? 'prompt' : 'unknown',
               ...resetScanState,
             })
@@ -217,6 +267,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           set({
             directoryHandle: null,
             sessionFiles: [],
+            rootPath: null,
             permissionStatus: 'denied',
           })
         } finally {
@@ -229,6 +280,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
         set({
           directoryHandle: null,
           sessionFiles: [],
+          rootPath: get().sourceKind === 'native-directory' ? get().rootPath : null,
           permissionStatus: hasRememberedLibrary ? 'prompt' : 'unknown',
           ...resetScanState,
           isLoadingPersistedLibrary: false,
@@ -236,6 +288,10 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
       },
 
       requestLibraryPermission: async () => {
+        if (get().sourceKind === 'native-directory' && get().rootPath) {
+          set({ permissionStatus: 'granted' })
+          return true
+        }
         const { directoryHandle } = get()
         if (!directoryHandle) return false
 
@@ -257,6 +313,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           sourceKind: null,
           directoryHandle: null,
           sessionFiles: [],
+          rootPath: null,
           directoryName: null,
           permissionStatus: 'unknown',
           ...resetScanState,
@@ -305,6 +362,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
       partialize: (state) => ({
         libraryId: state.libraryId,
         sourceKind: state.sourceKind,
+        rootPath: state.rootPath,
         directoryName: state.directoryName,
         permissionStatus: state.permissionStatus,
         scanStatus: state.scanStatus,

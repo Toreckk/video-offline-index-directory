@@ -10,7 +10,7 @@ import type { MediaAsset } from '../store/mediaStore'
 import { useMediaStore } from '../store/mediaStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { getSnippetPoints } from '../services/previewSchedule'
-import { openMediaFile } from '../../library/services/mediaFileSource'
+import { createMediaUrl } from '../../library/services/mediaFileSource'
 
 const SNIPPET_LENGTH_MS = 1_700
 
@@ -56,13 +56,16 @@ export function useHoverPreview(asset: MediaAsset) {
   useEffect(() => {
     if (!isActive) return
 
-    let currentUrl: string | null = null
+    let revokeUrl: (() => void) | null = null
     let cancelled = false
-    void openMediaFile(asset.source)
-      .then((file) => {
-        if (cancelled) return
-        currentUrl = URL.createObjectURL(file)
-        setPreviewResource({ assetId: asset.id, url: currentUrl })
+    void createMediaUrl(asset.source)
+      .then((resource) => {
+        if (cancelled) {
+          resource.revoke()
+          return
+        }
+        revokeUrl = resource.revoke
+        setPreviewResource({ assetId: asset.id, url: resource.url })
       })
       .catch((error) => {
         console.error(`Could not load preview for ${asset.name}`, error)
@@ -73,7 +76,7 @@ export function useHoverPreview(asset: MediaAsset) {
 
     return () => {
       cancelled = true
-      if (currentUrl) URL.revokeObjectURL(currentUrl)
+      revokeUrl?.()
     }
   }, [asset.id, asset.name, asset.source, isActive])
 

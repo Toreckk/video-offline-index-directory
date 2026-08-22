@@ -1,3 +1,4 @@
+import { getVoidPlatform } from '@void/core'
 import type { MediaAsset } from '../../explorer/store/mediaStore'
 import { openMediaFile } from './mediaFileSource'
 
@@ -9,6 +10,7 @@ export type DuplicateScanResult = {
   highConfidenceGroups: MediaAsset[][]
   nameCollisionGroups: MediaAsset[][]
   filesHashed: number
+  fingerprintKind: 'sampled' | 'complete'
 }
 
 export async function detectDuplicateMedia(
@@ -22,7 +24,12 @@ export async function detectDuplicateMedia(
   const sizeGroups = groupBy(assets, (asset) => String(asset.size))
   const candidates = [...sizeGroups.values()].filter((group) => group.length > 1).flat()
   const fingerprints = new Map<string, MediaAsset[]>()
-  const fingerprintAsset = options.fingerprintAsset ?? createSampledFingerprint
+  const canUseCompleteHashes =
+    options.fingerprintAsset === undefined &&
+    candidates.length > 0 &&
+    candidates.every((asset) => asset.source.kind === 'desktop-path') &&
+    Boolean(getVoidPlatform().hashFile)
+  const fingerprintAsset = options.fingerprintAsset ?? createPlatformFingerprint
   let nextIndex = 0
   let processed = 0
 
@@ -52,7 +59,16 @@ export async function detectDuplicateMedia(
       .map(sortDuplicateGroup)
       .sort(compareDuplicateGroups),
     filesHashed: candidates.length,
+    fingerprintKind: canUseCompleteHashes ? 'complete' : 'sampled',
   }
+}
+
+async function createPlatformFingerprint(asset: MediaAsset) {
+  const platform = getVoidPlatform()
+  if (asset.source.kind === 'desktop-path' && platform.hashFile) {
+    return platform.hashFile(asset.source.absolutePath)
+  }
+  return createSampledFingerprint(asset)
 }
 
 export function compareDuplicateAssets(left: MediaAsset, right: MediaAsset) {

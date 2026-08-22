@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, Copy, Files, LoaderCircle, Play, ScanSearch, ShieldCheck, Tags } from 'lucide-react'
+import { CheckCircle2, Copy, ExternalLink, Files, LoaderCircle, Play, ScanSearch, ShieldCheck, Tags } from 'lucide-react'
+import { getVoidPlatform } from '@void/core'
 import type { MediaAsset } from '../../explorer/store/mediaStore'
 import { useThumbnailUrl } from '../../explorer/hooks/useThumbnailUrl'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
@@ -74,7 +75,7 @@ export function DuplicateReview({ assets }: { assets: readonly MediaAsset[] }) {
 
         <div>
           <h4 className="flex items-center gap-2 font-black"><ShieldCheck size={18} className="text-emerald-300" /> High-confidence matches</h4>
-          <p className="mt-1 text-xs leading-5 text-on-secondary">Matching samples are strong evidence, but compare the videos before removing anything outside VOID.</p>
+          <p className="mt-1 text-xs leading-5 text-on-secondary">{result.fingerprintKind === 'complete' ? 'Desktop verification read every byte of each candidate. Compare the videos before removing anything.' : 'Matching samples are strong evidence, but compare the videos before removing anything outside VOID.'}</p>
           <div className="mt-4 space-y-4">
             {result.highConfidenceGroups.length ? result.highConfidenceGroups.map((group) => <DuplicateGroup key={groupKey(group)} assets={group} confidence="high" />) : <Empty message="No sampled-content matches were found." />}
           </div>
@@ -136,6 +137,8 @@ function DuplicateAssetRow({ asset, selected, annotation, playbackCount, onSelec
 }) {
   const thumbnailUrl = useThumbnailUrl(asset.thumbnailBlobKey, asset.thumbnailStatus)
   const [copied, setCopied] = useState(false)
+  const platform = getVoidPlatform()
+  const canReveal = asset.source.kind === 'desktop-path' && Boolean(platform.revealFile)
 
   const copyFilename = async () => {
     try {
@@ -156,7 +159,10 @@ function DuplicateAssetRow({ asset, selected, annotation, playbackCount, onSelec
       <p className="mt-1 break-all text-xs leading-5 text-on-secondary">{getDisplayPath(asset.pathParts, asset.name)}</p>
       <p className="mt-2 text-xs text-on-secondary">{formatBytes(asset.size)} · {formatDuration(asset.duration)} · {asset.width && asset.height ? `${asset.width} × ${asset.height}` : 'dimensions unknown'} · {annotation?.tagIds.length ?? 0} tags · {annotation?.favorite ? 'favorite · ' : ''}{playbackCount} plays</p>
     </button>
-    <button type="button" onClick={() => void copyFilename()} className={`flex h-9 items-center gap-2 self-center border px-3 text-xs font-bold ${copied ? 'border-emerald-300/30 bg-emerald-500/10 text-emerald-200' : 'border-white/10 text-on-secondary hover:text-white'}`} aria-label={copied ? `Copied filename ${asset.name}` : `Copy filename for ${asset.name}`}>{copied ? <><CheckCircle2 size={14} />Copied!</> : <><Copy size={14} />Filename</>}</button>
+    <div className="flex flex-col gap-2 self-center">
+      <button type="button" onClick={() => void copyFilename()} className={`flex h-9 items-center gap-2 border px-3 text-xs font-bold ${copied ? 'border-emerald-300/30 bg-emerald-500/10 text-emerald-200' : 'border-white/10 text-on-secondary hover:text-white'}`} aria-label={copied ? `Copied filename ${asset.name}` : `Copy filename for ${asset.name}`}>{copied ? <><CheckCircle2 size={14} />Copied!</> : <><Copy size={14} />Filename</>}</button>
+      {canReveal && <button type="button" onClick={() => asset.source.kind === 'desktop-path' && void platform.revealFile?.(asset.source.absolutePath)} className="flex h-9 items-center gap-2 border border-white/10 px-3 text-xs font-bold text-on-secondary hover:text-white"><ExternalLink size={14} />Show file</button>}
+    </div>
   </div>
 }
 

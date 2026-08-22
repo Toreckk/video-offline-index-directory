@@ -7,8 +7,13 @@
   "scripts": {
     "dev": "pnpm dev:web",
     "dev:web": "vite",
+    "dev:desktop": "pnpm --filter @void/desktop tauri dev",
+    "dev:desktop-ui": "pnpm --filter @void/desktop dev",
     "build": "pnpm build:web",
     "build:web": "tsc -b && vite build",
+    "build:desktop-ui": "pnpm --filter @void/desktop build",
+    "build:desktop": "pnpm --filter @void/desktop tauri build",
+    "verify:version": "node scripts/verify-version.mjs",
     "lint": "eslint .",
     "test": "tsc -p tsconfig.test.json && vitest run",
     "preview": "vite preview"

@@ -1,4 +1,5 @@
 import { FolderOpen, Info, X } from 'lucide-react'
+import { getVoidPlatform } from '@void/core'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 
 type LibraryRouteDialogProps = {
@@ -24,6 +25,7 @@ export function LibraryRouteDialog({
   onClose,
   onPickDirectory,
 }: LibraryRouteDialogProps) {
+  const platform = getVoidPlatform()
   const scanSubfolders = useSettingsStore((state) => state.scanSubfolders)
   const updateSetting = useSettingsStore((state) => state.updateSetting)
 
@@ -55,7 +57,7 @@ export function LibraryRouteDialog({
         </header>
 
         <p className="mt-5 max-w-[520px] leading-7 text-on-secondary">
-          VOID reads video metadata and thumbnails in your browser. Files stay on
+          VOID reads video metadata and thumbnails {platform.kind === 'desktop' ? 'on this computer' : 'in your browser'}. Files stay on
           this device and are never uploaded.
         </p>
 

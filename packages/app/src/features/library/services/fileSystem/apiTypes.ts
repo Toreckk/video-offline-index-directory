@@ -36,6 +36,8 @@ export type DiscoveredVideoFile = {
   extension: SupportedVideoExtension
   pathParts: string[]
   source: MediaFileSource
+  size?: number
+  lastModified?: number
 }
 
 export type VideoFileMetadata = {

@@ -1,7 +1,4 @@
-import {
-  openMediaFile,
-  type MediaFileSource,
-} from '../../library/services/mediaFileSource'
+import { createMediaUrl, type MediaFileSource } from '../../library/services/mediaFileSource'
 
 export type GeneratedThumbnail = {
   blob: Blob
@@ -48,15 +45,14 @@ async function captureVideoThumbnail(
   getSeekTargets: (duration: number) => number[],
   options: ThumbnailOptions,
 ): Promise<GeneratedThumbnail> {
-  const file = await openMediaFile(source)
-  const objectUrl = URL.createObjectURL(file)
+  const mediaResource = await createMediaUrl(source)
   const video = document.createElement('video')
   const timeoutMs = options.timeoutMs ?? 2_000
 
   video.muted = true
   video.playsInline = true
   video.preload = 'metadata'
-  video.src = objectUrl
+  video.src = mediaResource.url
 
   try {
     await waitForMediaEvent(video, 'loadedmetadata', timeoutMs, options.signal)
@@ -108,7 +104,7 @@ async function captureVideoThumbnail(
     video.pause()
     video.removeAttribute('src')
     video.load()
-    URL.revokeObjectURL(objectUrl)
+    mediaResource.revoke()
   }
 }
 
@@ -141,11 +137,10 @@ export async function readVideoMetadata(
   source: MediaFileSource,
   options: ThumbnailOptions = {},
 ): Promise<VideoMetadata> {
-  const file = await openMediaFile(source)
-  const objectUrl = URL.createObjectURL(file)
+  const mediaResource = await createMediaUrl(source)
   const video = document.createElement('video')
   video.preload = 'metadata'
-  video.src = objectUrl
+  video.src = mediaResource.url
   try {
     await waitForMediaEvent(video, 'loadedmetadata', options.timeoutMs ?? 5_000, options.signal)
     throwIfAborted(options.signal)
@@ -157,7 +152,7 @@ export async function readVideoMetadata(
   } finally {
     video.removeAttribute('src')
     video.load()
-    URL.revokeObjectURL(objectUrl)
+    mediaResource.revoke()
   }
 }
 

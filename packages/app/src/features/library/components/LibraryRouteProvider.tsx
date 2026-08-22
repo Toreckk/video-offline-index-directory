@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { getVoidPlatform } from '@void/core'
 import { useAppNavigation } from '../../../app/navigationContext'
 import { VIEW_IDS } from '../../../app/views'
 import { useSettingsStore } from '../../settings/store/settingsStore'
@@ -31,9 +32,7 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   const [isPickerBusy, setIsPickerBusy] = useState(false)
   const [dialogError, setDialogError] = useState<string | null>(null)
   const [successDismissed, setSuccessDismissed] = useState(false)
-  const automaticallyScannedHandleRef = useRef<FileSystemDirectoryHandle | null>(
-    null,
-  )
+  const automaticallyScannedSourceRef = useRef<string | null>(null)
   const scanSubfolders = useSettingsStore((state) => state.scanSubfolders)
   const selectDirectory = useLibraryStore((state) => state.selectDirectory)
   const selectSessionDirectory = useLibraryStore(
@@ -43,8 +42,14 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
     (state) => state.requestLibraryPermission,
   )
   const directoryHandle = useLibraryStore((state) => state.directoryHandle)
+  const rootPath = useLibraryStore((state) => state.rootPath)
+  const libraryId = useLibraryStore((state) => state.libraryId)
+  const directoryName = useLibraryStore((state) => state.directoryName)
+  const sourceKind = useLibraryStore((state) => state.sourceKind)
   const permissionStatus = useLibraryStore((state) => state.permissionStatus)
-  const hasPersistentDirectoryAccess = isFileSystemAccessSupported()
+  const platform = getVoidPlatform()
+  const hasPersistentDirectoryAccess =
+    platform.kind === 'desktop' || isFileSystemAccessSupported()
 
   const openRouteDialog = useCallback(() => {
     setDialogError(null)
@@ -60,6 +65,10 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
 
   const reconnectAndScan = useCallback(async () => {
     const state = useLibraryStore.getState()
+    if (state.sourceKind === 'native-directory' && state.rootPath) {
+      await startCurrentLibraryScan()
+      return true
+    }
     if (state.directoryHandle) {
       const granted = await requestLibraryPermission()
       if (granted) await startCurrentLibraryScan()
@@ -118,22 +127,28 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   ])
 
   useEffect(() => {
+    const canRestoreNative =
+      sourceKind === 'native-directory' && Boolean(rootPath)
+    const canRestoreHandle =
+      sourceKind === 'persistent-handle' && Boolean(directoryHandle)
     if (
-      !directoryHandle ||
+      !libraryId ||
+      !directoryName ||
       permissionStatus !== 'granted' ||
-      automaticallyScannedHandleRef.current === directoryHandle
+      (!canRestoreNative && !canRestoreHandle)
     ) {
       return
     }
 
+    const sourceKey = `${sourceKind}:${libraryId}:${rootPath ?? directoryName}`
+    if (automaticallyScannedSourceRef.current === sourceKey) return
+
     const timeoutId = window.setTimeout(() => {
-      automaticallyScannedHandleRef.current = directoryHandle
-      const libraryId = useLibraryStore.getState().libraryId
-      if (!libraryId) return
+      automaticallyScannedSourceRef.current = sourceKey
       void (async () => {
         let restoredCount = 0
         try {
-          const cachedAssets = await restoreMediaCatalog(libraryId)
+          const cachedAssets = await restoreMediaCatalog(libraryId, rootPath ?? undefined)
           if (cachedAssets.length > 0) {
             useMediaStore.getState().addAssets(cachedAssets)
             useLibraryStore.getState().setMediaIds(cachedAssets.map((asset) => asset.id))
@@ -142,21 +157,29 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.warn('Could not restore the cached media catalog.', error)
         }
-        await startScan(
-          { kind: 'directory-handle', libraryId, rootName: directoryHandle.name, directoryHandle },
-          { scanSubfolders, preserveExisting: restoredCount > 0 },
-        )
+        const source = getCurrentScanSource()
+        if (source) {
+          await startScan(source, { scanSubfolders, preserveExisting: restoredCount > 0 })
+        }
       })()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [directoryHandle, permissionStatus, scanSubfolders, startScan])
+  }, [directoryHandle, directoryName, libraryId, permissionStatus, rootPath, scanSubfolders, sourceKind, startScan])
 
   const handlePickDirectory = useCallback(async () => {
     setIsPickerBusy(true)
     setDialogError(null)
     try {
       setSuccessDismissed(false)
+      if (platform.kind === 'desktop' && platform.selectLibrary) {
+        const selection = await platform.selectLibrary()
+        if (!selection) return
+        await useLibraryStore.getState().selectNativeDirectory(selection)
+        setIsDialogOpen(false)
+        navigate(VIEW_IDS.folders)
+        return
+      }
       if (isFileSystemAccessSupported()) {
         const handle = await pickDirectory({
           id: 'void-library',
@@ -191,6 +214,7 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
     }
   }, [
     navigate,
+    platform,
     scanSubfolders,
     selectDirectory,
     selectSessionDirectory,
@@ -246,6 +270,15 @@ function getCurrentScanSource(): LibraryScanSource | null {
       libraryId: state.libraryId,
       rootName: state.directoryName,
       files: state.sessionFiles,
+    }
+  }
+
+  if (state.sourceKind === 'native-directory' && state.rootPath) {
+    return {
+      kind: 'native-directory',
+      libraryId: state.libraryId,
+      rootName: state.directoryName,
+      rootPath: state.rootPath,
     }
   }
 

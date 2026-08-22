@@ -1,0 +1,26 @@
+[package]
+name = "void-desktop"
+version = "0.1.0"
+description = "V.O.I.D. — Video Offline Index Directory"
+authors = ["VOID contributors"]
+edition = "2024"
+rust-version = "1.85"
+
+[lib]
+name = "void_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+rusqlite = { version = "0.37", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-dialog = "2"
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"
