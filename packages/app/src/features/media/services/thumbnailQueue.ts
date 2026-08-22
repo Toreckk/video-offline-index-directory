@@ -10,44 +10,49 @@ export type ThumbnailJob = {
 
 export class ThumbnailQueue {
   private jobs: ThumbnailJob[] = []
+  private queuedJobsById = new Map<string, ThumbnailJob>()
   private running = false
   private paused = false
   private visibleRanks = new Map<string, number>()
   private idleResolvers = new Set<() => void>()
   private nextSequence = 0
+  private orderDirty = false
+  private jobsSinceYield = 0
 
   enqueue(job: ThumbnailJob) {
-    if (this.jobs.some((queuedJob) => queuedJob.id === job.id)) return false
-    this.jobs.push({
+    if (this.queuedJobsById.has(job.id)) return false
+    const queuedJob: ThumbnailJob = {
       ...job,
       priority: job.priority === 'deferred'
         ? 'deferred'
         : this.visibleRanks.has(job.id) ? 'visible' : job.priority,
       priorityRank: this.visibleRanks.get(job.id) ?? job.priorityRank,
       sequence: this.nextSequence,
-    })
+    }
+    this.jobs.push(queuedJob)
+    this.queuedJobsById.set(job.id, queuedJob)
     this.nextSequence += 1
-    this.sortJobs()
+    this.orderDirty = true
     void this.drain()
     return true
   }
 
   prioritize(id: string, rank = 0) {
     this.visibleRanks.set(id, rank)
-    const job = this.jobs.find((queuedJob) => queuedJob.id === id)
+    const job = this.queuedJobsById.get(id)
     if (!job || job.priority === 'deferred') return
     job.priority = 'visible'
     job.priorityRank = rank
-    this.sortJobs()
+    this.orderDirty = true
   }
 
   deprioritize(id: string) {
     this.visibleRanks.delete(id)
-    const job = this.jobs.find((queuedJob) => queuedJob.id === id)
+    const job = this.queuedJobsById.get(id)
     if (!job || job.priority === 'deferred') return
     job.priority = 'normal'
     job.priorityRank = undefined
-    this.sortJobs()
+    this.orderDirty = true
   }
 
   setPaused(paused: boolean) {
@@ -57,8 +62,11 @@ export class ThumbnailQueue {
 
   clearPending() {
     this.jobs = []
+    this.queuedJobsById.clear()
     this.visibleRanks.clear()
     this.nextSequence = 0
+    this.orderDirty = false
+    this.jobsSinceYield = 0
   }
 
   waitForIdle() {
@@ -79,6 +87,14 @@ export class ThumbnailQueue {
       }
       return PRIORITY_ORDER[left.priority] - PRIORITY_ORDER[right.priority]
     })
+    this.orderDirty = false
+  }
+
+  private takeNextJob() {
+    if (this.orderDirty) this.sortJobs()
+    const job = this.jobs.shift()
+    if (job) this.queuedJobsById.delete(job.id)
+    return job
   }
 
   private async drain() {
@@ -87,7 +103,7 @@ export class ThumbnailQueue {
 
     try {
       while (!this.paused) {
-        const job = this.jobs.shift()
+        const job = this.takeNextJob()
         if (!job) break
 
         try {
@@ -96,7 +112,11 @@ export class ThumbnailQueue {
           console.error(`Thumbnail job failed for ${job.id}`, error)
         }
 
-        await pauseForPaint()
+        this.jobsSinceYield += 1
+        if (this.jobsSinceYield >= JOBS_PER_PAINT_YIELD) {
+          this.jobsSinceYield = 0
+          await pauseForPaint()
+        }
       }
     } finally {
       this.running = false
@@ -117,6 +137,8 @@ function pauseForPaint() {
 }
 
 export const thumbnailQueue = new ThumbnailQueue()
+
+const JOBS_PER_PAINT_YIELD = 4
 
 const PRIORITY_ORDER: Record<QueuePriority, number> = {
   visible: 0,

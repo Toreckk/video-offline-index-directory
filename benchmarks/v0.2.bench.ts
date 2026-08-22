@@ -4,6 +4,7 @@ import { buildTagUsageCounts } from '../packages/app/src/features/annotations/se
 import { matchesMediaFilters } from '../packages/app/src/features/explorer/services/mediaFilters'
 import { sortMediaAssets } from '../packages/app/src/features/explorer/services/sortMediaAssets'
 import { reconcileMediaAssets } from '../packages/app/src/features/media/services/reconcileMediaAssets'
+import { ThumbnailQueue } from '../packages/app/src/features/media/services/thumbnailQueue'
 import type { MediaAsset } from '../packages/app/src/features/media/store/mediaStore'
 
 for (const librarySize of [2_500, 5_000]) {
@@ -37,6 +38,17 @@ for (const librarySize of [2_500, 5_000]) {
       ))
       const result = sortMediaAssets(visible, 'name')
       if (result.length === 0) throw new Error('Unexpected fixture result.')
+    }, { time: 1_000, warmupTime: 250 })
+
+    bench('thumbnail queue scheduling', () => {
+      const queue = new ThumbnailQueue()
+      queue.setPaused(true)
+      for (const asset of existing) {
+        if (!queue.enqueue({ id: asset.id, priority: 'normal', run: async () => undefined })) {
+          throw new Error('Unexpected duplicate fixture id.')
+        }
+      }
+      queue.clearPending()
     }, { time: 1_000, warmupTime: 250 })
   })
 }
