@@ -21,7 +21,7 @@ export default function HomePage() {
   const permissionStatus = useLibraryStore((state) => state.permissionStatus)
 
   return (
-    <div className="relative flex h-screen flex-1 flex-col items-center justify-center overflow-hidden border border-white/[0.035] bg-[#010102] px-6 text-center">
+    <div className="relative flex h-full flex-1 flex-col items-center justify-center overflow-hidden border border-white/[0.035] bg-[#010102] px-6 text-center">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.012]"
         style={{

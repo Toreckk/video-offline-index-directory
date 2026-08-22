@@ -22,6 +22,14 @@ describe('reconcileMediaAssets', () => {
     expect(result.assets[0]).toMatchObject({ thumbnailStatus: 'idle' })
   })
 
+  it('requeues unchanged thumbnail work interrupted by a newer reconciliation', () => {
+    const queued = asset('a', 1, { thumbnailStatus: 'queued' })
+    const result = reconcileMediaAssets([queued], [asset('a', 1)])
+
+    expect(result.assets[0]).toMatchObject({ thumbnailStatus: 'queued' })
+    expect(result.affectedAssets).toEqual([result.assets[0]])
+  })
+
   it('adds new videos and removes missing videos atomically', () => {
     const added = asset('new', 1)
     const result = reconcileMediaAssets([asset('kept', 1), asset('gone', 1)], [asset('kept', 1), added])

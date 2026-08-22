@@ -64,7 +64,7 @@ select option {
 }
 
 #root {
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 .media-tile {

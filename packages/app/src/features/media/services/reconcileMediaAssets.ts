@@ -52,7 +52,9 @@ export function reconcileMediaAssets(
     }
 
     if (hasSameFileVersion(previous, discovered)) {
-      reconciledById.set(discovered.id, preserveEnrichment(discovered, previous))
+      const preserved = preserveEnrichment(discovered, previous)
+      reconciledById.set(discovered.id, preserved)
+      if (preserved.thumbnailStatus === 'queued') affectedAssets.push(preserved)
       continue
     }
 

@@ -97,7 +97,7 @@ export function MediaGrid() {
 
   const queueIds = useMemo(() => visibleAssets.map((asset) => asset.id), [visibleAssets])
   return (
-    <div className="min-h-screen w-full bg-surface-dim">
+    <div className="min-h-full w-full bg-surface-dim">
       <ExplorerToolbar
         visibleCount={visibleAssets.length}
         totalCount={orderedIds.length}

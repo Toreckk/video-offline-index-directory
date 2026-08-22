@@ -76,4 +76,19 @@ describe('ThumbnailQueue', () => {
     await queue.waitForIdle()
     expect(completed).toEqual(['first', 'refined'])
   })
+
+  it('cancels selected pending jobs so replacement work can be queued', async () => {
+    const queue = new ThumbnailQueue()
+    const completed: string[] = []
+    queue.setPaused(true)
+    queue.enqueue({ id: 'stale', priority: 'normal', run: async () => { completed.push('stale') } })
+    queue.enqueue({ id: 'keep', priority: 'normal', run: async () => { completed.push('keep') } })
+
+    queue.cancelPending(['stale'])
+    expect(queue.enqueue({ id: 'stale', priority: 'normal', run: async () => { completed.push('replacement') } })).toBe(true)
+    queue.setPaused(false)
+    await queue.waitForIdle()
+
+    expect(completed).toEqual(['keep', 'replacement'])
+  })
 })

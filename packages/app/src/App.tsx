@@ -44,7 +44,7 @@ export default function App() {
 
   if (!isHydrated || !settingsHydrated || isLoadingPersistedLibrary) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-surface-dim text-on-surface/70">
+      <div className="flex h-full w-full items-center justify-center bg-surface-dim text-on-surface/70">
         <div className="text-sm font-bold tracking-[0.05em] uppercase animate-pulse">
           Loading Library...
         </div>
@@ -69,7 +69,7 @@ function AppShell() {
   const ActiveViewComponent = activeViewConfig.component
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-dim">
+    <div className="relative flex h-full overflow-hidden bg-surface-dim">
       <BackgroundWorkCoordinator />
       <Sidebar
         activeView={activeView}
@@ -77,7 +77,7 @@ function AppShell() {
         onNavigate={navigate}
       />
 
-      <main id="void-main-scroll" className="ml-[var(--spacing-sidebar)] flex h-screen flex-1 overflow-y-auto">
+      <main id="void-main-scroll" className="ml-[var(--spacing-sidebar)] flex h-full flex-1 overflow-y-auto">
         <ActiveViewComponent />
       </main>
       <PlayerModal />

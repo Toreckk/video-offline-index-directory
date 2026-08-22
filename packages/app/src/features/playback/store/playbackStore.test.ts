@@ -33,4 +33,17 @@ describe('playbackStore', () => {
     usePlaybackStore.getState().mergePlaybackRecords('keeper', ['duplicate'])
     expect(usePlaybackStore.getState().recordsByMediaId.keeper?.playCount).toBe(2)
   })
+
+  it('moves renamed-video playback without leaving history at the old id', () => {
+    usePlaybackStore.getState().recordCompletion('old-path', 100)
+    usePlaybackStore.getState().recordCompletion('old-path', 100)
+
+    usePlaybackStore.getState().movePlaybackRecords('new-path', ['old-path'])
+
+    expect(usePlaybackStore.getState().recordsByMediaId['new-path']).toMatchObject({
+      watched: true,
+      playCount: 2,
+    })
+    expect(usePlaybackStore.getState().recordsByMediaId['old-path']).toBeUndefined()
+  })
 })

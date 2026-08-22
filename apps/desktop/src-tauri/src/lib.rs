@@ -26,6 +26,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::select_library,
+            commands::restore_library,
             commands::scan_library,
             watcher::start_library_watch,
             watcher::stop_library_watch,

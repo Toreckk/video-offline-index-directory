@@ -133,9 +133,13 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - While Explorer is open, add, replace, rename, and remove videos in the selected folder. Confirm each change appears without a manual rescan and the non-blocking `Updating library` status clears afterward.
 - Rename a tagged or favorited video and confirm its tags, favorite state, and playback history follow the new path.
 - Add or rename several files quickly and confirm the coalesced update produces no duplicate tiles or lost metadata.
+- Trigger a second library change while a new video's thumbnail is still pending and confirm the thumbnail completes instead of remaining queued.
+- Rename a tagged video, then add a different video at the original path and confirm the new file does not inherit the renamed video's tags, favorite, or playback history.
 - With roughly 5,000 videos, scroll rapidly from the beginning toward the end and confirm tiles keep filling without a multi-second initial freeze. Open a video and confirm its playback queue still covers the complete filtered result.
 - Confirm the VOID title bar can drag the window, double-click to maximize/restore, and exposes working minimize, maximize/restore, and close buttons with visible keyboard focus.
 - Enable `Use native Windows title bar` in Settings, relaunch, and confirm native decorations return. Disable it and relaunch to restore the themed title bar.
+- Disable `Restore last library`, relaunch, reconnect the remembered native library, and confirm scanning and playback succeed without selecting a different folder.
+- With the themed title bar enabled, confirm there is only one vertical page scroller and the bottom of every view remains reachable without a 32 px overflow strip.
 
 ## Windows installer smoke test
 

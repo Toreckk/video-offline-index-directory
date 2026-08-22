@@ -43,6 +43,8 @@ export function createDesktopPlatform(): VoidPlatform {
     },
     selectLibrary: () =>
       invoke<NativeLibrarySelection | null>('select_library'),
+    restoreLibrary: (libraryId, rootPath) =>
+      invoke<NativeLibrarySelection>('restore_library', { libraryId, rootPath }),
     scanLibrary: (options) =>
       invoke<NativeMediaFile[]>('scan_library', { options }),
     watchLibrary: async (options, onEvent) => {

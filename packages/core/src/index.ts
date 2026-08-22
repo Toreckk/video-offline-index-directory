@@ -69,6 +69,10 @@ export type VoidPlatform = {
   kind: PlatformKind
   capabilities: PlatformCapabilities
   selectLibrary?: () => Promise<NativeLibrarySelection | null>
+  restoreLibrary?: (
+    libraryId: string,
+    rootPath: string,
+  ) => Promise<NativeLibrarySelection>
   scanLibrary?: (options: NativeScanOptions) => Promise<NativeMediaFile[]>
   watchLibrary?: (
     options: NativeLibraryWatchOptions,

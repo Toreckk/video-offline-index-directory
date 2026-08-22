@@ -15,6 +15,7 @@ type PlaybackActions = {
   recordCompletion: (mediaId: string, durationSeconds: number) => void
   clearProgress: (mediaId: string) => void
   mergePlaybackRecords: (targetMediaId: string, sourceMediaIds: readonly string[]) => void
+  movePlaybackRecords: (targetMediaId: string, sourceMediaIds: readonly string[]) => void
 }
 
 export const usePlaybackStore = create<PlaybackState & PlaybackActions>()(
@@ -107,6 +108,41 @@ export const usePlaybackStore = create<PlaybackState & PlaybackActions>()(
               },
             },
           }
+        }),
+      movePlaybackRecords: (targetMediaId, sourceMediaIds) =>
+        set((state) => {
+          const records = [...new Set([targetMediaId, ...sourceMediaIds])]
+            .flatMap((mediaId) => state.recordsByMediaId[mediaId]
+              ? [state.recordsByMediaId[mediaId]]
+              : [])
+          if (records.length === 0) return state
+          const watched = records.some((record) => record.watched)
+          const mostAdvanced = records.reduce((best, record) => {
+            const progress = record.durationSeconds > 0
+              ? record.positionSeconds / record.durationSeconds
+              : 0
+            const bestProgress = best.durationSeconds > 0
+              ? best.positionSeconds / best.durationSeconds
+              : 0
+            return progress > bestProgress ? record : best
+          })
+          const latest = (values: (number | undefined)[]) => {
+            const present = values.filter((value): value is number => value !== undefined)
+            return present.length ? Math.max(...present) : undefined
+          }
+          const recordsByMediaId = { ...state.recordsByMediaId }
+          for (const sourceMediaId of sourceMediaIds) {
+            if (sourceMediaId !== targetMediaId) delete recordsByMediaId[sourceMediaId]
+          }
+          recordsByMediaId[targetMediaId] = {
+            positionSeconds: watched ? 0 : mostAdvanced.positionSeconds,
+            durationSeconds: mostAdvanced.durationSeconds,
+            watched,
+            lastPlayedAt: latest(records.map((record) => record.lastPlayedAt)) ?? Date.now(),
+            completedAt: latest(records.map((record) => record.completedAt)),
+            playCount: Math.max(...records.map((record) => record.playCount)),
+          }
+          return { recordsByMediaId }
         }),
     }),
     {

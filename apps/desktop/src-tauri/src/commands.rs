@@ -45,6 +45,20 @@ pub async fn select_library(app: AppHandle) -> Result<Option<NativeLibrarySelect
 }
 
 #[tauri::command]
+pub fn restore_library(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    library_id: String,
+    root_path: String,
+) -> Result<NativeLibrarySelection, String> {
+    let root = restore_catalog_root(&state, &library_id, Path::new(&root_path))?;
+    app.asset_protocol_scope()
+        .allow_directory(&root, true)
+        .map_err(display_error)?;
+    library_selection(&root)
+}
+
+#[tauri::command]
 pub async fn scan_library(
     app: AppHandle,
     options: NativeScanOptions,
@@ -136,6 +150,36 @@ pub fn load_catalog(
         .allow_directory(&root, true)
         .map_err(display_error)?;
     Ok(Some(catalog_value))
+}
+
+fn restore_catalog_root(
+    state: &AppState,
+    library_id: &str,
+    requested_root: &Path,
+) -> Result<PathBuf, String> {
+    let catalog_value = catalog::load(&state.open_database()?, library_id)?.ok_or_else(|| {
+        "The saved library catalog is unavailable. Select the folder again.".to_string()
+    })?;
+    let requested_root = requested_root.canonicalize().map_err(display_error)?;
+    let catalog_root = Path::new(&catalog_value.root_path)
+        .canonicalize()
+        .map_err(display_error)?;
+    if requested_root != catalog_root {
+        return Err("The saved library path does not match its trusted catalog.".to_string());
+    }
+    state.register_root(&requested_root)
+}
+
+fn library_selection(root: &Path) -> Result<NativeLibrarySelection, String> {
+    let root_name = root
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| "The selected library name is not valid UTF-8.".to_string())?
+        .to_string();
+    Ok(NativeLibrarySelection {
+        root_name,
+        root_path: root.to_string_lossy().into_owned(),
+    })
 }
 
 #[tauri::command]
@@ -268,7 +312,8 @@ fn not_hidden_void_directory(entry: &DirEntry) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_supported_video, scan_directory, thumbnail_path};
+    use super::{is_supported_video, restore_catalog_root, scan_directory, thumbnail_path};
+    use crate::{catalog, model::NativeCatalog, state::AppState};
     use std::{fs::File, path::Path, time::Instant};
     use tempfile::tempdir;
 
@@ -304,5 +349,38 @@ mod tests {
         eprintln!("5,000-file native discovery: {elapsed:?}");
         assert_eq!(media.len(), 5_000);
         assert!(elapsed.as_secs() < 15, "scan exceeded 15 seconds");
+    }
+
+    #[test]
+    fn restores_only_the_root_recorded_for_the_library() {
+        let app_data = tempdir().expect("app data");
+        let selected = tempdir().expect("selected library");
+        let different = tempdir().expect("different library");
+        let state = AppState::new(
+            app_data.path().join("catalog.db"),
+            app_data.path().join("thumbnails"),
+        )
+        .expect("application state");
+        catalog::save(
+            &mut state.open_database().expect("catalog database"),
+            &NativeCatalog {
+                version: 1,
+                library_id: "library".to_string(),
+                root_path: selected.path().to_string_lossy().into_owned(),
+                saved_at: 1,
+                assets: vec![],
+            },
+        )
+        .expect("saved catalog");
+
+        assert!(state.validate_root(selected.path()).is_err());
+        assert!(restore_catalog_root(&state, "library", different.path()).is_err());
+        let restored =
+            restore_catalog_root(&state, "library", selected.path()).expect("trusted catalog root");
+        assert_eq!(
+            restored,
+            selected.path().canonicalize().expect("canonical root")
+        );
+        assert!(state.validate_root(selected.path()).is_ok());
     }
 }

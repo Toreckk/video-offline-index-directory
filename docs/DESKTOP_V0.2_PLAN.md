@@ -74,6 +74,7 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 - Done: native watcher port and Tauri adapter with 400 ms burst coalescing, root-relative diagnostics, recursive/non-recursive modes, and paired rename events.
 - Done: atomic media reconciliation that commits SQLite before replacing Explorer state, preserves enrichment for unchanged/renamed files, migrates rename metadata, and queues thumbnails only for new or changed videos.
 - Verified: native watcher backend event test, split-rename test, 5,000-file native scan fixture, and shared reconciliation/store tests.
+- Done: release-review hardening explicitly restores trusted native roots, replaces thumbnail work interrupted by later watcher events, moves rename metadata without stale source IDs, and keeps the themed title bar within one viewport.
 - Done: repeatable 2,500/5,000-video benchmark harness and native discovery/catalog timings in `docs/performance/v0.2.md`.
 - Decision: virtualize Explorer rows in v0.2; live desktop QA confirms scrolling and responsive columns with 2,436 real videos.
 - Decision: defer bundled FFmpeg, document the licensing/size tradeoff, and prototype it behind the media port for v0.3.

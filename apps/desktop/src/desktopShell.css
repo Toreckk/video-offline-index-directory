@@ -12,11 +12,7 @@
 .desktop-shell__content {
   min-height: 0;
   height: 100%;
-  overflow: auto;
-}
-
-.desktop-shell--themed .desktop-shell__content > .min-h-screen {
-  min-height: 100%;
+  overflow: hidden;
 }
 
 .desktop-titlebar {

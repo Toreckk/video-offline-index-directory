@@ -65,7 +65,7 @@ export default function Collections() {
 
   if (selected) {
     const queueIds = matchingAssets.map((asset) => asset.id)
-    return <div className="min-h-screen w-full bg-surface-dim px-8 py-10">
+    return <div className="min-h-full w-full bg-surface-dim px-8 py-10">
       <header className="border-b border-white/7 pb-7">
         <button type="button" onClick={backToCollections} className="flex items-center gap-2 text-sm font-black text-on-secondary hover:text-white"><ArrowLeft size={17} />Back to collections</button>
         <div className="mt-6 flex flex-wrap items-end justify-between gap-5">
@@ -80,7 +80,7 @@ export default function Collections() {
     </div>
   }
 
-  return <div className="min-h-screen w-full bg-surface-dim px-8 py-10">
+  return <div className="min-h-full w-full bg-surface-dim px-8 py-10">
     <header className="flex flex-wrap items-end justify-between gap-5 border-b border-white/7 pb-7"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-primary-fixed-dim">Smart organization</p><h2 className="mt-3 text-4xl font-black">Collections</h2><p className="mt-3 text-on-secondary">Create and browse live filters. Open a collection to view its videos.</p></div><button type="button" onClick={beginCreate} className="flex items-center gap-2 bg-primary px-5 py-3 text-sm font-black"><Plus size={17} />Create collection</button></header>
     {isEditing && <CollectionEditor name={name} rules={rules} tags={tags} error={error} onNameChange={(value) => { setName(value); setError(null) }} onRulesChange={setRules} onSave={save} onClose={resetEditor} />}
     <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

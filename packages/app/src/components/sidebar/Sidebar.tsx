@@ -54,7 +54,7 @@ export default function Sidebar({
   onNavigate,
 }: SidebarProps) {
   return (
-    <aside className="fixed left-0 top-0 z-20 flex h-screen w-[var(--spacing-sidebar)] flex-col border-r border-white/[0.045] bg-surface">
+    <aside className="absolute inset-y-0 left-0 z-20 flex h-full w-[var(--spacing-sidebar)] flex-col border-r border-white/[0.045] bg-surface">
       <header className="flex h-[135px] flex-col items-center justify-center border-b border-white/[0.035]">
         <h1 className="text-[30px] font-black leading-none tracking-[-0.08em] text-on-primary">
           VOID

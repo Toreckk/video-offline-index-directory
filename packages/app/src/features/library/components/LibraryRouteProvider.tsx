@@ -81,8 +81,9 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   const reconnectAndScan = useCallback(async () => {
     const state = useLibraryStore.getState()
     if (state.sourceKind === 'native-directory' && state.rootPath) {
-      await startCurrentLibraryScan()
-      return true
+      const granted = await requestLibraryPermission()
+      if (granted) await startCurrentLibraryScan()
+      return granted
     }
     if (state.directoryHandle) {
       const granted = await requestLibraryPermission()

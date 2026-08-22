@@ -90,6 +90,14 @@ export class ThumbnailQueue {
     this.orderDirty = false
   }
 
+  cancelPending(ids: readonly string[]) {
+    if (ids.length === 0) return
+    const cancelled = new Set(ids)
+    this.jobs = this.jobs.filter((job) => !cancelled.has(job.id))
+    for (const id of cancelled) this.queuedJobsById.delete(id)
+    this.orderDirty = true
+  }
+
   private takeNextJob() {
     if (this.orderDirty) this.sortJobs()
     const job = this.jobs.shift()

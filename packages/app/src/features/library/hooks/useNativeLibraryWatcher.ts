@@ -10,6 +10,7 @@ import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
 import type { NativeLibraryScanSource } from '../../media/services/mediaFileSource'
 import { reconcileMediaAssets } from '../../media/services/reconcileMediaAssets'
 import { scheduleThumbnailEnrichment } from '../../media/services/thumbnailEnrichmentPipeline'
+import { thumbnailQueue } from '../../media/services/thumbnailQueue'
 import { getMediaAssets, useMediaStore } from '../../media/store/mediaStore'
 import { runDiscoveryPipeline } from '../services/discoveryPipeline'
 import { useLibraryStore } from '../store/libraryStore'
@@ -32,6 +33,7 @@ export function useNativeLibraryWatcher({
     let disposed = false
     let subscription: Awaited<ReturnType<NonNullable<typeof platform.watchLibrary>>> | null = null
     let activeController: AbortController | null = null
+    let activeEnrichmentIds: string[] = []
     let reconciliationRunning = false
     let reconciliationQueued = false
     let queuedRenames: NativeLibraryRename[] = []
@@ -63,8 +65,15 @@ export function useNativeLibraryWatcher({
           reconciliationQueued = false
           queuedRenames = []
           activeController?.abort()
+          thumbnailQueue.cancelPending(activeEnrichmentIds)
+          activeEnrichmentIds = []
           activeController = new AbortController()
-          await reconcileOnce(source, scanSubfolders, nextRenames, activeController.signal)
+          activeEnrichmentIds = await reconcileOnce(
+            source,
+            scanSubfolders,
+            nextRenames,
+            activeController.signal,
+          )
           nextRenames = queuedRenames
         } while (!disposed && reconciliationQueued)
       } catch (error) {
@@ -117,6 +126,7 @@ export function useNativeLibraryWatcher({
     return () => {
       disposed = true
       activeController?.abort()
+      thumbnailQueue.cancelPending(activeEnrichmentIds)
       if (subscription) void subscription.stop().catch((error: unknown) => {
         console.warn('Native library watcher could not be stopped cleanly.', error)
       })
@@ -161,8 +171,8 @@ async function reconcileOnce(
   throwIfAborted(signal)
 
   for (const { fromId, toId } of reconciliation.renamedMediaIds) {
-    useAnnotationStore.getState().mergeMediaAnnotations(toId, [fromId])
-    usePlaybackStore.getState().mergePlaybackRecords(toId, [fromId])
+    useAnnotationStore.getState().moveMediaAnnotations(toId, [fromId])
+    usePlaybackStore.getState().movePlaybackRecords(toId, [fromId])
   }
   useMediaStore.getState().replaceAssets(reconciliation.assets)
   const committedIds = reconciliation.assets.map((asset) => asset.id)
@@ -179,6 +189,7 @@ async function reconcileOnce(
   if (reconciliation.affectedAssets.length > 0) {
     enrichAffectedAssets(source, reconciliation.affectedAssets, signal)
   }
+  return reconciliation.affectedAssets.map((asset) => asset.id)
 }
 
 function enrichAffectedAssets(
@@ -204,8 +215,18 @@ function enrichAffectedAssets(
         message: error instanceof Error ? error.message : 'Thumbnail generation failed.',
       })
     },
-    onProcessed: () => {
+    onProcessed: (asset) => {
       processed += 1
+      const currentAsset = useMediaStore.getState().assetsById[asset.id]
+      if (currentAsset?.thumbnailStatus === 'ready') {
+        const progressStore = useLibraryStore.getState()
+        progressStore.updateScanProgress({
+          thumbnailsGenerated: Math.min(
+            progressStore.scanProgress.thumbnailTotal,
+            progressStore.scanProgress.thumbnailsGenerated + 1,
+          ),
+        })
+      }
       if (processed >= assets.length && !signal.aborted) void persistCurrentCatalog()
     },
     onRefinementsComplete: () => {
