@@ -1,0 +1,21 @@
+{
+  "name": "@void/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "build": "vite build --config vite.config.ts",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@void/app": "workspace:*",
+    "@void/core": "workspace:*",
+    "@void/platform-desktop": "workspace:*",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.8.0"
+  }
+}

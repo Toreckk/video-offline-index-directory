@@ -1,0 +1,149 @@
+import { getVoidPlatform } from '@void/core'
+import type { MediaAsset } from '../../explorer/store/mediaStore'
+import { openMediaFile } from './mediaFileSource'
+
+const SAMPLE_BYTES = 256 * 1024
+const HASH_CONCURRENCY = 2
+const NATURAL_NAME_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+
+export type DuplicateScanResult = {
+  highConfidenceGroups: MediaAsset[][]
+  nameCollisionGroups: MediaAsset[][]
+  filesHashed: number
+  fingerprintKind: 'sampled' | 'complete'
+}
+
+export async function detectDuplicateMedia(
+  assets: readonly MediaAsset[],
+  options: {
+    signal?: AbortSignal
+    onProgress?: (processed: number, total: number) => void
+    fingerprintAsset?: (asset: MediaAsset) => Promise<string>
+  } = {},
+): Promise<DuplicateScanResult> {
+  const sizeGroups = groupBy(assets, (asset) => String(asset.size))
+  const candidates = [...sizeGroups.values()].filter((group) => group.length > 1).flat()
+  const fingerprints = new Map<string, MediaAsset[]>()
+  const canUseCompleteHashes =
+    options.fingerprintAsset === undefined &&
+    candidates.length > 0 &&
+    candidates.every((asset) => asset.source.kind === 'desktop-path') &&
+    Boolean(getVoidPlatform().hashFile)
+  const fingerprintAsset = options.fingerprintAsset ?? createPlatformFingerprint
+  let nextIndex = 0
+  let processed = 0
+
+  const worker = async () => {
+    while (nextIndex < candidates.length) {
+      throwIfAborted(options.signal)
+      const asset = candidates[nextIndex]
+      nextIndex += 1
+      if (!asset) continue
+      const fingerprint = await fingerprintAsset(asset)
+      const key = `${asset.size}:${fingerprint}`
+      fingerprints.set(key, [...(fingerprints.get(key) ?? []), asset])
+      processed += 1
+      options.onProgress?.(processed, candidates.length)
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(HASH_CONCURRENCY, candidates.length) }, worker))
+  throwIfAborted(options.signal)
+
+  return {
+    highConfidenceGroups: sortDuplicateGroups(
+      [...fingerprints.values()].filter((group) => group.length > 1),
+    ),
+    nameCollisionGroups: [...groupBy(assets, (asset) => asset.name.trim().toLocaleLowerCase()).values()]
+      .filter((group) => group.length > 1)
+      .map(sortDuplicateGroup)
+      .sort(compareDuplicateGroups),
+    filesHashed: candidates.length,
+    fingerprintKind: canUseCompleteHashes ? 'complete' : 'sampled',
+  }
+}
+
+async function createPlatformFingerprint(asset: MediaAsset) {
+  const platform = getVoidPlatform()
+  if (asset.source.kind === 'desktop-path' && platform.hashFile) {
+    return platform.hashFile(asset.source.absolutePath)
+  }
+  return createSampledFingerprint(asset)
+}
+
+export function compareDuplicateAssets(left: MediaAsset, right: MediaAsset) {
+  const leftName = getDuplicateNameParts(left.name)
+  const rightName = getDuplicateNameParts(right.name)
+  return (
+    NATURAL_NAME_COLLATOR.compare(leftName.baseName, rightName.baseName) ||
+    leftName.copyNumber - rightName.copyNumber ||
+    NATURAL_NAME_COLLATOR.compare(left.name, right.name) ||
+    NATURAL_NAME_COLLATOR.compare(
+      [...left.pathParts, left.name].join('/'),
+      [...right.pathParts, right.name].join('/'),
+    ) ||
+    left.id.localeCompare(right.id)
+  )
+}
+
+function sortDuplicateGroups(groups: MediaAsset[][]) {
+  return groups.map(sortDuplicateGroup).sort(compareDuplicateGroups)
+}
+
+function sortDuplicateGroup(group: MediaAsset[]) {
+  return [...group].sort(compareDuplicateAssets)
+}
+
+function compareDuplicateGroups(left: MediaAsset[], right: MediaAsset[]) {
+  const leftFirst = left[0]
+  const rightFirst = right[0]
+  if (!leftFirst) return rightFirst ? 1 : 0
+  if (!rightFirst) return -1
+  return compareDuplicateAssets(leftFirst, rightFirst)
+}
+
+function getDuplicateNameParts(name: string) {
+  const extensionStart = name.lastIndexOf('.')
+  const extension = extensionStart > 0 ? name.slice(extensionStart) : ''
+  const stem = extensionStart > 0 ? name.slice(0, extensionStart) : name
+  const copySuffix = stem.match(/^(.*) \((\d+)\)$/)
+  return {
+    baseName: `${copySuffix?.[1] ?? stem}${extension}`,
+    copyNumber: copySuffix ? Number(copySuffix[2]) : 0,
+  }
+}
+
+export async function createSampledFingerprint(asset: MediaAsset) {
+  const file = await openMediaFile(asset.source)
+  const sampleLength = Math.min(SAMPLE_BYTES, file.size)
+  const offsets = [...new Set([
+    0,
+    Math.max(0, Math.floor((file.size - sampleLength) / 2)),
+    Math.max(0, file.size - sampleLength),
+  ])]
+  const chunks = await Promise.all(offsets.map((offset) => file.slice(offset, offset + sampleLength).arrayBuffer()))
+  const header = new TextEncoder().encode(`${file.size}:${offsets.join(',')}:`)
+  const totalLength = header.byteLength + chunks.reduce((total, chunk) => total + chunk.byteLength, 0)
+  const sampledBytes = new Uint8Array(totalLength)
+  sampledBytes.set(header)
+  let writeOffset = header.byteLength
+  for (const chunk of chunks) {
+    sampledBytes.set(new Uint8Array(chunk), writeOffset)
+    writeOffset += chunk.byteLength
+  }
+  const digest = await crypto.subtle.digest('SHA-256', sampledBytes)
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function groupBy<Key>(assets: readonly MediaAsset[], selectKey: (asset: MediaAsset) => Key) {
+  const groups = new Map<Key, MediaAsset[]>()
+  for (const asset of assets) {
+    const key = selectKey(asset)
+    groups.set(key, [...(groups.get(key) ?? []), asset])
+  }
+  return groups
+}
+
+function throwIfAborted(signal: AbortSignal | undefined) {
+  if (signal?.aborted) throw new DOMException('Duplicate scan aborted.', 'AbortError')
+}

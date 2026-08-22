@@ -1,0 +1,7 @@
+{
+  "version": "0.1.0",
+  "channel": "stable",
+  "publish": true,
+  "desktopTargets": ["nsis", "msi"],
+  "notes": "docs/releases/v0.1.0.md"
+}

@@ -1,16 +1,48 @@
-# React + Vite
+# V.O.I.D.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+V.O.I.D. (Video Offline Index Directory) is an offline-first local video organizer. It provides Explorer, collections, tagging, playback queues, library health tools, and non-destructive duplicate review as both a browser application and a native Windows desktop application.
 
-Currently, two official plugins are available:
+The desktop edition is not a thin web wrapper: it adds native scanning, a persistent SQLite catalog, a disk-backed thumbnail cache, direct local-media delivery, Windows Explorer integration, and streaming file hashes. The product UI and domain behavior are shared between editions through ports and adapters.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Repository layout
 
-## React Compiler
+```text
+apps/web                  Browser composition root
+apps/desktop              Tauri desktop composition root and Rust backend
+packages/app              Shared React product and feature code
+packages/core             Platform contracts
+packages/platform-web     Browser adapters
+packages/platform-desktop Tauri adapters
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development
 
-## Expanding the ESLint configuration
+Requirements: Node.js 22+, pnpm 11+, and, for desktop work, the current stable Rust toolchain plus Microsoft C++ Build Tools.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+pnpm install
+pnpm dev:web
+pnpm dev:desktop
+```
+
+Quality and production commands:
+
+```bash
+pnpm test
+pnpm lint
+pnpm build:web
+pnpm build:desktop
+pnpm verify:version
+```
+
+The browser build is written to `dist/web`. Tauri installers are generated below `apps/desktop/src-tauri/target/release/bundle` and are never committed.
+
+## Releases
+
+VOID follows Semantic Versioning and Conventional Commits. Release work is assembled on `release/vX.Y.Z`; merging its proposal into `master` triggers validation, Windows packaging, checksum generation, and GitHub Release publication from `release-manifest.json`.
+
+See [the desktop MVP plan](docs/DESKTOP_MVP_PLAN.md), [architecture decision](docs/adr/0001-platform-ports-and-adapters.md), and [release process](docs/RELEASE_PROCESS.md).
+
+## Privacy and safety
+
+Video files remain on the user's machine. v0.1.0 can reveal files in Explorer but intentionally has no delete command. Metadata exports contain organization data and filesystem-relative identifiers, not video contents.

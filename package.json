@@ -1,21 +1,27 @@
 {
-  "name": "video-offline-index-directory",
+  "name": "void-workspace",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "pnpm dev:web",
+    "dev:web": "vite",
+    "dev:desktop": "pnpm --filter @void/desktop tauri dev",
+    "dev:desktop-ui": "pnpm --filter @void/desktop dev",
+    "build": "pnpm build:web",
+    "build:web": "tsc -b && vite build",
+    "build:desktop-ui": "pnpm --filter @void/desktop build",
+    "build:desktop": "pnpm --filter @void/desktop tauri build",
+    "verify:version": "node scripts/verify-version.mjs",
     "lint": "eslint .",
     "test": "tsc -p tsconfig.test.json && vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
-    "idb-keyval": "^6.2.2",
-    "lucide-react": "^1.14.0",
+    "@void/app": "workspace:*",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "zustand": "^5.0.13"
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
