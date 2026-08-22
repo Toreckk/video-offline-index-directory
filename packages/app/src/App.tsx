@@ -69,7 +69,7 @@ function AppShell() {
   const ActiveViewComponent = activeViewConfig.component
 
   return (
-    <div className="flex min-h-screen bg-surface-dim">
+    <div className="flex h-screen overflow-hidden bg-surface-dim">
       <BackgroundWorkCoordinator />
       <Sidebar
         activeView={activeView}
@@ -77,7 +77,7 @@ function AppShell() {
         onNavigate={navigate}
       />
 
-      <main className="ml-[var(--spacing-sidebar)] flex min-h-screen flex-1">
+      <main id="void-main-scroll" className="ml-[var(--spacing-sidebar)] flex h-screen flex-1 overflow-y-auto">
         <ActiveViewComponent />
       </main>
       <PlayerModal />

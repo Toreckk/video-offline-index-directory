@@ -72,6 +72,12 @@ select option {
   contain-intrinsic-size: auto 240px 135px;
 }
 
+.virtual-media-tile > .media-tile {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {

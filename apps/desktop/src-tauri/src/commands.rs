@@ -300,7 +300,9 @@ mod tests {
         }
         let started = Instant::now();
         let media = scan_directory(directory.path(), true).expect("native scan");
+        let elapsed = started.elapsed();
+        eprintln!("5,000-file native discovery: {elapsed:?}");
         assert_eq!(media.len(), 5_000);
-        assert!(started.elapsed().as_secs() < 15, "scan exceeded 15 seconds");
+        assert!(elapsed.as_secs() < 15, "scan exceeded 15 seconds");
     }
 }
