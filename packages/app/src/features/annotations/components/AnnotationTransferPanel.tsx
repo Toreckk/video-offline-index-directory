@@ -6,7 +6,7 @@ import { formatBytes } from '../../../utils/media'
 import { useCollectionStore } from '../../collections/store/collectionStore'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
 import { useLibraryStore } from '../../library/store/libraryStore'
-import { useMediaStore } from '../../explorer/store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 import {
   createLibraryMetadataExport,
   mapAnnotationExportToLibrary,

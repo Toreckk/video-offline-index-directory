@@ -8,23 +8,23 @@ import {
   type DiscoveredVideoFile,
   getSupportedVideoExtension,
 } from '../services/fileSystem'
-import { nativeMediaFileToSource, type LibraryScanSource } from '../services/mediaFileSource'
+import { nativeMediaFileToSource, type LibraryScanSource } from '../../media/services/mediaFileSource'
 import { useLibraryStore } from '../store/libraryStore'
 import {
   type MediaAsset,
   useMediaStore,
-} from '../../explorer/store/mediaStore'
+} from '../../media/store/mediaStore'
 import { createMediaId } from '../../../utils/media'
-import { generateRefinedVideoThumbnail, generateVideoThumbnail, readVideoMetadata } from '../../explorer/services/generateVideoThumbnail'
+import { generateRefinedVideoThumbnail, generateVideoThumbnail, readVideoMetadata } from '../../media/services/generateVideoThumbnail'
 import {
   cacheThumbnail,
   createThumbnailBlobKey,
   getCachedThumbnail,
-} from '../../explorer/services/thumbnailCache'
-import { thumbnailQueue } from '../../explorer/services/thumbnailQueue'
+} from '../../media/services/thumbnailCache'
+import { thumbnailQueue } from '../../media/services/thumbnailQueue'
 import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
-import { saveMediaCatalog } from '../../explorer/services/mediaCatalogCache'
+import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
 
 const METADATA_BATCH_SIZE = 32
 

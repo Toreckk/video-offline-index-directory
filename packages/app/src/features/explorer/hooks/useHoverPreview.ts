@@ -6,11 +6,11 @@ import {
   type FocusEventHandler,
   type MouseEventHandler,
 } from 'react'
-import type { MediaAsset } from '../store/mediaStore'
-import { useMediaStore } from '../store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { getSnippetPoints } from '../services/previewSchedule'
-import { createMediaUrl } from '../../library/services/mediaFileSource'
+import { createMediaUrl } from '../../media/services/mediaFileSource'
 
 const SNIPPET_LENGTH_MS = 1_700
 

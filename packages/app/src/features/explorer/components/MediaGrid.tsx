@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties } from 'react'
-import { useMediaStore } from '../store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { ExplorerToolbar } from './ExplorerToolbar'
 import { MediaTile } from './MediaTile'

@@ -1,7 +1,7 @@
 import type { DiscoveredVideoFile, WalkDirectoryOptions } from './apiTypes'
 import { FileSystemAccessError } from './errors'
 import { getSupportedVideoExtension } from './videoExtensions'
-import { createSessionMediaSource } from '../mediaFileSource'
+import { createSessionMediaSource } from '../../../media/services/mediaFileSource'
 
 export async function* walkFileSelection(
   files: readonly File[],

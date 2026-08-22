@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { MediaAsset } from '../../explorer/store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 import { DuplicateReview } from './DuplicateReview'
 
 const mocks = vi.hoisted(() => ({

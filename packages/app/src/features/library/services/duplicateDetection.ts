@@ -1,6 +1,6 @@
 import { getVoidPlatform } from '@void/core'
-import type { MediaAsset } from '../../explorer/store/mediaStore'
-import { openMediaFile } from './mediaFileSource'
+import type { MediaAsset } from '../../media/store/mediaStore'
+import { openMediaFile } from '../../media/services/mediaFileSource'
 
 const SAMPLE_BYTES = 256 * 1024
 const HASH_CONCURRENCY = 2

@@ -20,6 +20,8 @@ This review records structural findings from the enhanced flat-tag implementatio
 
 ### 1. Media processing has an inverted feature dependency
 
+Status: Completed in v0.2.0 development. Media identity/state, source access, catalog persistence, thumbnail generation/cache, and queueing now live under `features/media`. Explorer retains filtering, sorting, layout, and interaction; Library retains source selection and scan lifecycle.
+
 The Library feature imports thumbnail generation, catalog caching, queueing, sorting, and media state from Explorer. These are not strictly Explorer responsibilities.
 
 Recommended direction:

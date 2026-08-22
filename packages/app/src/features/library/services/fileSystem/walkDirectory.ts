@@ -9,7 +9,7 @@ import type {
   NormalizedWalkDirectoryOptions,
 } from './internalTypes'
 import { getSupportedVideoExtension } from './videoExtensions'
-import { createHandleMediaSource } from '../mediaFileSource'
+import { createHandleMediaSource } from '../../../media/services/mediaFileSource'
 
 export async function* walkDirectory(
   directoryHandle: FileSystemDirectoryHandle,

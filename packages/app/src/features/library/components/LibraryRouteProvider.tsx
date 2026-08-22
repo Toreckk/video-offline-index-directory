@@ -15,15 +15,15 @@ import {
   pickDirectory,
   pickDirectoryFiles,
 } from '../services/fileSystem'
-import type { LibraryScanSource } from '../services/mediaFileSource'
+import type { LibraryScanSource } from '../../media/services/mediaFileSource'
 import { assertMatchingLibraryName } from '../services/libraryIdentity'
 import { useLibraryStore } from '../store/libraryStore'
 import { useLibraryScanner } from '../hooks/useLibraryScanner'
 import { LibraryRouteDialog } from './LibraryRouteDialog'
 import { LibraryStatusOverlay } from './LibraryStatusOverlay'
 import { LibraryRouteContext } from './libraryRouteContext'
-import { restoreMediaCatalog } from '../../explorer/services/mediaCatalogCache'
-import { useMediaStore } from '../../explorer/store/mediaStore'
+import { restoreMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { useMediaStore } from '../../media/store/mediaStore'
 
 export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   const { navigate } = useAppNavigation()

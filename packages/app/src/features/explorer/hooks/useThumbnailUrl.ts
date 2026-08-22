@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCachedThumbnail } from '../services/thumbnailCache'
+import { getCachedThumbnail } from '../../media/services/thumbnailCache'
 
 export function useThumbnailUrl(
   thumbnailBlobKey: string | undefined,

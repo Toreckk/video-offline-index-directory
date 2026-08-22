@@ -13,7 +13,7 @@ import {
 } from '../services/fileSystem'
 import { createLibraryId, isSameDirectory } from '../services/libraryIdentity'
 import { idbStateStorage } from '../../../shared/persistence/idbStateStorage'
-import { deleteMediaCatalog } from '../../explorer/services/mediaCatalogCache'
+import { deleteMediaCatalog } from '../../media/services/mediaCatalogCache'
 
 export const DIRECTORY_HANDLE_KEY = 'void-directory-handle'
 export const LIBRARY_STATE_KEY = 'void-library-store'

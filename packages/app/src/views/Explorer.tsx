@@ -1,6 +1,6 @@
 import HomePage from '../components/homepage/HomePage'
 import Library from '../components/library/Library'
-import { useMediaStore } from '../features/explorer/store/mediaStore'
+import { useMediaStore } from '../features/media/store/mediaStore'
 import { useLibraryStore } from '../features/library/store/libraryStore'
 
 export default function Explorer() {

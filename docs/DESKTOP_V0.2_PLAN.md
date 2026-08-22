@@ -63,6 +63,12 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 7. Capture scale benchmarks and make virtualization/FFmpeg decisions.
 8. Complete installer QA and merge the release proposal to publish v0.2.0.
 
+## Progress
+
+- Done: v0.2.0 version alignment, draft release notes, and scoped release plan.
+- Done: shared `features/media` ownership boundary with the v0.1.0 test and build baseline preserved.
+- Next: discovery and thumbnail-enrichment pipeline extraction.
+
 ## Acceptance gates
 
 - v0.1.0 metadata exports and existing desktop catalogs restore without loss.

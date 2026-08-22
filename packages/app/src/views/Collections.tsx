@@ -5,7 +5,7 @@ import { createEmptyCollectionRules, type SmartCollectionRules } from '../featur
 import { CollectionRuleEditor } from '../features/collections/components/CollectionRuleEditor'
 import { selectTags } from '../features/annotations/services/tagCatalog'
 import { useAnnotationStore } from '../features/annotations/store/annotationStore'
-import { useMediaStore } from '../features/explorer/store/mediaStore'
+import { useMediaStore } from '../features/media/store/mediaStore'
 import { usePlaybackStore } from '../features/playback/store/playbackStore'
 import { matchesCollectionRules } from '../features/collections/services/collectionMatcher'
 import { MediaTile } from '../features/explorer/components/MediaTile'

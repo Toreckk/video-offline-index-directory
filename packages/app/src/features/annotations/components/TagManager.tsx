@@ -11,7 +11,7 @@ import { TagSearchInput } from './TagSearchInput'
 import { TagColorSelect } from './TagColorSelect'
 import { ManagedTagRow } from './ManagedTagRow'
 import { ThemedSelect } from '../../../components/controls/ThemedSelect'
-import { useMediaStore } from '../../explorer/store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 
 const TAG_PAGE_SIZE = 50
 type TagScope = 'all' | 'favorites' | 'unused'

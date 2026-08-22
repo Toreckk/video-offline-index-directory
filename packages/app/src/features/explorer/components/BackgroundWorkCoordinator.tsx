@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { useMediaStore } from '../store/mediaStore'
-import { thumbnailQueue } from '../services/thumbnailQueue'
+import { useMediaStore } from '../../media/store/mediaStore'
+import { thumbnailQueue } from '../../media/services/thumbnailQueue'
 import { usePlayerStore } from '../../player/store/playerStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 

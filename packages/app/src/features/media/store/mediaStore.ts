@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { SupportedVideoExtension } from '../../library/services/fileSystem'
-import type { MediaFileSource } from '../../library/services/mediaFileSource'
+import type { MediaFileSource } from '../services/mediaFileSource'
 
 export type ThumbnailStatus = 'idle' | 'queued' | 'ready' | 'error'
 
