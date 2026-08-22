@@ -67,7 +67,8 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 
 - Done: v0.2.0 version alignment, draft release notes, and scoped release plan.
 - Done: shared `features/media` ownership boundary with the v0.1.0 test and build baseline preserved.
-- Next: discovery and thumbnail-enrichment pipeline extraction.
+- Done: store-free discovery pipeline with batched assets, progress events, cancellation, and isolated diagnostics.
+- Next: thumbnail-enrichment pipeline extraction.
 
 ## Acceptance gates
 

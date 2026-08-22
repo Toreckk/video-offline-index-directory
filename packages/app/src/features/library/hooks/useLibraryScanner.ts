@@ -1,20 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { getVoidPlatform, type NativeMediaFile } from '@void/core'
-import {
-  FileSystemAccessError,
-  getFileMetadata,
-  walkDirectory,
-  walkFileSelection,
-  type DiscoveredVideoFile,
-  getSupportedVideoExtension,
-} from '../services/fileSystem'
-import { nativeMediaFileToSource, type LibraryScanSource } from '../../media/services/mediaFileSource'
+import { FileSystemAccessError } from '../services/fileSystem'
+import type { LibraryScanSource } from '../../media/services/mediaFileSource'
 import { useLibraryStore } from '../store/libraryStore'
 import {
   type MediaAsset,
   useMediaStore,
 } from '../../media/store/mediaStore'
-import { createMediaId } from '../../../utils/media'
 import { generateRefinedVideoThumbnail, generateVideoThumbnail, readVideoMetadata } from '../../media/services/generateVideoThumbnail'
 import {
   cacheThumbnail,
@@ -25,8 +16,7 @@ import { thumbnailQueue } from '../../media/services/thumbnailQueue'
 import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
-
-const METADATA_BATCH_SIZE = 32
+import { runDiscoveryPipeline } from '../services/discoveryPipeline'
 
 export function useLibraryScanner() {
   const activeScanRef = useRef<AbortController | null>(null)
@@ -54,57 +44,33 @@ export function useLibraryScanner() {
       libraryStore.setScanPhase('discovering')
       libraryStore.setMediaIds([])
 
-      let foldersScanned = 0
-      let batch: Promise<MediaAsset | null>[] = []
       let thumbnailWorkScheduled = false
-      const discoveredIds = new Set<string>()
 
       try {
-        const walkOptions = {
+        const { discoveredIds } = await runDiscoveryPipeline({
+          source,
           scanSubfolders: options.scanSubfolders,
           signal: controller.signal,
-          onDirectoryVisited: () => {
-            foldersScanned += 1
-            useLibraryStore
-              .getState()
-              .updateScanProgress({ foldersScanned })
+          onFoldersScanned: (foldersScanned) => {
+            useLibraryStore.getState().updateScanProgress({ foldersScanned })
           },
-          onError: ({ pathParts, error }: { pathParts: readonly string[]; error: unknown }) => {
+          onDiagnostic: (diagnostic) => {
             useLibraryStore.getState().addScanDiagnostic({
-              stage: 'discovery', severity: 'error', path: pathParts.join('/') || 'Library root', message: getErrorMessage(error),
+              ...diagnostic,
+              severity: 'error',
             })
           },
-        }
-        const discoveredFiles = getDiscoveredFiles(source, walkOptions)
+          onBatch: async (assets) => {
+            useMediaStore.getState().addAssets(assets)
+            const ids = useMediaStore.getState().orderedIds
+            const store = useLibraryStore.getState()
+            store.setMediaIds(ids)
+            store.updateScanProgress({ videosFound: ids.length })
+            await pauseForPaint()
+          },
+        })
 
-        for await (const discoveredFile of discoveredFiles) {
-          batch.push(
-            discoverAsset(
-              source.libraryId,
-              source.rootName,
-              discoveredFile,
-            ).then((asset) => {
-              discoveredIds.add(asset.id)
-              return asset
-            }).catch((error) => {
-              console.error(`Could not read metadata for ${discoveredFile.name}`, error)
-              useLibraryStore.getState().addScanDiagnostic({
-                stage: 'metadata', severity: 'error', path: [...discoveredFile.pathParts, discoveredFile.name].join('/'), message: getErrorMessage(error),
-              })
-              return null
-            }),
-          )
-
-          if (batch.length >= METADATA_BATCH_SIZE) {
-            await flushBatch(batch, controller.signal)
-            batch = []
-          }
-        }
-
-        await flushBatch(batch, controller.signal)
-        throwIfAborted(controller.signal)
-
-        mediaStore.retainAssets([...discoveredIds])
+        mediaStore.retainAssets(discoveredIds)
 
         const assets = getCurrentAssets()
         const ids = assets.map((asset) => asset.id)
@@ -162,42 +128,6 @@ export function useLibraryScanner() {
   useEffect(() => cancelScan, [cancelScan])
 
   return { startScan, cancelScan }
-}
-
-async function discoverAsset(
-  libraryId: string,
-  rootName: string,
-  discoveredFile: DiscoveredVideoFile,
-): Promise<MediaAsset> {
-  const metadata =
-    discoveredFile.size !== undefined && discoveredFile.lastModified !== undefined
-      ? { size: discoveredFile.size, lastModified: discoveredFile.lastModified }
-      : await getFileMetadata(discoveredFile.source)
-  return {
-    id: createMediaId(libraryId, discoveredFile.pathParts, discoveredFile.name),
-    libraryId,
-    rootName,
-    ...discoveredFile,
-    ...metadata,
-    thumbnailStatus: 'idle',
-  }
-}
-
-async function flushBatch(
-  batch: Promise<MediaAsset | null>[],
-  signal: AbortSignal,
-) {
-  if (batch.length === 0) return
-  const assets = (await Promise.all(batch)).filter(
-    (asset): asset is MediaAsset => asset !== null,
-  )
-  throwIfAborted(signal)
-  useMediaStore.getState().addAssets(assets)
-  const ids = useMediaStore.getState().orderedIds
-  const libraryStore = useLibraryStore.getState()
-  libraryStore.setMediaIds(ids)
-  libraryStore.updateScanProgress({ videosFound: ids.length })
-  await pauseForPaint()
 }
 
 function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
@@ -323,12 +253,6 @@ function getCurrentAssets() {
   })
 }
 
-function throwIfAborted(signal: AbortSignal) {
-  if (signal.aborted) {
-    throw new DOMException('Scan aborted.', 'AbortError')
-  }
-}
-
 function isAbortError(error: unknown) {
   return (
     (error instanceof DOMException && error.name === 'AbortError') ||
@@ -351,54 +275,6 @@ async function persistCatalog(libraryId: string, assets: MediaAsset[], rootPath?
     await saveMediaCatalog(libraryId, assets, rootPath)
   } catch (error) {
     console.warn('Could not cache the media catalog for faster startup.', error)
-  }
-}
-
-async function* getDiscoveredFiles(
-  source: LibraryScanSource,
-  walkOptions: {
-    scanSubfolders: boolean
-    signal: AbortSignal
-    onDirectoryVisited: (pathParts: readonly string[]) => void
-    onError: (details: { pathParts: readonly string[]; error: unknown }) => void
-  },
-): AsyncGenerator<DiscoveredVideoFile> {
-  if (source.kind === 'directory-handle') {
-    yield* walkDirectory(source.directoryHandle, walkOptions)
-    return
-  }
-  if (source.kind === 'session-files') {
-    yield* walkFileSelection(source.files, walkOptions)
-    return
-  }
-
-  const scanLibrary = getVoidPlatform().scanLibrary
-  if (!scanLibrary) throw new Error('Native library scanning is unavailable.')
-  const files = await scanLibrary({
-    rootPath: source.rootPath,
-    scanSubfolders: walkOptions.scanSubfolders,
-  })
-  const folders = new Set(files.map((file) => file.pathParts.join('\u0000')))
-  for (const folder of folders) {
-    walkOptions.onDirectoryVisited(folder ? folder.split('\u0000') : [])
-  }
-  for (const file of files) {
-    throwIfAborted(walkOptions.signal)
-    const discovered = nativeFileToDiscovered(file)
-    if (discovered) yield discovered
-  }
-}
-
-function nativeFileToDiscovered(file: NativeMediaFile): DiscoveredVideoFile | null {
-  const extension = getSupportedVideoExtension(file.name)
-  if (!extension) return null
-  return {
-    name: file.name,
-    extension,
-    pathParts: file.pathParts,
-    source: nativeMediaFileToSource(file),
-    size: file.size,
-    lastModified: file.lastModified,
   }
 }
 

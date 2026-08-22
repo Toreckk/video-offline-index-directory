@@ -34,6 +34,8 @@ Do this before adding more consumers such as duplicate detection, transcoding di
 
 ### 2. The scanner hook coordinates too many pipeline stages
 
+Status: In progress in v0.2.0 development. Discovery, metadata normalization, batching, and discovery diagnostics now run through a store-free pipeline service. Thumbnail enrichment remains to be extracted.
+
 `useLibraryScanner` currently coordinates discovery, metadata reads, media-store updates, thumbnail scheduling, cache persistence, progress, cancellation, and diagnostics.
 
 Recommended direction:
