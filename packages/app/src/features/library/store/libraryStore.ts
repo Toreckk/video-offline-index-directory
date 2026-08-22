@@ -13,7 +13,7 @@ import {
 } from '../services/fileSystem'
 import { createLibraryId, isSameDirectory } from '../services/libraryIdentity'
 import { idbStateStorage } from '../../../shared/persistence/idbStateStorage'
-import { deleteMediaCatalog } from '../../explorer/services/mediaCatalogCache'
+import { deleteMediaCatalog } from '../../media/services/mediaCatalogCache'
 
 export const DIRECTORY_HANDLE_KEY = 'void-directory-handle'
 export const LIBRARY_STATE_KEY = 'void-library-store'
@@ -37,7 +37,7 @@ export type ScanProgress = {
 export type ScanStatus = 'idle' | 'scanning' | 'ready' | 'error'
 export type ScanPhase = 'idle' | 'discovering' | 'thumbnails' | 'complete'
 export type ScanDiagnostic = {
-  stage: 'discovery' | 'metadata' | 'thumbnail'
+  stage: 'discovery' | 'metadata' | 'thumbnail' | 'watcher' | 'reconciliation'
   severity: 'warning' | 'error'
   path: string
   message: string
@@ -201,16 +201,34 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
         try {
           const persisted = get()
 
+          const platform = getVoidPlatform()
           if (
-            getVoidPlatform().kind === 'desktop' &&
+            platform.kind === 'desktop' &&
             persisted.sourceKind === 'native-directory' &&
             persisted.libraryId &&
             persisted.directoryName &&
             persisted.rootPath
           ) {
+            if (!platform.restoreLibrary) {
+              set({ permissionStatus: 'prompt', ...resetScanState })
+              return
+            }
+            let selection: NativeLibrarySelection
+            try {
+              selection = await platform.restoreLibrary(
+                persisted.libraryId,
+                persisted.rootPath,
+              )
+            } catch (error) {
+              console.warn('The saved native library needs to be selected again.', error)
+              set({ permissionStatus: 'prompt', ...resetScanState })
+              return
+            }
             set({
               directoryHandle: null,
               sessionFiles: [],
+              rootPath: selection.rootPath,
+              directoryName: selection.rootName,
               permissionStatus: 'granted',
               ...resetScanState,
             })
@@ -288,11 +306,29 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
       },
 
       requestLibraryPermission: async () => {
-        if (get().sourceKind === 'native-directory' && get().rootPath) {
-          set({ permissionStatus: 'granted' })
-          return true
+        const current = get()
+        if (
+          current.sourceKind === 'native-directory' &&
+          current.libraryId &&
+          current.rootPath
+        ) {
+          const restoreLibrary = getVoidPlatform().restoreLibrary
+          if (!restoreLibrary) return false
+          try {
+            const selection = await restoreLibrary(current.libraryId, current.rootPath)
+            set({
+              rootPath: selection.rootPath,
+              directoryName: selection.rootName,
+              permissionStatus: 'granted',
+            })
+            return true
+          } catch (error) {
+            console.warn('The native library could not be reconnected.', error)
+            set({ permissionStatus: 'prompt' })
+            return false
+          }
         }
-        const { directoryHandle } = get()
+        const { directoryHandle } = current
         if (!directoryHandle) return false
 
         try {

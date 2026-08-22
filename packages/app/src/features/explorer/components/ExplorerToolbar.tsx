@@ -1,6 +1,6 @@
 import { useMemo, useState, type RefObject } from 'react'
 import { Folder, Heart, Search, SlidersHorizontal, Tag, Tags, X } from 'lucide-react'
-import { useMediaStore } from '../store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 import { useSettingsStore, type SortOrder, type TileDensity } from '../../settings/store/settingsStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { ThemedSelect } from '../../../components/controls/ThemedSelect'

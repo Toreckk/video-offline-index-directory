@@ -24,7 +24,7 @@ export function LibraryStatusOverlay({
   const readyNotificationSeconds = useSettingsStore((state) => state.libraryReadyNotificationSeconds)
 
   useEffect(() => {
-    if (scanStatus !== 'ready' || successDismissed) return
+    if (scanStatus !== 'ready' || isBackgroundScanning || successDismissed) return
     if (activeView === VIEW_IDS.explorer) {
       onDismissSuccess()
       return
@@ -32,9 +32,9 @@ export function LibraryStatusOverlay({
     if (readyNotificationSeconds <= 0) return
     const timeoutId = window.setTimeout(onDismissSuccess, readyNotificationSeconds * 1000)
     return () => window.clearTimeout(timeoutId)
-  }, [activeView, onDismissSuccess, readyNotificationSeconds, scanStatus, successDismissed])
+  }, [activeView, isBackgroundScanning, onDismissSuccess, readyNotificationSeconds, scanStatus, successDismissed])
 
-  if (scanStatus === 'scanning' && isBackgroundScanning) {
+  if (isBackgroundScanning) {
     return (
       <button
         type="button"
@@ -43,9 +43,9 @@ export function LibraryStatusOverlay({
       >
         <LoaderCircle className="animate-spin text-primary-fixed-dim" size={20} />
         <span>
-          <span className="block text-sm font-black">Indexing library</span>
+          <span className="block text-sm font-black">Updating library</span>
           <span className="mt-1 block text-xs text-on-secondary">
-            {progress.videosFound} videos found · view progress
+            Checking recent file changes · view library
           </span>
         </span>
       </button>

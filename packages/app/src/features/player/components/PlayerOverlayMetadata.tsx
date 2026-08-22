@@ -1,4 +1,4 @@
-import type { MediaAsset } from '../../explorer/store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 import { formatBytes, formatDuration, getDisplayPath } from '../../../utils/media'
 
 export function PlayerOverlayMetadata({ asset }: { asset: MediaAsset }) {

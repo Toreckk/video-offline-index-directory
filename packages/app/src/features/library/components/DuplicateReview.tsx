@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Copy, ExternalLink, Files, LoaderCircle, Play, ScanSearch, ShieldCheck, Tags } from 'lucide-react'
 import { getVoidPlatform } from '@void/core'
-import type { MediaAsset } from '../../explorer/store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 import { useThumbnailUrl } from '../../explorer/hooks/useThumbnailUrl'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { usePlaybackStore } from '../../playback/store/playbackStore'

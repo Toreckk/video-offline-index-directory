@@ -2,6 +2,7 @@ mod catalog;
 mod commands;
 mod model;
 mod state;
+mod watcher;
 
 use state::AppState;
 use tauri::Manager;
@@ -25,7 +26,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::select_library,
+            commands::restore_library,
             commands::scan_library,
+            watcher::start_library_watch,
+            watcher::stop_library_watch,
             commands::load_catalog,
             commands::save_catalog,
             commands::delete_catalog,

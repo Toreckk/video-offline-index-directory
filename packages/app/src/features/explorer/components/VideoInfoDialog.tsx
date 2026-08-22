@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { CheckCircle2, Clock3, Eye, FileVideo2, Folder, HardDrive, Tags, X } from 'lucide-react'
-import type { MediaAsset } from '../store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 import type { TagDefinition } from '../../annotations/model/annotationTypes'
 import type { PlaybackRecord } from '../../playback/model/playbackTypes'
 import { formatBytes, formatDuration, getDisplayPath } from '../../../utils/media'

@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlayerModal } from './PlayerModal'
-import { useMediaStore, type MediaAsset } from '../../explorer/store/mediaStore'
+import { useMediaStore, type MediaAsset } from '../../media/store/mediaStore'
 import { usePlayerStore } from '../store/playerStore'
 import { DEFAULT_SETTINGS, useSettingsStore } from '../../settings/store/settingsStore'
 

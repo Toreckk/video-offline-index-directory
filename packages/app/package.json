@@ -1,9 +1,10 @@
 {
   "name": "@void/app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "dependencies": {
+    "@tanstack/react-virtual": "3.14.10",
     "@void/core": "workspace:*",
     "idb-keyval": "^6.2.2",
     "lucide-react": "^1.14.0",

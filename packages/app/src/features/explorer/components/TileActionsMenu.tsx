@@ -2,7 +2,7 @@ import { CheckCircle2, Clipboard, Info, MoreVertical, Play } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 import { PopoverPortal } from '../../../components/controls/PopoverPortal'
 import { useDismissiblePopover } from '../../../components/controls/useDismissiblePopover'
-import { getLibraryRelativeMediaPath } from '../../library/services/mediaFileSource'
+import { getLibraryRelativeMediaPath } from '../../media/services/mediaFileSource'
 import { copyTextToClipboard } from '../../../utils/clipboard'
 
 export function TileActionsMenu({ name, pathParts, isWatched, onOpen, onToggleWatched, onShowInfo }: {

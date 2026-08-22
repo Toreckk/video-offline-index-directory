@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { MediaAsset } from '../../explorer/store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 import { detectDuplicateMedia } from './duplicateDetection'
 
 function asset(id: string, name: string, size: number): MediaAsset {

@@ -1,5 +1,5 @@
 import type { MediaAnnotation } from '../../annotations/model/annotationTypes'
-import type { MediaAsset } from '../store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 
 export type MediaFilters = {
   searchQuery: string

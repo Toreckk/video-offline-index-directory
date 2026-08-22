@@ -8,7 +8,7 @@ import {
 import { buildTagPickerSections, buildTagUsageCounts, selectTags } from '../services/tagCatalog'
 import { TagPickerList } from './TagPickerList'
 import { TagSearchInput } from './TagSearchInput'
-import { useMediaStore } from '../../explorer/store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 
 const EMPTY_TAG_IDS: string[] = []
 

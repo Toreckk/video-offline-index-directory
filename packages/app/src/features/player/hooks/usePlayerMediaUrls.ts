@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useMediaStore } from '../../explorer/store/mediaStore'
-import { createMediaUrl } from '../../library/services/mediaFileSource'
+import { useMediaStore } from '../../media/store/mediaStore'
+import { createMediaUrl } from '../../media/services/mediaFileSource'
 
 export function usePlayerMediaUrls(
   selectedAssetId: string | null,

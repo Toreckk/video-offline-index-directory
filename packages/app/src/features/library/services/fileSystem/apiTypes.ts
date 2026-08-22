@@ -1,5 +1,5 @@
 import type { SupportedVideoExtension } from './videoExtensions'
-import type { MediaFileSource } from '../mediaFileSource'
+import type { MediaFileSource } from '../../../media/services/mediaFileSource'
 
 export type FileSystemPermissionMode = 'read' | 'readwrite'
 

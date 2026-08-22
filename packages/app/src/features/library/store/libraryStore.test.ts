@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { get } from 'idb-keyval'
+import { installVoidPlatform, type VoidPlatform } from '@void/core'
 import {
   queryPermissionStatus,
   requestPermissionStatus,
@@ -42,9 +43,11 @@ describe('useLibraryStore', () => {
       sourceKind: null,
       directoryHandle: null,
       sessionFiles: [],
+      rootPath: null,
       directoryName: null,
       permissionStatus: 'unknown',
       scanStatus: 'idle',
+      scanPhase: 'idle',
       scanProgress: {
         foldersScanned: 0,
         videosFound: 0,
@@ -59,6 +62,7 @@ describe('useLibraryStore', () => {
       isHydrated: false,
       isLoadingPersistedLibrary: false,
     })
+    installVoidPlatform(webPlatform())
   })
 
   it('deduplicates scan diagnostics and clears them on reset', () => {
@@ -247,6 +251,47 @@ describe('useLibraryStore', () => {
     expect(state.permissionStatus).toBe('prompt')
   })
 
+  it('restores native authorization before marking a persisted desktop library granted', async () => {
+    const restoreLibrary = vi.fn(async () => ({
+      rootName: 'Videos',
+      rootPath: 'C:\\Canonical\\Videos',
+    }))
+    installVoidPlatform(desktopPlatform({ restoreLibrary }))
+    useLibraryStore.setState({
+      libraryId: 'lib_native',
+      sourceKind: 'native-directory',
+      directoryName: 'Videos',
+      rootPath: 'C:\\Videos',
+      permissionStatus: 'prompt',
+    })
+
+    await useLibraryStore.getState().restorePersistedDirectoryHandle()
+
+    expect(restoreLibrary).toHaveBeenCalledWith('lib_native', 'C:\\Videos')
+    expect(useLibraryStore.getState()).toMatchObject({
+      rootPath: 'C:\\Canonical\\Videos',
+      directoryName: 'Videos',
+      permissionStatus: 'granted',
+    })
+  })
+
+  it('keeps native reconnection required when trusted authorization fails', async () => {
+    const restoreLibrary = vi.fn(async () => {
+      throw new Error('catalog mismatch')
+    })
+    installVoidPlatform(desktopPlatform({ restoreLibrary }))
+    useLibraryStore.setState({
+      libraryId: 'lib_native',
+      sourceKind: 'native-directory',
+      directoryName: 'Videos',
+      rootPath: 'C:\\Videos',
+      permissionStatus: 'prompt',
+    })
+
+    expect(await useLibraryStore.getState().requestLibraryPermission()).toBe(false)
+    expect(useLibraryStore.getState().permissionStatus).toBe('prompt')
+  })
+
   it('reuses an explicit durable id when reconnecting session files', async () => {
     const file = { name: 'clip.mp4' } as File
 
@@ -312,3 +357,30 @@ describe('useLibraryStore', () => {
     expect(migrated.recentDirectories[0]?.libraryId).toBe(migrated.libraryId)
   })
 })
+
+function webPlatform(): VoidPlatform {
+  return {
+    kind: 'web',
+    capabilities: {
+      persistentLibraryAccess: true,
+      nativeCatalog: false,
+      diskThumbnailCache: false,
+      revealInFileManager: false,
+      fullFileHashing: false,
+    },
+  }
+}
+
+function desktopPlatform(patch: Partial<VoidPlatform> = {}): VoidPlatform {
+  return {
+    kind: 'desktop',
+    capabilities: {
+      persistentLibraryAccess: true,
+      nativeCatalog: true,
+      diskThumbnailCache: true,
+      revealInFileManager: true,
+      fullFileHashing: true,
+    },
+    ...patch,
+  }
+}

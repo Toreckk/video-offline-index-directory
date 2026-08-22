@@ -1,4 +1,4 @@
-import { createMediaUrl, type MediaFileSource } from '../../library/services/mediaFileSource'
+import { createMediaUrl, type MediaFileSource } from './mediaFileSource'
 
 export type GeneratedThumbnail = {
   blob: Blob

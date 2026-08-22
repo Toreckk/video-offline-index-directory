@@ -133,4 +133,18 @@ describe('annotationStore', () => {
     expect(useAnnotationStore.getState().annotationsByMediaId.keeper).toMatchObject({ favorite: true, tagIds: [first.id, second.id] })
     expect(useAnnotationStore.getState().annotationsByMediaId.duplicate).toMatchObject({ favorite: true, tagIds: [second.id] })
   })
+
+  it('moves renamed-video annotations without leaving metadata at the old id', () => {
+    const tag = useAnnotationStore.getState().createTag('renamed')
+    useAnnotationStore.getState().addMediaTag('old-path', tag.id)
+    useAnnotationStore.getState().toggleFavorite('old-path')
+
+    useAnnotationStore.getState().moveMediaAnnotations('new-path', ['old-path'])
+
+    expect(useAnnotationStore.getState().annotationsByMediaId['new-path']).toMatchObject({
+      favorite: true,
+      tagIds: [tag.id],
+    })
+    expect(useAnnotationStore.getState().annotationsByMediaId['old-path']).toBeUndefined()
+  })
 })

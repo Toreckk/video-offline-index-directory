@@ -1,5 +1,5 @@
 import type { SortOrder } from '../../settings/store/settingsStore'
-import type { MediaAsset } from '../store/mediaStore'
+import type { MediaAsset } from '../../media/store/mediaStore'
 
 type PlaybackSortRecord = { playCount: number; lastPlayedAt: number }
 

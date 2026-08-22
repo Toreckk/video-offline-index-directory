@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getFileMetadata } from './fileMetadata'
-import { createHandleMediaSource } from '../mediaFileSource'
+import { createHandleMediaSource } from '../../../media/services/mediaFileSource'
 
 describe('getFileMetadata', () => {
   it('resolves size and lastModified from file handle', async () => {

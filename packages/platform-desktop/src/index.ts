@@ -1,10 +1,35 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import type {
   NativeCatalog,
+  NativeLibraryWatchEvent,
   NativeLibrarySelection,
   NativeMediaFile,
   VoidPlatform,
 } from '@void/core'
+
+export type DesktopWindowController = {
+  close: () => Promise<void>
+  isMaximized: () => Promise<boolean>
+  minimize: () => Promise<void>
+  onResized: (listener: () => void) => Promise<() => void>
+  setDecorations: (decorated: boolean) => Promise<void>
+  toggleMaximize: () => Promise<void>
+}
+
+export function createDesktopWindowController(): DesktopWindowController {
+  const appWindow = getCurrentWindow()
+
+  return {
+    close: () => appWindow.close(),
+    isMaximized: () => appWindow.isMaximized(),
+    minimize: () => appWindow.minimize(),
+    onResized: (listener) => appWindow.onResized(listener),
+    setDecorations: (decorated) => appWindow.setDecorations(decorated),
+    toggleMaximize: () => appWindow.toggleMaximize(),
+  }
+}
 
 export function createDesktopPlatform(): VoidPlatform {
   return {
@@ -18,8 +43,34 @@ export function createDesktopPlatform(): VoidPlatform {
     },
     selectLibrary: () =>
       invoke<NativeLibrarySelection | null>('select_library'),
+    restoreLibrary: (libraryId, rootPath) =>
+      invoke<NativeLibrarySelection>('restore_library', { libraryId, rootPath }),
     scanLibrary: (options) =>
       invoke<NativeMediaFile[]>('scan_library', { options }),
+    watchLibrary: async (options, onEvent) => {
+      let watchId: string | null = null
+      const unlisten = await listen<NativeLibraryWatchEvent>(
+        'void://library-watch',
+        ({ payload }) => {
+          if (payload.watchId === watchId) onEvent(payload)
+        },
+      )
+      try {
+        watchId = await invoke<string>('start_library_watch', { options })
+      } catch (error) {
+        unlisten()
+        throw error
+      }
+      return {
+        stop: async () => {
+          unlisten()
+          if (watchId) {
+            await invoke<void>('stop_library_watch', { watchId })
+            watchId = null
+          }
+        },
+      }
+    },
     loadCatalog: (libraryId) =>
       invoke<NativeCatalog | null>('load_catalog', { libraryId }),
     saveCatalog: (catalog) => invoke<void>('save_catalog', { catalogValue: catalog }),

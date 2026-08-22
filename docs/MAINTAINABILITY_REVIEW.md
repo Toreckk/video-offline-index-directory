@@ -20,6 +20,8 @@ This review records structural findings from the enhanced flat-tag implementatio
 
 ### 1. Media processing has an inverted feature dependency
 
+Status: Completed in v0.2.0 development. Media identity/state, source access, catalog persistence, thumbnail generation/cache, and queueing now live under `features/media`. Explorer retains filtering, sorting, layout, and interaction; Library retains source selection and scan lifecycle.
+
 The Library feature imports thumbnail generation, catalog caching, queueing, sorting, and media state from Explorer. These are not strictly Explorer responsibilities.
 
 Recommended direction:
@@ -31,6 +33,8 @@ Recommended direction:
 Do this before adding more consumers such as duplicate detection, transcoding diagnostics, or metadata extraction.
 
 ### 2. The scanner hook coordinates too many pipeline stages
+
+Status: Completed in v0.2.0 development. Discovery, metadata normalization, batching, discovery diagnostics, thumbnail cache reuse, generation, refinement, and completion now run through store-free pipeline services. The React hook owns cancellation, lifecycle, progress projection, and persistence triggers.
 
 `useLibraryScanner` currently coordinates discovery, metadata reads, media-store updates, thumbnail scheduling, cache persistence, progress, cancellation, and diagnostics.
 

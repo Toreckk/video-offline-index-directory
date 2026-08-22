@@ -61,4 +61,34 @@ describe('ThumbnailQueue', () => {
 
     expect(completed).toEqual(['visible', 'normal', 'refine'])
   })
+
+  it('deduplicates pending ids without blocking a later refinement pass', async () => {
+    const queue = new ThumbnailQueue()
+    const completed: string[] = []
+    queue.setPaused(true)
+
+    expect(queue.enqueue({ id: 'video', priority: 'normal', run: async () => { completed.push('first') } })).toBe(true)
+    expect(queue.enqueue({ id: 'video', priority: 'normal', run: async () => { completed.push('duplicate') } })).toBe(false)
+    queue.setPaused(false)
+    await queue.waitForIdle()
+
+    expect(queue.enqueue({ id: 'video', priority: 'deferred', run: async () => { completed.push('refined') } })).toBe(true)
+    await queue.waitForIdle()
+    expect(completed).toEqual(['first', 'refined'])
+  })
+
+  it('cancels selected pending jobs so replacement work can be queued', async () => {
+    const queue = new ThumbnailQueue()
+    const completed: string[] = []
+    queue.setPaused(true)
+    queue.enqueue({ id: 'stale', priority: 'normal', run: async () => { completed.push('stale') } })
+    queue.enqueue({ id: 'keep', priority: 'normal', run: async () => { completed.push('keep') } })
+
+    queue.cancelPending(['stale'])
+    expect(queue.enqueue({ id: 'stale', priority: 'normal', run: async () => { completed.push('replacement') } })).toBe(true)
+    queue.setPaused(false)
+    await queue.waitForIdle()
+
+    expect(completed).toEqual(['keep', 'replacement'])
+  })
 })

@@ -45,7 +45,7 @@ export default function Folders() {
     : 0
 
   return (
-    <div className="min-h-screen w-full bg-surface-dim px-10 py-12">
+    <div className="min-h-full w-full bg-surface-dim px-10 py-12">
       <header className="mx-auto flex max-w-5xl items-end justify-between gap-6 border-b border-white/6 pb-8">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-primary-fixed-dim">

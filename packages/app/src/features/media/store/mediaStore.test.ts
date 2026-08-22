@@ -35,6 +35,15 @@ describe('mediaStore', () => {
     expect(useMediaStore.getState().orderedIds).toEqual(['one'])
     expect(useMediaStore.getState().assetsById.stale).toBeUndefined()
   })
+
+  it('atomically replaces assets without retaining stale enrichment fields', () => {
+    useMediaStore.getState().addAssets([{ ...createAsset('one'), thumbnailStatus: 'ready', duration: 12 }])
+    useMediaStore.getState().replaceAssets([createAsset('one'), createAsset('two')])
+
+    expect(useMediaStore.getState().orderedIds).toEqual(['one', 'two'])
+    expect(useMediaStore.getState().assetsById.one).toMatchObject({ thumbnailStatus: 'idle' })
+    expect(useMediaStore.getState().assetsById.one?.duration).toBeUndefined()
+  })
 })
 
 function createAsset(id: string): MediaAsset {

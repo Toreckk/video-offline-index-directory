@@ -1,5 +1,5 @@
 import type { VideoFileMetadata } from './apiTypes'
-import { openMediaFile, type MediaFileSource } from '../mediaFileSource'
+import { openMediaFile, type MediaFileSource } from '../../../media/services/mediaFileSource'
 
 export async function getFileMetadata(
   source: MediaFileSource,

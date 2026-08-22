@@ -15,6 +15,7 @@ export type SettingsState = {
   thumbnailPriority: ThumbnailPriority
   showFilenames: boolean
   reduceMotion: boolean
+  themedDesktopTitleBar: boolean
   defaultSortOrder: SortOrder
   restoreLastLibrary: boolean
   scanSubfolders: boolean
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: SettingsValues = {
   thumbnailPriority: 'visible-first',
   showFilenames: true,
   reduceMotion: false,
+  themedDesktopTitleBar: true,
   defaultSortOrder: 'modified-date',
   restoreLastLibrary: true,
   scanSubfolders: true,
@@ -72,6 +74,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         thumbnailPriority: state.thumbnailPriority,
         showFilenames: state.showFilenames,
         reduceMotion: state.reduceMotion,
+        themedDesktopTitleBar: state.themedDesktopTitleBar,
         defaultSortOrder: state.defaultSortOrder,
         restoreLastLibrary: state.restoreLastLibrary,
         scanSubfolders: state.scanSubfolders,

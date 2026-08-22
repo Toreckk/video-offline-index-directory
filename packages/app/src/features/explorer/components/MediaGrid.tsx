@@ -1,5 +1,6 @@
-import { useMemo, type CSSProperties } from 'react'
-import { useMediaStore } from '../store/mediaStore'
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { useMediaStore } from '../../media/store/mediaStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { ExplorerToolbar } from './ExplorerToolbar'
 import { MediaTile } from './MediaTile'
@@ -12,9 +13,9 @@ import { usePlaybackStore } from '../../playback/store/playbackStore'
 const EMPTY_PLAYBACK_RECORDS = {}
 
 const TILE_SIZES = {
-  compact: '180px',
-  comfortable: '240px',
-  large: '320px',
+  compact: 180,
+  comfortable: 240,
+  large: 320,
 } as const
 
 export function MediaGrid() {
@@ -95,12 +96,8 @@ export function MediaGrid() {
   ])
 
   const queueIds = useMemo(() => visibleAssets.map((asset) => asset.id), [visibleAssets])
-  const gridStyle = {
-    '--tile-min': TILE_SIZES[tileDensity],
-  } as CSSProperties
-
   return (
-    <div className="min-h-screen w-full bg-surface-dim">
+    <div className="min-h-full w-full bg-surface-dim">
       <ExplorerToolbar
         visibleCount={visibleAssets.length}
         totalCount={orderedIds.length}
@@ -115,20 +112,110 @@ export function MediaGrid() {
           No videos match the current search and filters.
         </div>
       ) : (
-        <div
-          className="grid grid-cols-[repeat(auto-fill,minmax(var(--tile-min),1fr))] content-start gap-px bg-surface-dim p-px"
-          style={gridStyle}
-        >
-          {visibleAssets.map((asset, priorityIndex) => (
+        <VirtualizedMediaTiles
+          assets={visibleAssets}
+          queueIds={queueIds}
+          minimumTileWidth={TILE_SIZES[tileDensity]}
+        />
+      )}
+    </div>
+  )
+}
+
+function VirtualizedMediaTiles({
+  assets,
+  queueIds,
+  minimumTileWidth,
+}: {
+  assets: ReturnType<typeof sortMediaAssets>
+  queueIds: string[]
+  minimumTileWidth: number
+}) {
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [metrics, setMetrics] = useState({ width: 1024, scrollMargin: 0 })
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current
+    if (!grid) return
+    const updateMetrics = () => setMetrics({
+      width: Math.max(1, grid.clientWidth),
+      scrollMargin: grid.offsetTop,
+    })
+    updateMetrics()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(updateMetrics)
+    observer.observe(grid)
+    return () => observer.disconnect()
+  }, [])
+
+  const gap = 1
+  const columns = Math.max(
+    1,
+    Math.floor((metrics.width + gap) / (minimumTileWidth + gap)),
+  )
+  const tileWidth = (metrics.width - gap * (columns - 1)) / columns
+  const tileHeight = tileWidth * 9 / 16
+  // TanStack Virtual owns mutable measurement functions; React Compiler must
+  // leave this component un-memoized so scrolling measurements stay current.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const virtualizer = useVirtualizer({
+    count: assets.length,
+    getScrollElement: () => document.getElementById('void-main-scroll'),
+    estimateSize: () => tileHeight,
+    gap,
+    lanes: columns,
+    overscan: columns * 3,
+    scrollMargin: metrics.scrollMargin,
+    initialRect: { width: metrics.width, height: 900 },
+  })
+
+  useLayoutEffect(() => virtualizer.measure(), [columns, metrics.scrollMargin, tileHeight, virtualizer])
+
+  const measuredItems = virtualizer.getVirtualItems()
+  const virtualItems = measuredItems.length > 0
+    ? measuredItems
+    : Array.from(
+      { length: Math.min(assets.length, columns * 6) },
+      (_, index) => ({
+        index,
+        lane: index % columns,
+        start: metrics.scrollMargin + Math.floor(index / columns) * (tileHeight + gap),
+      }),
+    )
+  const estimatedTotalHeight = Math.ceil(assets.length / columns) * (tileHeight + gap) - gap
+
+  return (
+    <div
+      ref={gridRef}
+      className="relative w-full bg-surface-dim"
+      style={{ height: Math.max(virtualizer.getTotalSize(), estimatedTotalHeight) } as CSSProperties}
+      role="list"
+      aria-label="Videos"
+    >
+      {virtualItems.map((virtualItem) => {
+        const asset = assets[virtualItem.index]
+        if (!asset) return null
+        return (
+          <div
+            key={asset.id}
+            className="virtual-media-tile absolute left-0 top-0"
+            style={{
+              width: tileWidth,
+              height: tileHeight,
+              transform: `translate(${virtualItem.lane * (tileWidth + gap)}px, ${virtualItem.start - metrics.scrollMargin}px)`,
+            }}
+            role="listitem"
+            aria-posinset={virtualItem.index + 1}
+            aria-setsize={assets.length}
+          >
             <MediaTile
-              key={asset.id}
               asset={asset}
-              priorityIndex={priorityIndex}
+              priorityIndex={virtualItem.index}
               queueIds={queueIds}
             />
-          ))}
-        </div>
-      )}
+          </div>
+        )
+      })}
     </div>
   )
 }

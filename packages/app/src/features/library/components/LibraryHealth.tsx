@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Activity, CircleCheck, Files, Gauge, TriangleAlert } from 'lucide-react'
-import { useMediaStore } from '../../explorer/store/mediaStore'
+import { useMediaStore } from '../../media/store/mediaStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
 import { useLibraryStore } from '../store/libraryStore'
 import { formatBytes, formatDuration } from '../../../utils/media'

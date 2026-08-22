@@ -23,6 +23,8 @@ packages/platform-web
 packages/platform-desktop
 ```
 
+Within the shared application, `features/media` owns normalized media state, media-source access, catalog persistence, and thumbnail processing. Explorer consumes that domain for presentation and filtering; Library consumes it for discovery and reconciliation workflows. This prevents platform-neutral media processing from depending on a route-level UI feature.
+
 The shared application depends on capability-oriented ports, not on Tauri or browser globals. Each entry point installs one platform adapter before rendering the application.
 
 The initial platform boundary covers:

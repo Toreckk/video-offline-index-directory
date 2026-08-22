@@ -1,32 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { getVoidPlatform, type NativeMediaFile } from '@void/core'
-import {
-  FileSystemAccessError,
-  getFileMetadata,
-  walkDirectory,
-  walkFileSelection,
-  type DiscoveredVideoFile,
-  getSupportedVideoExtension,
-} from '../services/fileSystem'
-import { nativeMediaFileToSource, type LibraryScanSource } from '../services/mediaFileSource'
+import { FileSystemAccessError } from '../services/fileSystem'
+import type { LibraryScanSource } from '../../media/services/mediaFileSource'
 import { useLibraryStore } from '../store/libraryStore'
 import {
   type MediaAsset,
   useMediaStore,
-} from '../../explorer/store/mediaStore'
-import { createMediaId } from '../../../utils/media'
-import { generateRefinedVideoThumbnail, generateVideoThumbnail, readVideoMetadata } from '../../explorer/services/generateVideoThumbnail'
-import {
-  cacheThumbnail,
-  createThumbnailBlobKey,
-  getCachedThumbnail,
-} from '../../explorer/services/thumbnailCache'
-import { thumbnailQueue } from '../../explorer/services/thumbnailQueue'
+} from '../../media/store/mediaStore'
+import { thumbnailQueue } from '../../media/services/thumbnailQueue'
+import { scheduleThumbnailEnrichment } from '../../media/services/thumbnailEnrichmentPipeline'
 import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
-import { saveMediaCatalog } from '../../explorer/services/mediaCatalogCache'
-
-const METADATA_BATCH_SIZE = 32
+import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { runDiscoveryPipeline } from '../services/discoveryPipeline'
 
 export function useLibraryScanner() {
   const activeScanRef = useRef<AbortController | null>(null)
@@ -54,57 +39,33 @@ export function useLibraryScanner() {
       libraryStore.setScanPhase('discovering')
       libraryStore.setMediaIds([])
 
-      let foldersScanned = 0
-      let batch: Promise<MediaAsset | null>[] = []
       let thumbnailWorkScheduled = false
-      const discoveredIds = new Set<string>()
 
       try {
-        const walkOptions = {
+        const { discoveredIds } = await runDiscoveryPipeline({
+          source,
           scanSubfolders: options.scanSubfolders,
           signal: controller.signal,
-          onDirectoryVisited: () => {
-            foldersScanned += 1
-            useLibraryStore
-              .getState()
-              .updateScanProgress({ foldersScanned })
+          onFoldersScanned: (foldersScanned) => {
+            useLibraryStore.getState().updateScanProgress({ foldersScanned })
           },
-          onError: ({ pathParts, error }: { pathParts: readonly string[]; error: unknown }) => {
+          onDiagnostic: (diagnostic) => {
             useLibraryStore.getState().addScanDiagnostic({
-              stage: 'discovery', severity: 'error', path: pathParts.join('/') || 'Library root', message: getErrorMessage(error),
+              ...diagnostic,
+              severity: 'error',
             })
           },
-        }
-        const discoveredFiles = getDiscoveredFiles(source, walkOptions)
+          onBatch: async (assets) => {
+            useMediaStore.getState().addAssets(assets)
+            const ids = useMediaStore.getState().orderedIds
+            const store = useLibraryStore.getState()
+            store.setMediaIds(ids)
+            store.updateScanProgress({ videosFound: ids.length })
+            await pauseForPaint()
+          },
+        })
 
-        for await (const discoveredFile of discoveredFiles) {
-          batch.push(
-            discoverAsset(
-              source.libraryId,
-              source.rootName,
-              discoveredFile,
-            ).then((asset) => {
-              discoveredIds.add(asset.id)
-              return asset
-            }).catch((error) => {
-              console.error(`Could not read metadata for ${discoveredFile.name}`, error)
-              useLibraryStore.getState().addScanDiagnostic({
-                stage: 'metadata', severity: 'error', path: [...discoveredFile.pathParts, discoveredFile.name].join('/'), message: getErrorMessage(error),
-              })
-              return null
-            }),
-          )
-
-          if (batch.length >= METADATA_BATCH_SIZE) {
-            await flushBatch(batch, controller.signal)
-            batch = []
-          }
-        }
-
-        await flushBatch(batch, controller.signal)
-        throwIfAborted(controller.signal)
-
-        mediaStore.retainAssets([...discoveredIds])
+        mediaStore.retainAssets(discoveredIds)
 
         const assets = getCurrentAssets()
         const ids = assets.map((asset) => asset.id)
@@ -164,145 +125,32 @@ export function useLibraryScanner() {
   return { startScan, cancelScan }
 }
 
-async function discoverAsset(
-  libraryId: string,
-  rootName: string,
-  discoveredFile: DiscoveredVideoFile,
-): Promise<MediaAsset> {
-  const metadata =
-    discoveredFile.size !== undefined && discoveredFile.lastModified !== undefined
-      ? { size: discoveredFile.size, lastModified: discoveredFile.lastModified }
-      : await getFileMetadata(discoveredFile.source)
-  return {
-    id: createMediaId(libraryId, discoveredFile.pathParts, discoveredFile.name),
-    libraryId,
-    rootName,
-    ...discoveredFile,
-    ...metadata,
-    thumbnailStatus: 'idle',
-  }
-}
-
-async function flushBatch(
-  batch: Promise<MediaAsset | null>[],
-  signal: AbortSignal,
-) {
-  if (batch.length === 0) return
-  const assets = (await Promise.all(batch)).filter(
-    (asset): asset is MediaAsset => asset !== null,
-  )
-  throwIfAborted(signal)
-  useMediaStore.getState().addAssets(assets)
-  const ids = useMediaStore.getState().orderedIds
-  const libraryStore = useLibraryStore.getState()
-  libraryStore.setMediaIds(ids)
-  libraryStore.updateScanProgress({ videosFound: ids.length })
-  await pauseForPaint()
-}
-
 function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {
-  let pendingRefinements = 0
-
-  const scheduleDarkFrameRefinement = (asset: MediaAsset, thumbnailBlobKey: string) => {
-    pendingRefinements += 1
-    const didEnqueue = thumbnailQueue.enqueue({
-      id: asset.id,
-      priority: 'deferred',
-      run: async () => {
-        try {
-          if (signal.aborted) return
-          const result = await generateRefinedVideoThumbnail(asset.source, { signal })
-          if (signal.aborted || result.isDark) return
-
-          const refinedBlobKey = `${thumbnailBlobKey}:refined`
-          await cacheThumbnail(refinedBlobKey, result.blob)
-          if (signal.aborted) return
-          useMediaStore.getState().updateAsset(asset.id, {
-            thumbnailBlobKey: refinedBlobKey,
-            thumbnailStatus: 'ready',
-            duration: result.duration,
-            width: result.width,
-            height: result.height,
-          })
-        } catch (error) {
-          if (!signal.aborted) {
-            console.warn(`Could not refine dark thumbnail for ${asset.name}`, error)
-          }
-        } finally {
-          pendingRefinements -= 1
-          const libraryId = useLibraryStore.getState().libraryId
-          if (!signal.aborted && pendingRefinements === 0 && libraryId) {
-            void persistCatalog(libraryId, getCurrentAssets(), useLibraryStore.getState().rootPath ?? undefined)
-          }
-        }
-      },
-    })
-    if (!didEnqueue) pendingRefinements -= 1
-  }
-
-  useMediaStore.getState().updateAssets(
-    assets.flatMap((asset) => asset.thumbnailStatus === 'ready'
-      ? []
-      : [{ id: asset.id, patch: { thumbnailStatus: 'queued' as const } }]),
-  )
-  for (const asset of assets) {
-    thumbnailQueue.enqueue({
-      id: asset.id,
-      priority: 'normal',
-      run: async () => {
-        if (signal.aborted) return
-        const generatedBlobKey = createThumbnailBlobKey(
-          asset.id,
-          asset.lastModified,
-          asset.size,
-        )
-        const cachedBlobKey = asset.thumbnailBlobKey ?? generatedBlobKey
-
-        try {
-          const cachedBlob = await getCachedThumbnail(cachedBlobKey)
-          if (signal.aborted) return
-
-          if (cachedBlob) {
-            const metadata = asset.duration === undefined
-              ? await readVideoMetadata(asset.source, { signal })
-              : { duration: asset.duration, width: asset.width, height: asset.height }
-            useMediaStore.getState().updateAsset(asset.id, {
-              thumbnailBlobKey: cachedBlobKey,
-              thumbnailStatus: 'ready',
-              duration: metadata.duration,
-              width: metadata.width,
-              height: metadata.height,
-            })
-          } else {
-            const result = await generateVideoThumbnail(asset.source, { signal })
-            if (signal.aborted) return
-            await cacheThumbnail(generatedBlobKey, result.blob)
-            useMediaStore.getState().updateAsset(asset.id, {
-              thumbnailBlobKey: generatedBlobKey,
-              thumbnailStatus: 'ready',
-              duration: result.duration,
-              width: result.width,
-              height: result.height,
-            })
-            if (result.isDark) {
-              scheduleDarkFrameRefinement(asset, generatedBlobKey)
-            }
-          }
-        } catch (error) {
-          if (signal.aborted) return
-          console.error(`Could not generate thumbnail for ${asset.name}`, error)
-          useLibraryStore.getState().addScanDiagnostic({
-            stage: 'thumbnail', severity: 'warning', path: [...asset.pathParts, asset.name].join('/'), message: getErrorMessage(error),
-          })
-          useMediaStore
-            .getState()
-            .updateAsset(asset.id, { thumbnailStatus: 'error' })
-        } finally {
-          if (!signal.aborted) markThumbnailProcessed()
-        }
-      },
-    })
-  }
+  scheduleThumbnailEnrichment({
+    assets,
+    signal,
+    onAssetsQueued: (patches) => useMediaStore.getState().updateAssets(patches),
+    onAssetUpdate: (id, patch) => useMediaStore.getState().updateAsset(id, patch),
+    onDiagnostic: ({ asset, error }) => {
+      console.error(`Could not generate thumbnail for ${asset.name}`, error)
+      useLibraryStore.getState().addScanDiagnostic({
+        stage: 'thumbnail',
+        severity: 'warning',
+        path: [...asset.pathParts, asset.name].join('/'),
+        message: getErrorMessage(error),
+      })
+    },
+    onProcessed: () => markThumbnailProcessed(),
+    onRefinementError: ({ asset, error }) => {
+      console.warn(`Could not refine dark thumbnail for ${asset.name}`, error)
+    },
+    onRefinementsComplete: () => {
+      const store = useLibraryStore.getState()
+      if (store.libraryId) {
+        void persistCatalog(store.libraryId, getCurrentAssets(), store.rootPath ?? undefined)
+      }
+    },
+  })
 }
 
 function markThumbnailProcessed() {
@@ -321,12 +169,6 @@ function getCurrentAssets() {
     const asset = state.assetsById[id]
     return asset ? [asset] : []
   })
-}
-
-function throwIfAborted(signal: AbortSignal) {
-  if (signal.aborted) {
-    throw new DOMException('Scan aborted.', 'AbortError')
-  }
 }
 
 function isAbortError(error: unknown) {
@@ -351,54 +193,6 @@ async function persistCatalog(libraryId: string, assets: MediaAsset[], rootPath?
     await saveMediaCatalog(libraryId, assets, rootPath)
   } catch (error) {
     console.warn('Could not cache the media catalog for faster startup.', error)
-  }
-}
-
-async function* getDiscoveredFiles(
-  source: LibraryScanSource,
-  walkOptions: {
-    scanSubfolders: boolean
-    signal: AbortSignal
-    onDirectoryVisited: (pathParts: readonly string[]) => void
-    onError: (details: { pathParts: readonly string[]; error: unknown }) => void
-  },
-): AsyncGenerator<DiscoveredVideoFile> {
-  if (source.kind === 'directory-handle') {
-    yield* walkDirectory(source.directoryHandle, walkOptions)
-    return
-  }
-  if (source.kind === 'session-files') {
-    yield* walkFileSelection(source.files, walkOptions)
-    return
-  }
-
-  const scanLibrary = getVoidPlatform().scanLibrary
-  if (!scanLibrary) throw new Error('Native library scanning is unavailable.')
-  const files = await scanLibrary({
-    rootPath: source.rootPath,
-    scanSubfolders: walkOptions.scanSubfolders,
-  })
-  const folders = new Set(files.map((file) => file.pathParts.join('\u0000')))
-  for (const folder of folders) {
-    walkOptions.onDirectoryVisited(folder ? folder.split('\u0000') : [])
-  }
-  for (const file of files) {
-    throwIfAborted(walkOptions.signal)
-    const discovered = nativeFileToDiscovered(file)
-    if (discovered) yield discovered
-  }
-}
-
-function nativeFileToDiscovered(file: NativeMediaFile): DiscoveredVideoFile | null {
-  const extension = getSupportedVideoExtension(file.name)
-  if (!extension) return null
-  return {
-    name: file.name,
-    extension,
-    pathParts: file.pathParts,
-    source: nativeMediaFileToSource(file),
-    size: file.size,
-    lastModified: file.lastModified,
   }
 }
 
