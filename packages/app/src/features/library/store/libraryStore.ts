@@ -37,7 +37,7 @@ export type ScanProgress = {
 export type ScanStatus = 'idle' | 'scanning' | 'ready' | 'error'
 export type ScanPhase = 'idle' | 'discovering' | 'thumbnails' | 'complete'
 export type ScanDiagnostic = {
-  stage: 'discovery' | 'metadata' | 'thumbnail'
+  stage: 'discovery' | 'metadata' | 'thumbnail' | 'watcher' | 'reconciliation'
   severity: 'warning' | 'error'
   path: string
   message: string

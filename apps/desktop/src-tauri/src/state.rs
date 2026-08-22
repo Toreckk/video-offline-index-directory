@@ -1,14 +1,20 @@
+use notify::RecommendedWatcher;
 use rusqlite::Connection;
 use std::{
-    collections::HashSet,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
-    sync::Mutex,
+    sync::{
+        Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
 };
 
 pub struct AppState {
     pub database_path: PathBuf,
     pub thumbnail_dir: PathBuf,
     allowed_roots: Mutex<HashSet<PathBuf>>,
+    library_watchers: Mutex<HashMap<String, RecommendedWatcher>>,
+    next_watch_id: AtomicU64,
 }
 
 impl AppState {
@@ -18,6 +24,8 @@ impl AppState {
             database_path,
             thumbnail_dir,
             allowed_roots: Mutex::new(HashSet::new()),
+            library_watchers: Mutex::new(HashMap::new()),
+            next_watch_id: AtomicU64::new(1),
         };
         state.initialize_database()?;
         Ok(state)
@@ -71,6 +79,34 @@ impl AppState {
             return Err("The requested file is outside the selected library.".to_string());
         }
         Ok(canonical)
+    }
+
+    pub fn next_watch_id(&self) -> String {
+        format!(
+            "watch-{}",
+            self.next_watch_id.fetch_add(1, Ordering::Relaxed)
+        )
+    }
+
+    pub fn store_watcher(
+        &self,
+        watch_id: String,
+        watcher: RecommendedWatcher,
+    ) -> Result<(), String> {
+        self.library_watchers
+            .lock()
+            .map_err(|_| "Library watcher state is unavailable.".to_string())?
+            .insert(watch_id, watcher);
+        Ok(())
+    }
+
+    pub fn remove_watcher(&self, watch_id: &str) -> Result<bool, String> {
+        Ok(self
+            .library_watchers
+            .lock()
+            .map_err(|_| "Library watcher state is unavailable.".to_string())?
+            .remove(watch_id)
+            .is_some())
     }
 
     fn initialize_database(&self) -> Result<(), String> {

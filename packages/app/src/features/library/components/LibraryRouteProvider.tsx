@@ -19,6 +19,7 @@ import type { LibraryScanSource } from '../../media/services/mediaFileSource'
 import { assertMatchingLibraryName } from '../services/libraryIdentity'
 import { useLibraryStore } from '../store/libraryStore'
 import { useLibraryScanner } from '../hooks/useLibraryScanner'
+import { useNativeLibraryWatcher } from '../hooks/useNativeLibraryWatcher'
 import { LibraryRouteDialog } from './LibraryRouteDialog'
 import { LibraryStatusOverlay } from './LibraryStatusOverlay'
 import { LibraryRouteContext } from './libraryRouteContext'
@@ -46,10 +47,24 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   const libraryId = useLibraryStore((state) => state.libraryId)
   const directoryName = useLibraryStore((state) => state.directoryName)
   const sourceKind = useLibraryStore((state) => state.sourceKind)
+  const scanStatus = useLibraryStore((state) => state.scanStatus)
+  const scanPhase = useLibraryStore((state) => state.scanPhase)
   const permissionStatus = useLibraryStore((state) => state.permissionStatus)
   const platform = getVoidPlatform()
   const hasPersistentDirectoryAccess =
     platform.kind === 'desktop' || isFileSystemAccessSupported()
+  const nativeWatchSource = useMemo(
+    () => sourceKind === 'native-directory' && libraryId && directoryName && rootPath
+      ? { kind: 'native-directory' as const, libraryId, rootName: directoryName, rootPath }
+      : null,
+    [directoryName, libraryId, rootPath, sourceKind],
+  )
+
+  useNativeLibraryWatcher({
+    enabled: scanStatus === 'ready' && scanPhase === 'complete',
+    source: nativeWatchSource,
+    scanSubfolders,
+  })
 
   const openRouteDialog = useCallback(() => {
     setDialogError(null)

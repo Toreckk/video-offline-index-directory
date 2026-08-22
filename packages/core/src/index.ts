@@ -46,11 +46,34 @@ export type NativeScanOptions = {
   scanSubfolders: boolean
 }
 
+export type NativeLibraryWatchOptions = NativeScanOptions
+
+export type NativeLibraryRename = {
+  fromPath: string
+  toPath: string
+}
+
+export type NativeLibraryWatchEvent = {
+  watchId: string
+  kind: 'changed' | 'error'
+  paths: string[]
+  renames: NativeLibraryRename[]
+  message?: string
+}
+
+export type NativeLibraryWatchSubscription = {
+  stop: () => Promise<void>
+}
+
 export type VoidPlatform = {
   kind: PlatformKind
   capabilities: PlatformCapabilities
   selectLibrary?: () => Promise<NativeLibrarySelection | null>
   scanLibrary?: (options: NativeScanOptions) => Promise<NativeMediaFile[]>
+  watchLibrary?: (
+    options: NativeLibraryWatchOptions,
+    onEvent: (event: NativeLibraryWatchEvent) => void,
+  ) => Promise<NativeLibraryWatchSubscription>
   loadCatalog?: (libraryId: string) => Promise<NativeCatalog | null>
   saveCatalog?: (catalog: NativeCatalog) => Promise<void>
   deleteCatalog?: (libraryId: string) => Promise<void>

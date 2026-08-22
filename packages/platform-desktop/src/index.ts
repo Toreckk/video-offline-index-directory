@@ -1,7 +1,9 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import type {
   NativeCatalog,
+  NativeLibraryWatchEvent,
   NativeLibrarySelection,
   NativeMediaFile,
   VoidPlatform,
@@ -43,6 +45,30 @@ export function createDesktopPlatform(): VoidPlatform {
       invoke<NativeLibrarySelection | null>('select_library'),
     scanLibrary: (options) =>
       invoke<NativeMediaFile[]>('scan_library', { options }),
+    watchLibrary: async (options, onEvent) => {
+      let watchId: string | null = null
+      const unlisten = await listen<NativeLibraryWatchEvent>(
+        'void://library-watch',
+        ({ payload }) => {
+          if (payload.watchId === watchId) onEvent(payload)
+        },
+      )
+      try {
+        watchId = await invoke<string>('start_library_watch', { options })
+      } catch (error) {
+        unlisten()
+        throw error
+      }
+      return {
+        stop: async () => {
+          unlisten()
+          if (watchId) {
+            await invoke<void>('stop_library_watch', { watchId })
+            watchId = null
+          }
+        },
+      }
+    },
     loadCatalog: (libraryId) =>
       invoke<NativeCatalog | null>('load_catalog', { libraryId }),
     saveCatalog: (catalog) => invoke<void>('save_catalog', { catalogValue: catalog }),

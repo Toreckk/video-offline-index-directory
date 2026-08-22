@@ -71,7 +71,10 @@ v0.2.0 hardens the Windows desktop edition for continuously changing, multi-thou
 - Done: store-free thumbnail-enrichment pipeline covering cache reuse, generation, black-frame refinement, diagnostics, and completion events.
 - Done: VOID-themed Windows title bar with drag regions, accessible window controls, maximize/restore state, and a persisted native-decoration fallback in Settings.
 - Verified: live Windows development build, themed layout, and maximize/restore round trip at the original window bounds.
-- Next: native watcher port and Windows adapter, followed by incremental catalog reconciliation.
+- Done: native watcher port and Tauri adapter with 400 ms burst coalescing, root-relative diagnostics, recursive/non-recursive modes, and paired rename events.
+- Done: atomic media reconciliation that commits SQLite before replacing Explorer state, preserves enrichment for unchanged/renamed files, migrates rename metadata, and queues thumbnails only for new or changed videos.
+- Verified: native watcher backend event test, split-rename test, 5,000-file native scan fixture, and shared reconciliation/store tests.
+- Next: scale benchmarks and evidence-based virtualization/FFmpeg decisions.
 
 ## Acceptance gates
 

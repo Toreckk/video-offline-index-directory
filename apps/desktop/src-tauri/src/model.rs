@@ -14,6 +14,25 @@ pub struct NativeScanOptions {
     pub scan_subfolders: bool,
 }
 
+pub type NativeLibraryWatchOptions = NativeScanOptions;
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeLibraryRename {
+    pub from_path: String,
+    pub to_path: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeLibraryWatchEvent {
+    pub watch_id: String,
+    pub kind: String,
+    pub paths: Vec<String>,
+    pub renames: Vec<NativeLibraryRename>,
+    pub message: Option<String>,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeMediaFile {

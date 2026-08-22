@@ -42,4 +42,11 @@ describe('LibraryStatusOverlay', () => {
     expect(screen.queryByText('Library ready')).not.toBeInTheDocument()
     expect(onDismiss).toHaveBeenCalledOnce()
   })
+
+  it('shows a non-blocking update indicator during native reconciliation', () => {
+    useLibraryStore.setState({ isBackgroundScanning: true })
+    render(<AppNavigationContext.Provider value={{ activeView: 'folders', navigate: vi.fn() }}><LibraryStatusOverlay successDismissed onDismissSuccess={vi.fn()} /></AppNavigationContext.Provider>)
+    expect(screen.getByText('Updating library')).toBeInTheDocument()
+    expect(screen.queryByText('Library ready')).not.toBeInTheDocument()
+  })
 })

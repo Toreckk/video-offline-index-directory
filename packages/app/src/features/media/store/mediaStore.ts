@@ -32,6 +32,7 @@ type MediaState = {
 type MediaActions = {
   clearAssets: () => void
   addAssets: (assets: MediaAsset[]) => void
+  replaceAssets: (assets: readonly MediaAsset[]) => void
   retainAssets: (ids: readonly string[]) => void
   updateAsset: (id: string, patch: Partial<MediaAsset>) => void
   updateAssets: (patches: readonly { id: string; patch: Partial<MediaAsset> }[]) => void
@@ -76,6 +77,11 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
       }
 
       return { assetsById, orderedIds }
+    }),
+  replaceAssets: (assets) =>
+    set({
+      orderedIds: assets.map((asset) => asset.id),
+      assetsById: Object.fromEntries(assets.map((asset) => [asset.id, asset])),
     }),
   retainAssets: (ids) =>
     set((state) => {
