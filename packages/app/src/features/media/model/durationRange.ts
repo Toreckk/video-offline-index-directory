@@ -41,6 +41,10 @@ export function getDurationBounds(durations: readonly (number | undefined)[]): D
   }
 }
 
+export function isFullDurationRange(range: DurationRange | null, bounds: DurationBounds | null) {
+  return range?.mode === 'known' && bounds !== null && range.minimumSeconds === bounds.minimumSeconds && range.maximumSeconds === bounds.maximumSeconds
+}
+
 export function describeDurationRange(range: DurationRange) {
   if (range.mode === 'unknown') return 'Unknown duration'
   const minimum = range.minimumSeconds === undefined ? undefined : formatDuration(range.minimumSeconds)

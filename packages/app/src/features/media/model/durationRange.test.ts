@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeDurationRange, getDurationBounds, matchesDurationRange, normalizeDurationRange } from './durationRange'
+import { describeDurationRange, getDurationBounds, isFullDurationRange, matchesDurationRange, normalizeDurationRange } from './durationRange'
 
 describe('duration ranges', () => {
   it('includes both user-selected boundaries', () => {
@@ -19,5 +19,12 @@ describe('duration ranges', () => {
     expect(getDurationBounds([undefined, 0])).toBeNull()
     expect(describeDurationRange({ mode: 'known', minimumSeconds: 90, maximumSeconds: 330 })).toBe('1:30–5:30')
     expect(normalizeDurationRange({ mode: 'known', minimumSeconds: -1, maximumSeconds: 300 })).toEqual({ mode: 'known', maximumSeconds: 300 })
+  })
+
+  it('recognizes the inactive full-library span', () => {
+    const bounds = { minimumSeconds: 480, maximumSeconds: 720 }
+    expect(isFullDurationRange({ mode: 'known', minimumSeconds: 480, maximumSeconds: 720 }, bounds)).toBe(true)
+    expect(isFullDurationRange({ mode: 'known', minimumSeconds: 481, maximumSeconds: 720 }, bounds)).toBe(false)
+    expect(isFullDurationRange(null, bounds)).toBe(false)
   })
 })

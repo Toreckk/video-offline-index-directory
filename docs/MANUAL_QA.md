@@ -164,7 +164,7 @@ Use disposable copies of media for every cleanup test. Never exercise an in-deve
 
 - In Explorer, confirm the dual-handle selector starts at the shortest known video and ends at the longest known video in the library.
 - Drag both handles and use the synchronized minute inputs to isolate narrow ranges such as 8–10 minutes; confirm videos exactly on both selected boundaries remain included.
-- Confirm an active numeric range visibly excludes unknown-duration videos and that the unknown-duration option/count behaves as described.
+- Before moving either handle, confirm the full-span default does not filter the library. After narrowing the range, confirm media without measured duration is excluded and its missing coverage remains visible in Library Health.
 - Clear the filter and confirm the complete current folder/tag/search scope returns.
 - Save equivalent duration rules in a smart collection, reopen it after relaunch, and confirm its results exactly match the same Explorer range.
 

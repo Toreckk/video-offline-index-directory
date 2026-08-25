@@ -32,7 +32,7 @@ The release must improve duplicate decisions without turning a probable match in
 
 - Add shared minimum/maximum duration filtering to Explorer and smart collections after duration enrichment is reliable.
 - Scale a dual-handle minimum/maximum selector from the shortest to the longest known video in the current library, with synchronized numeric inputs for precise ranges.
-- Treat unknown duration explicitly instead of interpreting it as zero, and show users when unknown videos are excluded by an active numeric range.
+- Show the complete library span by default without activating a filter; keep missing-duration coverage visible in Library Health rather than adding a separate Explorer mode.
 - Keep Explorer duration filters session-scoped while persisting duration predicates inside saved smart collections.
 
 ### Recoverable desktop cleanup
@@ -78,7 +78,7 @@ The release must improve duplicate decisions without turning a probable match in
 - Done: v0.3.0 release branch created from the published v0.2.0 merge commit.
 - Done: v0.3.0 version alignment, draft release notes, and optional native media-probe contract.
 - Done: path-validated desktop `ffprobe` invocation, availability reporting, metadata parsing, bounded diagnostics, and an opt-in corpus benchmark test without changing current media behavior.
-- Done: shared Explorer and persisted smart-collection duration filtering with library-derived slider bounds, precise numeric inputs, explicit unknown-duration matching, and portable backup support.
+- Done: shared Explorer and persisted smart-collection duration filtering with library-derived slider bounds, precise numeric inputs, an inactive full-library default span, and portable backup support.
 - Next: provide an approved LGPL test binary, exercise the probe against a representative corpus, and record the FFmpeg go/no-go evidence.
 
 ## Acceptance gates
@@ -87,7 +87,7 @@ The release must improve duplicate decisions without turning a probable match in
 - Native commands reject probe, hash, and cleanup paths outside the selected library.
 - Corrupt, unsupported, slow, or metadata-free media produces bounded diagnostics and does not block library use.
 - Probe benchmarks include at least MP4 and WebM samples and compare success rate and elapsed time with the current path.
-- Explorer and saved collections apply identical inclusive duration bounds, derive the selector scale from current library metadata, and keep unknown-duration behavior visible and tested.
+- Explorer and saved collections apply identical inclusive duration bounds, derive the selector scale from current library metadata, and leave missing-duration coverage visible in Library Health.
 - Probable duplicate evidence is visibly distinct from complete-hash equality.
 - No destructive action is offered until complete hashes match and at least one preferred copy will remain.
 - Cleanup uses the Windows Recycle Bin and accurately reports partial failure.

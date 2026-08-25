@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import {
   describeDurationRange,
   formatDuration,
@@ -6,15 +5,12 @@ import {
   type DurationRange,
 } from '../model/durationRange'
 
-export function DurationRangeEditor({ value, bounds, onChange, allowAny = false, idPrefix = 'duration', unknownCount }: {
+export function DurationRangeEditor({ value, bounds, onChange, idPrefix = 'duration' }: {
   value: DurationRange | null
   bounds: DurationBounds | null
   onChange: (range: DurationRange | null) => void
-  allowAny?: boolean
   idPrefix?: string
-  unknownCount?: number
 }) {
-  const isKnownRange = value?.mode === 'known'
   const selectedMinimum = bounds ? clamp(value?.mode === 'known' ? value.minimumSeconds ?? bounds.minimumSeconds : bounds.minimumSeconds, bounds) : 0
   const selectedMaximum = bounds ? clamp(value?.mode === 'known' ? value.maximumSeconds ?? bounds.maximumSeconds : bounds.maximumSeconds, bounds) : 0
   const span = bounds ? Math.max(1, bounds.maximumSeconds - bounds.minimumSeconds) : 1
@@ -32,21 +28,10 @@ export function DurationRangeEditor({ value, bounds, onChange, allowAny = false,
     })
   }
 
-  const activateRange = () => {
-    if (!bounds) return
-    onChange({ mode: 'known', minimumSeconds: bounds.minimumSeconds, maximumSeconds: bounds.maximumSeconds })
-  }
-
   return (
     <div className="min-w-64 flex-1">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Duration filter mode">
-        {allowAny && <ModeButton active={value === null} onClick={() => onChange(null)}>Any</ModeButton>}
-        <ModeButton active={isKnownRange} disabled={!bounds} onClick={activateRange}>Range</ModeButton>
-        <ModeButton active={value?.mode === 'unknown'} onClick={() => onChange({ mode: 'unknown' })}>Unknown{unknownCount !== undefined ? ` (${unknownCount})` : ''}</ModeButton>
-      </div>
-
-      {isKnownRange && bounds && (
-        <div className="mt-4">
+      {bounds ? (
+        <div>
           <div className="flex items-center justify-between gap-3 text-xs font-black tabular-nums">
             <span className="text-primary-fixed-dim">{formatDuration(selectedMinimum)}</span>
             <span className="text-on-secondary">{describeDurationRange({ mode: 'known', minimumSeconds: selectedMinimum, maximumSeconds: selectedMaximum })}</span>
@@ -64,20 +49,9 @@ export function DurationRangeEditor({ value, bounds, onChange, allowAny = false,
           </div>
           <p className="mt-2 text-[10px] text-on-secondary">Library range: {formatDuration(bounds.minimumSeconds)} to {formatDuration(bounds.maximumSeconds)}. Both selected limits are included.</p>
         </div>
-      )}
-
-      {!bounds && value?.mode !== 'unknown' && <p className="mt-3 text-xs text-on-secondary">Duration metadata is not available for this library yet.</p>}
+      ) : <p className="text-xs text-on-secondary">Duration metadata is not available for this library yet.</p>}
     </div>
   )
-}
-
-function ModeButton({ active, disabled = false, onClick, children }: {
-  active: boolean
-  disabled?: boolean
-  onClick: () => void
-  children: ReactNode
-}) {
-  return <button type="button" disabled={disabled} onClick={onClick} aria-pressed={active} className={`border px-3 py-2 text-xs font-black ${active ? 'border-primary/60 bg-primary/20 text-white' : 'border-white/10 text-on-secondary hover:text-white'} disabled:cursor-not-allowed disabled:opacity-35`}>{children}</button>
 }
 
 function DurationNumberField({ id, label, value, bounds, onChange }: {

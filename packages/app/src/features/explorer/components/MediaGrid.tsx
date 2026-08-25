@@ -9,7 +9,7 @@ import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
 import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
-import { getDurationBounds, isKnownDuration } from '../../media/model/durationRange'
+import { getDurationBounds } from '../../media/model/durationRange'
 
 const EMPTY_PLAYBACK_RECORDS = {}
 
@@ -38,7 +38,6 @@ export function MediaGrid() {
   const filterCounts = useMemo(() => {
     let favoriteCount = 0
     let untaggedCount = 0
-    let unknownDurationCount = 0
     const tagCounts = buildTagUsageCounts(annotationsByMediaId, orderedIds)
     const folderCounts: Record<string, number> = {}
     for (const id of orderedIds) {
@@ -47,13 +46,12 @@ export function MediaGrid() {
       const annotation = annotationsByMediaId[id]
       if (annotation?.favorite) favoriteCount += 1
       if ((annotation?.tagIds.length ?? 0) === 0) untaggedCount += 1
-      if (!isKnownDuration(asset.duration)) unknownDurationCount += 1
       for (let index = 1; index <= asset.pathParts.length; index += 1) {
         const folder = asset.pathParts.slice(0, index).join('/')
         folderCounts[folder] = (folderCounts[folder] ?? 0) + 1
       }
     }
-    return { favoriteCount, untaggedCount, unknownDurationCount, tagCounts, folderCounts }
+    return { favoriteCount, untaggedCount, tagCounts, folderCounts }
   }, [annotationsByMediaId, assetsById, orderedIds])
 
   const availableFolders = useMemo(
@@ -114,7 +112,6 @@ export function MediaGrid() {
         availableFolders={availableFolders}
         favoriteCount={filterCounts.favoriteCount}
         untaggedCount={filterCounts.untaggedCount}
-        unknownDurationCount={filterCounts.unknownDurationCount}
         durationBounds={durationBounds}
         tagCounts={filterCounts.tagCounts}
         folderCounts={filterCounts.folderCounts}
