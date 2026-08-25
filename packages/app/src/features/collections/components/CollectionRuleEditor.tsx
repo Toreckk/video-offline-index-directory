@@ -1,4 +1,4 @@
-import { Brackets, Eye, Plus, Tags, Trash2 } from 'lucide-react'
+import { Brackets, Clock3, Eye, Plus, Tags, Trash2 } from 'lucide-react'
 import type { TagDefinition } from '../../annotations/model/annotationTypes'
 import { SearchableTagSelect } from '../../annotations/components/SearchableTagSelect'
 import { ThemedSelect } from '../../../components/controls/ThemedSelect'
@@ -9,6 +9,8 @@ import {
   type CollectionRuleNode,
   type SmartCollectionRules,
 } from '../model/collectionTypes'
+import { DurationRangeEditor } from '../../media/components/DurationRangeEditor'
+import { durationRangeForPreset } from '../../media/model/durationRange'
 
 const MAX_GROUP_DEPTH = 4
 
@@ -64,6 +66,7 @@ function RuleGroupEditor({ group, tags, depth, isRoot, onUpdate, onRemove }: {
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" disabled={!firstTagId} onClick={() => firstTagId && addChild({ id: createCollectionRuleId(), kind: 'tag', tagId: firstTagId, negated: false })} className="flex items-center gap-2 border border-white/10 px-3 py-2 text-xs font-black disabled:opacity-35"><Tags size={14} />Add tag rule</button>
         <button type="button" onClick={() => addChild({ id: createCollectionRuleId(), kind: 'watched', value: 'watched' })} className="flex items-center gap-2 border border-white/10 px-3 py-2 text-xs font-black"><Eye size={14} />Add watch rule</button>
+        <button type="button" onClick={() => addChild({ id: createCollectionRuleId(), kind: 'duration', range: durationRangeForPreset('under-5') })} className="flex items-center gap-2 border border-white/10 px-3 py-2 text-xs font-black"><Clock3 size={14} />Add duration rule</button>
         <button type="button" disabled={depth >= MAX_GROUP_DEPTH} onClick={() => addChild({ id: createCollectionRuleId(), kind: 'group', operator: 'and', negated: false, children: [] })} className="flex items-center gap-2 border border-white/10 px-3 py-2 text-xs font-black disabled:opacity-35"><Plus size={14} />Add group</button>
       </div>
       {group.children.length > 1 && <p className="mt-3 text-[11px] text-on-secondary">This group requires {operatorLabel} of its {group.children.length} rules to match{group.negated ? ', then excludes that result' : ''}.</p>}
@@ -79,11 +82,11 @@ function RuleRow({ node, tags, onUpdate, onRemove }: {
 }) {
   return (
     <div className="flex flex-wrap items-end gap-2 border border-white/8 bg-surface-container p-3">
-      <span className="mb-3 w-20 text-xs font-black uppercase tracking-wider text-on-secondary">{node.kind === 'tag' ? 'Tag' : 'Status'}</span>
+      <span className="mb-3 w-20 text-xs font-black uppercase tracking-wider text-on-secondary">{node.kind === 'tag' ? 'Tag' : node.kind === 'watched' ? 'Status' : 'Duration'}</span>
       {node.kind === 'tag' ? <>
         <ThemedSelect ariaLabel="Tag rule comparison" value={node.negated ? 'not' : 'has'} onChange={(comparison) => onUpdate(node.id, (current) => current.kind === 'tag' ? { ...current, negated: comparison === 'not' } : current)} className="h-11 w-36" options={[{ value: 'has', label: 'Has tag' }, { value: 'not', label: 'Does not have' }]} />
         <div className="min-w-56 flex-1"><SearchableTagSelect label="Tag" tags={tags} value={node.tagId} onChange={(tagId) => onUpdate(node.id, (current) => current.kind === 'tag' ? { ...current, tagId } : current)} /></div>
-      </> : <ThemedSelect ariaLabel="Watch rule" value={node.value} onChange={(watchValue) => onUpdate(node.id, (current) => current.kind === 'watched' ? { ...current, value: watchValue as 'watched' | 'unwatched' } : current)} className="h-11 w-52" options={[{ value: 'watched', label: 'Is watched' }, { value: 'unwatched', label: 'Is unwatched' }]} />}
+      </> : node.kind === 'watched' ? <ThemedSelect ariaLabel="Watch rule" value={node.value} onChange={(watchValue) => onUpdate(node.id, (current) => current.kind === 'watched' ? { ...current, value: watchValue as 'watched' | 'unwatched' } : current)} className="h-11 w-52" options={[{ value: 'watched', label: 'Is watched' }, { value: 'unwatched', label: 'Is unwatched' }]} /> : <DurationRangeEditor value={node.range} idPrefix={node.id} onChange={(range) => range && onUpdate(node.id, (current) => current.kind === 'duration' ? { ...current, range } : current)} />}
       <button type="button" onClick={() => onRemove(node.id)} className="mb-0.5 flex h-10 w-10 items-center justify-center text-on-secondary hover:text-rose-200" aria-label="Remove rule"><Trash2 size={15} /></button>
     </div>
   )

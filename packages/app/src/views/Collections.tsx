@@ -32,7 +32,7 @@ export default function Collections() {
   const selected = selectedId ? collectionsById[selectedId] : undefined
   const matchingAssets = useMemo(() => selected ? orderedIds.flatMap((id) => {
     const asset = assetsById[id]
-    return asset && matchesCollectionRules(annotations[id], playback[id], selected.rules) ? [asset] : []
+    return asset && matchesCollectionRules(annotations[id], playback[id], selected.rules, asset.duration) ? [asset] : []
   }) : [], [annotations, assetsById, orderedIds, playback, selected])
 
   const resetEditor = () => { setName(''); setRules(createEmptyCollectionRules()); setIsEditing(false); setEditingId(null); setError(null) }
@@ -87,7 +87,7 @@ export default function Collections() {
       {orderedCollectionIds.map((id) => {
         const collection = collectionsById[id]
         if (!collection) return null
-        const count = orderedIds.filter((mediaId) => matchesCollectionRules(annotations[mediaId], playback[mediaId], collection.rules)).length
+        const count = orderedIds.filter((mediaId) => matchesCollectionRules(annotations[mediaId], playback[mediaId], collection.rules, assetsById[mediaId]?.duration)).length
         return <article key={id} className="group relative min-h-40 border border-white/8 bg-surface-container hover:border-white/20"><button type="button" onClick={() => setSelectedId(id)} className="h-full min-h-40 w-full p-5 text-left"><FolderHeart size={27} className="text-primary-fixed-dim" /><h3 className="mt-5 truncate pr-7 text-xl font-black">{collection.name}</h3><p className="mt-2 text-sm text-on-secondary">{count} matching {count === 1 ? 'video' : 'videos'}</p></button><button type="button" onClick={() => deleteCollection(id)} className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100" aria-label={`Delete ${collection.name}`}><Trash2 size={16} /></button></article>
       })}
       <button type="button" onClick={beginCreate} className="flex min-h-40 flex-col items-center justify-center border border-dashed border-white/15 bg-surface-container/40 text-on-secondary hover:border-primary/50 hover:text-white"><Plus size={28} /><span className="mt-3 text-sm font-black">Create new collection</span></button>

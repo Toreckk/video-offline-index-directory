@@ -199,7 +199,7 @@ function mapCollectionRules(
       const tagId = tagMap.get(node.tagId)
       return tagId ? { ...node, tagId } : null
     }
-    if (node.kind === 'watched') return { ...node }
+    if (node.kind === 'watched' || node.kind === 'duration') return { ...node }
     return { ...node, children: node.children.flatMap((child) => mapNode(child) ?? []) }
   }
   const root = mapNode(rules.root)
@@ -243,10 +243,19 @@ function validateRule(value: unknown): void {
     if (value.value !== 'watched' && value.value !== 'unwatched') throw new Error('The backup contains an invalid watched rule.')
     return
   }
+  if (value.kind === 'duration') {
+    if (!isRecord(value.range) || (value.range.mode !== 'known' && value.range.mode !== 'unknown')) throw new Error('The backup contains an invalid duration rule.')
+    if (value.range.mode === 'known' && ((value.range.minimumSeconds !== undefined && !isNonNegativeFiniteNumber(value.range.minimumSeconds)) || (value.range.maximumSeconds !== undefined && !isNonNegativeFiniteNumber(value.range.maximumSeconds)))) throw new Error('The backup contains an invalid duration rule.')
+    return
+  }
   if (value.kind !== 'group' || (value.operator !== 'and' && value.operator !== 'or') || typeof value.negated !== 'boolean' || !Array.isArray(value.children)) {
     throw new Error('The backup contains an invalid rule group.')
   }
   value.children.forEach(validateRule)
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
 function parsePlaybackEntry(value: unknown): [string, PlaybackRecord] {

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - An optional shared native-media-probe capability and desktop `ffprobe` adapter for duration, dimensions, video codec, and audio codec metadata.
 - Native probe availability reporting, trusted-library path validation, bounded diagnostics, parser coverage, and an opt-in MP4/WebM corpus benchmark.
+- Shared Explorer and smart-collection duration filtering with non-overlapping presets, custom bounds, explicit unknown-duration handling, and portable persisted collection rules.
 
 ## [0.2.0] - 2026-08-23
 

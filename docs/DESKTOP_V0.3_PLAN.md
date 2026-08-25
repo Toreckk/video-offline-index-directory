@@ -78,6 +78,7 @@ The release must improve duplicate decisions without turning a probable match in
 - Done: v0.3.0 release branch created from the published v0.2.0 merge commit.
 - Done: v0.3.0 version alignment, draft release notes, and optional native media-probe contract.
 - Done: path-validated desktop `ffprobe` invocation, availability reporting, metadata parsing, bounded diagnostics, and an opt-in corpus benchmark test without changing current media behavior.
+- Done: shared Explorer and persisted smart-collection duration filtering with presets, validated custom bounds, explicit unknown-duration matching, and portable backup support.
 - Next: provide an approved LGPL test binary, exercise the probe against a representative corpus, and record the FFmpeg go/no-go evidence.
 
 ## Acceptance gates
@@ -86,7 +87,7 @@ The release must improve duplicate decisions without turning a probable match in
 - Native commands reject probe, hash, and cleanup paths outside the selected library.
 - Corrupt, unsupported, slow, or metadata-free media produces bounded diagnostics and does not block library use.
 - Probe benchmarks include at least MP4 and WebM samples and compare success rate and elapsed time with the current path.
-- Explorer and saved collections apply identical inclusive duration bounds, and unknown-duration behavior is visible and tested.
+- Explorer and saved collections apply identical inclusive-minimum/exclusive-maximum duration bounds, and unknown-duration behavior is visible and tested.
 - Probable duplicate evidence is visibly distinct from complete-hash equality.
 - No destructive action is offered until complete hashes match and at least one preferred copy will remain.
 - Cleanup uses the Windows Recycle Bin and accurately reports partial failure.

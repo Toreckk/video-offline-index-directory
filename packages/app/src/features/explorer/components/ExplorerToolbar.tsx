@@ -1,5 +1,5 @@
 import { useMemo, useState, type RefObject } from 'react'
-import { Folder, Heart, Search, SlidersHorizontal, Tag, Tags, X } from 'lucide-react'
+import { Clock3, Folder, Heart, Search, SlidersHorizontal, Tag, Tags, X } from 'lucide-react'
 import { useMediaStore } from '../../media/store/mediaStore'
 import { useSettingsStore, type SortOrder, type TileDensity } from '../../settings/store/settingsStore'
 import { useAnnotationStore } from '../../annotations/store/annotationStore'
@@ -10,6 +10,8 @@ import { buildTagPickerSections, selectTags } from '../../annotations/services/t
 import { TagSearchInput } from '../../annotations/components/TagSearchInput'
 import { TagPickerList } from '../../annotations/components/TagPickerList'
 import { BulkTagSelector } from './BulkTagSelector'
+import { DurationRangeEditor } from '../../media/components/DurationRangeEditor'
+import { describeDurationRange } from '../../media/model/durationRange'
 
 type ExplorerToolbarProps = {
   visibleCount: number
@@ -17,17 +19,21 @@ type ExplorerToolbarProps = {
   availableFolders: string[]
   favoriteCount: number
   untaggedCount: number
+  unknownDurationCount: number
   tagCounts: Record<string, number>
   folderCounts: Record<string, number>
 }
 
-export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, favoriteCount, untaggedCount, tagCounts, folderCounts }: ExplorerToolbarProps) {
+export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, favoriteCount, untaggedCount, unknownDurationCount, tagCounts, folderCounts }: ExplorerToolbarProps) {
   const [tagSearch, setTagSearch] = useState('')
   const { isOpen: isTagFilterOpen, triggerRef: tagFilterTriggerRef, panelRef: tagFilterPanelRef, toggle: toggleTagFilterMenu } = useDismissiblePopover()
+  const { isOpen: isDurationFilterOpen, triggerRef: durationFilterTriggerRef, panelRef: durationFilterPanelRef, toggle: toggleDurationFilterMenu, close: closeDurationFilterMenu } = useDismissiblePopover()
   const searchQuery = useMediaStore((state) => state.searchQuery)
   const folderFilter = useMediaStore((state) => state.folderFilter)
+  const durationFilter = useMediaStore((state) => state.durationFilter)
   const setSearchQuery = useMediaStore((state) => state.setSearchQuery)
   const setFolderFilter = useMediaStore((state) => state.setFolderFilter)
+  const setDurationFilter = useMediaStore((state) => state.setDurationFilter)
   const sortOrder = useSettingsStore((state) => state.defaultSortOrder)
   const tileDensity = useSettingsStore((state) => state.tileDensity)
   const updateSetting = useSettingsStore((state) => state.updateSetting)
@@ -56,7 +62,7 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
     [favoriteTagIds, selectedTagIds, tagCounts, tagSearch, tags],
   )
   const bulkTag = bulkTagId ? tagsById[bulkTagId] : undefined
-  const hasFilters = favoritesOnly || untaggedOnly || selectedTagIds.length > 0 || folderFilter !== null
+  const hasFilters = favoritesOnly || untaggedOnly || selectedTagIds.length > 0 || folderFilter !== null || durationFilter !== null
 
   return (
     <header className="sticky top-0 z-[80] border-b border-white/6 bg-surface-dim/98 px-8 py-5 backdrop-blur-xl">
@@ -92,6 +98,21 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
           )}
 
           <div>
+            <button ref={durationFilterTriggerRef as RefObject<HTMLButtonElement>} data-void-popover-trigger type="button" onClick={toggleDurationFilterMenu} className={`flex items-center gap-2 border px-3 py-2 text-xs font-black uppercase tracking-wider ${durationFilter ? 'border-primary/50 bg-primary/15 text-primary-fixed-dim' : 'border-white/8 bg-surface-container text-on-secondary hover:text-white'}`} aria-expanded={isDurationFilterOpen}>
+              <Clock3 size={14} /> {durationFilter ? describeDurationRange(durationFilter) : 'Duration'}
+            </button>
+            {isDurationFilterOpen && (
+              <PopoverPortal anchorRef={durationFilterTriggerRef} panelRef={durationFilterPanelRef} width={340} className="border border-white/10 bg-surface-container-high p-4">
+                <p className="text-xs font-black uppercase tracking-wider text-white">Filter by duration</p>
+                <p className="mt-1 text-xs leading-5 text-on-secondary">Videos still waiting for metadata are excluded from known-duration ranges.</p>
+                <div className="mt-3">
+                  <DurationRangeEditor value={durationFilter} allowAny idPrefix="explorer-duration" unknownCount={unknownDurationCount} onChange={(range) => { setDurationFilter(range); if (!range) closeDurationFilterMenu() }} />
+                </div>
+              </PopoverPortal>
+            )}
+          </div>
+
+          <div>
             <button ref={tagFilterTriggerRef as RefObject<HTMLButtonElement>} data-void-popover-trigger type="button" onClick={toggleTagFilterMenu} disabled={tags.length === 0} className="flex items-center gap-2 border border-white/8 bg-surface-container px-3 py-2 text-xs font-black uppercase tracking-wider text-on-secondary hover:text-white disabled:opacity-40" aria-expanded={isTagFilterOpen}>
               <Tags size={14} /> Tags {selectedTagIds.length > 0 ? `(${selectedTagIds.length})` : ''}
             </button>
@@ -108,7 +129,7 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
 
           {tags.length > 0 && <BulkTagSelector tags={tags} favoriteTagIds={favoriteTagIds} usageCounts={tagCounts} onSelect={startBulkTagging} onToggleFavorite={toggleTagFavorite} />}
 
-          {hasFilters && <button type="button" onClick={() => { clearAnnotationFilters(); setFolderFilter(null) }} className="ml-auto flex items-center gap-1.5 px-2 py-2 text-xs font-bold text-on-secondary hover:text-white"><X size={14} /> Clear filters</button>}
+          {hasFilters && <button type="button" onClick={() => { clearAnnotationFilters(); setFolderFilter(null); setDurationFilter(null) }} className="ml-auto flex items-center gap-1.5 px-2 py-2 text-xs font-bold text-on-secondary hover:text-white"><X size={14} /> Clear filters</button>}
         </div>
       )}
     </header>

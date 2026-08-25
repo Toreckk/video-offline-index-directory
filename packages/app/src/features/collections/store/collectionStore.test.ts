@@ -22,4 +22,9 @@ describe('collectionStore migrations', () => {
     const migrated = migrateCollectionState({ collectionsById: { old: { id: 'old', name: 'Old', rules: { allTagIds: ['a'], anyTagIds: [], notTagIds: [], watched: 'any' }, createdAt: 1, updatedAt: 1 } }, orderedCollectionIds: ['old'] })
     expect(migrated.collectionsById?.old?.rules).toHaveProperty('root')
   })
+
+  it('normalizes persisted duration bounds without dropping the rule', () => {
+    const rules = normalizeRules({ root: { id: 'root', kind: 'group', operator: 'and', negated: false, children: [{ id: 'duration', kind: 'duration', range: { mode: 'known', minimumSeconds: -1, maximumSeconds: 900 } }] } })
+    expect(rules.root.children[0]).toEqual({ id: 'duration', kind: 'duration', range: { mode: 'known', maximumSeconds: 900 } })
+  })
 })
