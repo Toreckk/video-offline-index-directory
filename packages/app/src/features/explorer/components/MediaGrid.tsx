@@ -9,7 +9,7 @@ import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
 import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
-import { isKnownDuration } from '../../media/model/durationRange'
+import { getDurationBounds, isKnownDuration } from '../../media/model/durationRange'
 
 const EMPTY_PLAYBACK_RECORDS = {}
 
@@ -68,6 +68,10 @@ export function MediaGrid() {
       ).sort((left, right) => left.localeCompare(right)),
     [assetsById, orderedIds],
   )
+  const durationBounds = useMemo(
+    () => getDurationBounds(orderedIds.map((id) => assetsById[id]?.duration)),
+    [assetsById, orderedIds],
+  )
 
   const visibleAssets = useMemo(() => {
     const assets = orderedIds.flatMap((id) => {
@@ -111,6 +115,7 @@ export function MediaGrid() {
         favoriteCount={filterCounts.favoriteCount}
         untaggedCount={filterCounts.untaggedCount}
         unknownDurationCount={filterCounts.unknownDurationCount}
+        durationBounds={durationBounds}
         tagCounts={filterCounts.tagCounts}
         folderCounts={filterCounts.folderCounts}
       />

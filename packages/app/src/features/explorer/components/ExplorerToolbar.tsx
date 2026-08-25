@@ -12,6 +12,7 @@ import { TagPickerList } from '../../annotations/components/TagPickerList'
 import { BulkTagSelector } from './BulkTagSelector'
 import { DurationRangeEditor } from '../../media/components/DurationRangeEditor'
 import { describeDurationRange } from '../../media/model/durationRange'
+import type { DurationBounds } from '../../media/model/durationRange'
 
 type ExplorerToolbarProps = {
   visibleCount: number
@@ -20,11 +21,12 @@ type ExplorerToolbarProps = {
   favoriteCount: number
   untaggedCount: number
   unknownDurationCount: number
+  durationBounds: DurationBounds | null
   tagCounts: Record<string, number>
   folderCounts: Record<string, number>
 }
 
-export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, favoriteCount, untaggedCount, unknownDurationCount, tagCounts, folderCounts }: ExplorerToolbarProps) {
+export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, favoriteCount, untaggedCount, unknownDurationCount, durationBounds, tagCounts, folderCounts }: ExplorerToolbarProps) {
   const [tagSearch, setTagSearch] = useState('')
   const { isOpen: isTagFilterOpen, triggerRef: tagFilterTriggerRef, panelRef: tagFilterPanelRef, toggle: toggleTagFilterMenu } = useDismissiblePopover()
   const { isOpen: isDurationFilterOpen, triggerRef: durationFilterTriggerRef, panelRef: durationFilterPanelRef, toggle: toggleDurationFilterMenu, close: closeDurationFilterMenu } = useDismissiblePopover()
@@ -106,7 +108,7 @@ export function ExplorerToolbar({ visibleCount, totalCount, availableFolders, fa
                 <p className="text-xs font-black uppercase tracking-wider text-white">Filter by duration</p>
                 <p className="mt-1 text-xs leading-5 text-on-secondary">Videos still waiting for metadata are excluded from known-duration ranges.</p>
                 <div className="mt-3">
-                  <DurationRangeEditor value={durationFilter} allowAny idPrefix="explorer-duration" unknownCount={unknownDurationCount} onChange={(range) => { setDurationFilter(range); if (!range) closeDurationFilterMenu() }} />
+                  <DurationRangeEditor value={durationFilter} bounds={durationBounds} allowAny idPrefix="explorer-duration" unknownCount={unknownDurationCount} onChange={(range) => { setDurationFilter(range); if (!range) closeDurationFilterMenu() }} />
                 </div>
               </PopoverPortal>
             )}

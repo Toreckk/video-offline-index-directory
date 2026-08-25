@@ -61,7 +61,8 @@ describe('matchesMediaFilters', () => {
   it('applies known and unknown duration ranges', () => {
     const filters = { searchQuery: '', folderFilter: null, favoritesOnly: false, untaggedOnly: false, selectedTagIds: [] }
     expect(matchesMediaFilters({ ...asset, duration: 299.9 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(true)
-    expect(matchesMediaFilters({ ...asset, duration: 300 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(false)
+    expect(matchesMediaFilters({ ...asset, duration: 300 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(true)
+    expect(matchesMediaFilters({ ...asset, duration: 300.1 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(false)
     expect(matchesMediaFilters(asset, annotation, { ...filters, durationFilter: { mode: 'unknown' } })).toBe(true)
   })
 })

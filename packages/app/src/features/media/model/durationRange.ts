@@ -6,28 +6,17 @@ export type KnownDurationRange = {
 
 export type DurationRange = KnownDurationRange | { mode: 'unknown' }
 
-export type DurationPresetKey = 'under-5' | '5-15' | '15-30' | '30-60' | '60-plus' | 'unknown'
-
-export const DURATION_PRESETS: ReadonlyArray<{
-  key: DurationPresetKey
-  label: string
-  range: DurationRange
-}> = [
-  { key: 'under-5', label: 'Under 5 minutes', range: { mode: 'known', maximumSeconds: 5 * 60 } },
-  { key: '5-15', label: '5–15 minutes', range: { mode: 'known', minimumSeconds: 5 * 60, maximumSeconds: 15 * 60 } },
-  { key: '15-30', label: '15–30 minutes', range: { mode: 'known', minimumSeconds: 15 * 60, maximumSeconds: 30 * 60 } },
-  { key: '30-60', label: '30–59 minutes', range: { mode: 'known', minimumSeconds: 30 * 60, maximumSeconds: 60 * 60 } },
-  { key: '60-plus', label: '1 hour or longer', range: { mode: 'known', minimumSeconds: 60 * 60 } },
-  { key: 'unknown', label: 'Unknown duration', range: { mode: 'unknown' } },
-]
+export type DurationBounds = {
+  minimumSeconds: number
+  maximumSeconds: number
+}
 
 export function matchesDurationRange(durationSeconds: number | undefined, range: DurationRange) {
   const hasKnownDuration = isKnownDuration(durationSeconds)
   if (range.mode === 'unknown') return !hasKnownDuration
   if (!hasKnownDuration) return false
   if (range.minimumSeconds !== undefined && durationSeconds < range.minimumSeconds) return false
-  // Upper bounds are exclusive, keeping adjacent presets from overlapping.
-  if (range.maximumSeconds !== undefined && durationSeconds >= range.maximumSeconds) return false
+  if (range.maximumSeconds !== undefined && durationSeconds > range.maximumSeconds) return false
   return true
 }
 
@@ -35,24 +24,30 @@ export function isKnownDuration(durationSeconds: number | undefined): durationSe
   return typeof durationSeconds === 'number' && Number.isFinite(durationSeconds) && durationSeconds > 0
 }
 
-export function durationPresetKey(range: DurationRange): DurationPresetKey | 'custom' {
-  const preset = DURATION_PRESETS.find((candidate) => durationRangesEqual(candidate.range, range))
-  return preset?.key ?? 'custom'
-}
-
-export function durationRangeForPreset(key: DurationPresetKey) {
-  return structuredClone(DURATION_PRESETS.find((preset) => preset.key === key)!.range)
+export function getDurationBounds(durations: readonly (number | undefined)[]): DurationBounds | null {
+  let minimumSeconds = Number.POSITIVE_INFINITY
+  let maximumSeconds = Number.NEGATIVE_INFINITY
+  for (const duration of durations) {
+    if (!isKnownDuration(duration)) continue
+    minimumSeconds = Math.min(minimumSeconds, duration)
+    maximumSeconds = Math.max(maximumSeconds, duration)
+  }
+  if (!Number.isFinite(minimumSeconds) || !Number.isFinite(maximumSeconds)) return null
+  const roundedMinimum = Math.floor(minimumSeconds)
+  const roundedMaximum = Math.ceil(maximumSeconds)
+  return {
+    minimumSeconds: roundedMinimum,
+    maximumSeconds: Math.max(roundedMinimum + 1, roundedMaximum),
+  }
 }
 
 export function describeDurationRange(range: DurationRange) {
-  const preset = DURATION_PRESETS.find((candidate) => durationRangesEqual(candidate.range, range))
-  if (preset) return preset.label
   if (range.mode === 'unknown') return 'Unknown duration'
-  const minimum = range.minimumSeconds === undefined ? undefined : formatMinutes(range.minimumSeconds)
-  const maximum = range.maximumSeconds === undefined ? undefined : formatMinutes(range.maximumSeconds)
-  if (minimum !== undefined && maximum !== undefined) return `${minimum}–${maximum} min`
-  if (minimum !== undefined) return `${minimum}+ min`
-  if (maximum !== undefined) return `Under ${maximum} min`
+  const minimum = range.minimumSeconds === undefined ? undefined : formatDuration(range.minimumSeconds)
+  const maximum = range.maximumSeconds === undefined ? undefined : formatDuration(range.maximumSeconds)
+  if (minimum !== undefined && maximum !== undefined) return `${minimum}–${maximum}`
+  if (minimum !== undefined) return `${minimum}+`
+  if (maximum !== undefined) return `Up to ${maximum}`
   return 'Known duration'
 }
 
@@ -67,16 +62,15 @@ export function normalizeDurationRange(range: DurationRange): DurationRange {
   }
 }
 
-function durationRangesEqual(left: DurationRange, right: DurationRange) {
-  if (left.mode !== right.mode) return false
-  if (left.mode === 'unknown' || right.mode === 'unknown') return true
-  return left.minimumSeconds === right.minimumSeconds && left.maximumSeconds === right.maximumSeconds
+export function formatDuration(seconds: number) {
+  const rounded = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(rounded / 3600)
+  const minutes = Math.floor((rounded % 3600) / 60)
+  const remainder = rounded % 60
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
+  return `${minutes}:${String(remainder).padStart(2, '0')}`
 }
 
 function normalizeBound(value: number | undefined) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
-}
-
-function formatMinutes(seconds: number) {
-  return Number((seconds / 60).toFixed(2))
 }

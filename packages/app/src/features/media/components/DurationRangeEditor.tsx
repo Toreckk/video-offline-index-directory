@@ -1,91 +1,107 @@
-import { useState } from 'react'
-import { ThemedSelect } from '../../../components/controls/ThemedSelect'
+import type { ReactNode } from 'react'
 import {
-  DURATION_PRESETS,
-  durationPresetKey,
-  durationRangeForPreset,
-  type DurationPresetKey,
+  describeDurationRange,
+  formatDuration,
+  type DurationBounds,
   type DurationRange,
 } from '../model/durationRange'
 
-export function DurationRangeEditor({ value, onChange, allowAny = false, idPrefix = 'duration', unknownCount }: {
+export function DurationRangeEditor({ value, bounds, onChange, allowAny = false, idPrefix = 'duration', unknownCount }: {
   value: DurationRange | null
+  bounds: DurationBounds | null
   onChange: (range: DurationRange | null) => void
   allowAny?: boolean
   idPrefix?: string
   unknownCount?: number
 }) {
-  const [editingCustom, setEditingCustom] = useState(() => value ? durationPresetKey(value) === 'custom' : false)
-  const selectedKey = editingCustom ? 'custom' : value ? durationPresetKey(value) : 'any'
-  const knownValue = value?.mode === 'known' ? value : undefined
-  const [minimumMinutes, setMinimumMinutes] = useState(toMinutes(knownValue?.minimumSeconds))
-  const [maximumMinutes, setMaximumMinutes] = useState(toMinutes(knownValue?.maximumSeconds))
-  const parsedMinimumSeconds = parseMinutes(minimumMinutes)
-  const parsedMaximumSeconds = parseMinutes(maximumMinutes)
-  const hasInvalidCustomRange =
-    (minimumMinutes.trim() !== '' && parsedMinimumSeconds === undefined) ||
-    (maximumMinutes.trim() !== '' && parsedMaximumSeconds === undefined) ||
-    (parsedMinimumSeconds !== undefined && parsedMaximumSeconds !== undefined && parsedMaximumSeconds <= parsedMinimumSeconds)
+  const isKnownRange = value?.mode === 'known'
+  const selectedMinimum = bounds ? clamp(value?.mode === 'known' ? value.minimumSeconds ?? bounds.minimumSeconds : bounds.minimumSeconds, bounds) : 0
+  const selectedMaximum = bounds ? clamp(value?.mode === 'known' ? value.maximumSeconds ?? bounds.maximumSeconds : bounds.maximumSeconds, bounds) : 0
+  const span = bounds ? Math.max(1, bounds.maximumSeconds - bounds.minimumSeconds) : 1
+  const startPercent = bounds ? (selectedMinimum - bounds.minimumSeconds) / span * 100 : 0
+  const endPercent = bounds ? (selectedMaximum - bounds.minimumSeconds) / span * 100 : 100
 
-  const applyCustom = () => {
-    if (hasInvalidCustomRange || (parsedMinimumSeconds === undefined && parsedMaximumSeconds === undefined)) return
+  const setKnownRange = (minimumSeconds: number, maximumSeconds: number) => {
+    if (!bounds) return
+    const nextMinimum = clamp(minimumSeconds, bounds)
+    const nextMaximum = clamp(maximumSeconds, bounds)
     onChange({
       mode: 'known',
-      ...(parsedMinimumSeconds !== undefined ? { minimumSeconds: parsedMinimumSeconds } : {}),
-      ...(parsedMaximumSeconds !== undefined ? { maximumSeconds: parsedMaximumSeconds } : {}),
+      minimumSeconds: Math.min(nextMinimum, nextMaximum),
+      maximumSeconds: Math.max(nextMinimum, nextMaximum),
     })
   }
 
+  const activateRange = () => {
+    if (!bounds) return
+    onChange({ mode: 'known', minimumSeconds: bounds.minimumSeconds, maximumSeconds: bounds.maximumSeconds })
+  }
+
   return (
-    <div className="min-w-60 flex-1">
-      <ThemedSelect
-        ariaLabel="Duration range"
-        value={selectedKey}
-        onChange={(key) => {
-          if (key === 'any') {
-            setEditingCustom(false)
-            return onChange(null)
-          }
-          if (key === 'custom') {
-            const custom = knownValue ?? { mode: 'known' as const }
-            setEditingCustom(true)
-            setMinimumMinutes(toMinutes(custom.minimumSeconds))
-            setMaximumMinutes(toMinutes(custom.maximumSeconds))
-            return onChange(custom)
-          }
-          setEditingCustom(false)
-          onChange(durationRangeForPreset(key as DurationPresetKey))
-        }}
-        className="h-11 w-full"
-        options={[
-          ...(allowAny ? [{ value: 'any', label: 'Any duration' }] : []),
-          ...DURATION_PRESETS.map((preset) => ({ value: preset.key, label: preset.label, ...(preset.key === 'unknown' && unknownCount !== undefined ? { detail: String(unknownCount) } : {}) })),
-          { value: 'custom', label: 'Custom range' },
-        ]}
-      />
-      {selectedKey === 'custom' && (
-        <div className="mt-2 flex flex-wrap items-end gap-2">
-          <label className="min-w-28 flex-1 text-[10px] font-black uppercase tracking-wider text-on-secondary">
-            Minimum minutes
-            <input id={`${idPrefix}-minimum`} type="number" min="0" step="0.1" value={minimumMinutes} onChange={(event) => setMinimumMinutes(event.target.value)} className="mt-1 h-10 w-full border border-white/10 bg-surface-dim px-3 text-sm text-white outline-none focus:border-primary/60" />
-          </label>
-          <label className="min-w-28 flex-1 text-[10px] font-black uppercase tracking-wider text-on-secondary">
-            Maximum minutes
-            <input id={`${idPrefix}-maximum`} type="number" min="0" step="0.1" value={maximumMinutes} onChange={(event) => setMaximumMinutes(event.target.value)} className="mt-1 h-10 w-full border border-white/10 bg-surface-dim px-3 text-sm text-white outline-none focus:border-primary/60" />
-          </label>
-          <button type="button" onClick={applyCustom} disabled={hasInvalidCustomRange || (minimumMinutes === '' && maximumMinutes === '')} className="h-10 bg-primary px-3 text-xs font-black disabled:opacity-40">Apply</button>
-          <p className={`w-full text-[10px] ${hasInvalidCustomRange ? 'text-rose-200' : 'text-on-secondary'}`}>{hasInvalidCustomRange ? 'Maximum must be greater than minimum; both values must be zero or higher.' : 'Minimum is inclusive; maximum is exclusive.'}</p>
+    <div className="min-w-64 flex-1">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Duration filter mode">
+        {allowAny && <ModeButton active={value === null} onClick={() => onChange(null)}>Any</ModeButton>}
+        <ModeButton active={isKnownRange} disabled={!bounds} onClick={activateRange}>Range</ModeButton>
+        <ModeButton active={value?.mode === 'unknown'} onClick={() => onChange({ mode: 'unknown' })}>Unknown{unknownCount !== undefined ? ` (${unknownCount})` : ''}</ModeButton>
+      </div>
+
+      {isKnownRange && bounds && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between gap-3 text-xs font-black tabular-nums">
+            <span className="text-primary-fixed-dim">{formatDuration(selectedMinimum)}</span>
+            <span className="text-on-secondary">{describeDurationRange({ mode: 'known', minimumSeconds: selectedMinimum, maximumSeconds: selectedMaximum })}</span>
+            <span className="text-primary-fixed-dim">{formatDuration(selectedMaximum)}</span>
+          </div>
+          <div className="relative mt-3 h-7" data-testid="duration-range-slider">
+            <div className="absolute left-0 right-0 top-3 h-1 bg-white/10" />
+            <div className="absolute top-3 h-1 bg-primary" style={{ left: `${startPercent}%`, width: `${Math.max(0, endPercent - startPercent)}%` }} />
+            <input aria-label="Minimum duration" type="range" min={bounds.minimumSeconds} max={bounds.maximumSeconds} step="1" value={selectedMinimum} onChange={(event) => setKnownRange(Math.min(Number(event.target.value), selectedMaximum), selectedMaximum)} className="void-duration-range absolute inset-0 z-20 w-full" />
+            <input aria-label="Maximum duration" type="range" min={bounds.minimumSeconds} max={bounds.maximumSeconds} step="1" value={selectedMaximum} onChange={(event) => setKnownRange(selectedMinimum, Math.max(Number(event.target.value), selectedMinimum))} className="void-duration-range absolute inset-0 z-30 w-full" />
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <DurationNumberField id={`${idPrefix}-minimum`} label="Minimum minutes" value={selectedMinimum} bounds={bounds} onChange={(seconds) => setKnownRange(Math.min(seconds, selectedMaximum), selectedMaximum)} />
+            <DurationNumberField id={`${idPrefix}-maximum`} label="Maximum minutes" value={selectedMaximum} bounds={bounds} onChange={(seconds) => setKnownRange(selectedMinimum, Math.max(seconds, selectedMinimum))} />
+          </div>
+          <p className="mt-2 text-[10px] text-on-secondary">Library range: {formatDuration(bounds.minimumSeconds)} to {formatDuration(bounds.maximumSeconds)}. Both selected limits are included.</p>
         </div>
       )}
+
+      {!bounds && value?.mode !== 'unknown' && <p className="mt-3 text-xs text-on-secondary">Duration metadata is not available for this library yet.</p>}
     </div>
   )
 }
 
-function toMinutes(seconds: number | undefined) {
-  return seconds === undefined ? '' : String(Number((seconds / 60).toFixed(2)))
+function ModeButton({ active, disabled = false, onClick, children }: {
+  active: boolean
+  disabled?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return <button type="button" disabled={disabled} onClick={onClick} aria-pressed={active} className={`border px-3 py-2 text-xs font-black ${active ? 'border-primary/60 bg-primary/20 text-white' : 'border-white/10 text-on-secondary hover:text-white'} disabled:cursor-not-allowed disabled:opacity-35`}>{children}</button>
 }
 
-function parseMinutes(value: string) {
-  const parsed = Number(value)
-  return value.trim() !== '' && Number.isFinite(parsed) && parsed >= 0 ? parsed * 60 : undefined
+function DurationNumberField({ id, label, value, bounds, onChange }: {
+  id: string
+  label: string
+  value: number
+  bounds: DurationBounds
+  onChange: (seconds: number) => void
+}) {
+  return (
+    <label htmlFor={id} className="text-[10px] font-black uppercase tracking-wider text-on-secondary">
+      {label}
+      <input id={id} type="number" min={toMinutes(bounds.minimumSeconds)} max={toMinutes(bounds.maximumSeconds)} step="0.1" value={toMinutes(value)} onChange={(event) => {
+        const minutes = Number(event.target.value)
+        if (Number.isFinite(minutes)) onChange(clamp(minutes * 60, bounds))
+      }} className="mt-1 h-10 w-full border border-white/10 bg-surface-dim px-3 text-sm text-white outline-none focus:border-primary/60" />
+    </label>
+  )
+}
+
+function clamp(value: number, bounds: DurationBounds) {
+  return Math.min(bounds.maximumSeconds, Math.max(bounds.minimumSeconds, value))
+}
+
+function toMinutes(seconds: number) {
+  return Number((seconds / 60).toFixed(2))
 }
