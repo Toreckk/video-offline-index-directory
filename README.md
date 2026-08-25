@@ -41,7 +41,7 @@ The browser build is written to `dist/web`. Tauri installers are generated below
 
 VOID follows Semantic Versioning and Conventional Commits. Release work is assembled on `release/vX.Y.Z`; merging its proposal into `master` triggers validation, Windows packaging, checksum generation, and GitHub Release publication from `release-manifest.json`.
 
-See [the desktop MVP plan](docs/DESKTOP_MVP_PLAN.md), [architecture decision](docs/adr/0001-platform-ports-and-adapters.md), and [release process](docs/RELEASE_PROCESS.md).
+See the [changelog](CHANGELOG.md), [product roadmap](docs/PRODUCT_ROADMAP.md), [desktop MVP plan](docs/DESKTOP_MVP_PLAN.md), [architecture decision](docs/adr/0001-platform-ports-and-adapters.md), and [release process](docs/RELEASE_PROCESS.md).
 
 ## Privacy and safety
 

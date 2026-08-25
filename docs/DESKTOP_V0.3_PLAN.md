@@ -28,6 +28,13 @@ The release must improve duplicate decisions without turning a probable match in
 - Use available duration, dimensions, codecs, size, and normalized filename evidence to improve probable grouping.
 - Keep metadata merging additive and require a user-selected preferred copy.
 
+### Duration filtering
+
+- Add shared minimum/maximum duration filtering to Explorer and smart collections after duration enrichment is reliable.
+- Provide useful presets alongside custom bounds, including under 5 minutes, 5–15 minutes, 15–30 minutes, 30–59 minutes, and 1 hour or longer.
+- Treat unknown duration explicitly instead of interpreting it as zero, and show users when unknown videos are excluded by an active numeric range.
+- Keep Explorer duration filters session-scoped while persisting duration predicates inside saved smart collections.
+
 ### Recoverable desktop cleanup
 
 - Add a desktop-only Recycle Bin port; the browser edition remains non-destructive.
@@ -58,11 +65,12 @@ The release must improve duplicate decisions without turning a probable match in
 3. Add a representative probe/thumbnail benchmark corpus and capture evidence.
 4. Make and document the FFmpeg packaging decision.
 5. Add technical metadata persistence and incremental enrichment if the adapter is approved.
-6. Improve duplicate evidence classification and comparison UI.
-7. Add the guarded desktop Recycle Bin workflow with complete-hash revalidation.
-8. Document update/signing architecture and v1 implications.
-9. Complete automated, large-library, destructive-safety, and installer QA.
-10. Merge the final release proposal to publish v0.3.0.
+6. Add the shared Explorer/smart-collection duration predicate and controls.
+7. Improve duplicate evidence classification and comparison UI.
+8. Add the guarded desktop Recycle Bin workflow with complete-hash revalidation.
+9. Document update/signing architecture and v1 implications.
+10. Complete automated, large-library, destructive-safety, and installer QA.
+11. Merge the final release proposal to publish v0.3.0.
 
 ## Progress
 
@@ -78,6 +86,7 @@ The release must improve duplicate decisions without turning a probable match in
 - Native commands reject probe, hash, and cleanup paths outside the selected library.
 - Corrupt, unsupported, slow, or metadata-free media produces bounded diagnostics and does not block library use.
 - Probe benchmarks include at least MP4 and WebM samples and compare success rate and elapsed time with the current path.
+- Explorer and saved collections apply identical inclusive duration bounds, and unknown-duration behavior is visible and tested.
 - Probable duplicate evidence is visibly distinct from complete-hash equality.
 - No destructive action is offered until complete hashes match and at least one preferred copy will remain.
 - Cleanup uses the Windows Recycle Bin and accurately reports partial failure.
@@ -85,6 +94,13 @@ The release must improve duplicate decisions without turning a probable match in
 - The 5,000-video/300-tag fixture remains interactive during enrichment and duplicate analysis.
 - Web production behavior remains green; public deployment is not part of this release.
 - NSIS and MSI installers build and pass the release smoke checklist.
+
+## Future release placement
+
+- v0.4.0 is the recommended home for an offline viewing-statistics workspace, after v0.3 stabilizes duration, technical metadata, duplicate evidence, and cleanup semantics.
+- Use `Insights` or `Stats` as the user-facing label. The recommended first layout is a `Collections | Insights` tab pair with whole-library/collection scope and Overview, Watch activity, Tags, Collections, and Library composition views.
+- Historical charts require timestamped playback events or durable daily aggregates; current last-played and play-count fields are insufficient for accurate trends.
+- Detailed candidates and sequencing live in `docs/PRODUCT_ROADMAP.md`.
 
 ## Release workflow
 

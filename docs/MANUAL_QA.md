@@ -148,3 +148,42 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Repeat install, launch, scan, playback, and uninstall with the MSI package.
 - Confirm both installed applications report the release version from `release-manifest.json` and Windows identifies them as unsigned rather than as a trusted publisher.
 - Hash both downloaded installers and confirm they match `SHA256SUMS.txt` from the GitHub Release.
+
+## Desktop v0.3.0 media intelligence and cleanup
+
+Use disposable copies of media for every cleanup test. Never exercise an in-development removal workflow against the only copy of a personal video.
+
+### Native media analysis
+
+- Launch without an available native probe and confirm library restoration, scanning, WebView thumbnails, playback, and Library Health continue to work without a blocking error.
+- With the approved probe available, scan representative MP4 and WebM videos and compare reported duration, dimensions, video codec, and audio codec with a trusted external inspection.
+- Include a corrupt file, unsupported stream layout, and deliberately slow probe fixture; confirm diagnostics are bounded, other videos continue enriching, and cancellation/reconciliation remains responsive.
+- Rescan an unchanged library and confirm cached technical metadata is reused. Replace one file and confirm only the changed identity is re-probed.
+
+### Duration filtering
+
+- In Explorer, test under 5 minutes, 5–15, 15–30, 30–59, 1 hour or longer, and custom minimum/maximum ranges, including videos exactly on each boundary.
+- Confirm an active numeric range visibly excludes unknown-duration videos and that the unknown-duration option/count behaves as described.
+- Clear the filter and confirm the complete current folder/tag/search scope returns.
+- Save equivalent duration rules in a smart collection, reopen it after relaunch, and confirm its results exactly match the same Explorer range.
+
+### Duplicate evidence
+
+- Confirm same-name-only groups are labeled as collisions and never expose cleanup.
+- Confirm probable groups explain their matching filename, size, duration, dimensions, codec, or sampled-fingerprint evidence without claiming byte equality.
+- Complete full SHA-256 verification on identical and deliberately different candidates; only identical complete hashes may become exact groups.
+- Modify a candidate after verification and confirm its exact status is invalidated before any cleanup action.
+
+### Recycle Bin cleanup
+
+- Create at least three disposable byte-identical files, assign different tags/favorite/playback history to them, select a preferred copy, and cancel at the final confirmation. Confirm no file or metadata changes.
+- Repeat and confirm cleanup. Verify the preferred file remains, supported metadata is merged into it, selected redundant copies appear in the Windows Recycle Bin, and Explorer/catalog state reconciles.
+- Restore one removed file from the Recycle Bin and confirm the watcher or rescan returns it as a distinct media identity without corrupting the preferred copy's metadata.
+- Attempt cleanup after changing, moving, or making one candidate inaccessible. Confirm every moved, skipped, and failed file is reported accurately and at least one verified copy remains.
+- Confirm a path outside the selected library is rejected and the web edition exposes no Recycle Bin action.
+
+### Release regression
+
+- Repeat the 5,000-video/300-tag responsiveness fixture while metadata enrichment and duplicate analysis are active.
+- Export metadata before cleanup, import it into a disposable matching library afterward, and confirm supported tags, favorites, collections, and playback data remain portable.
+- Complete the standard Windows installer smoke test above with the current-commit NSIS and MSI packages.
