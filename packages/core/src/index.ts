@@ -6,6 +6,21 @@ export type PlatformCapabilities = {
   diskThumbnailCache: boolean
   revealInFileManager: boolean
   fullFileHashing: boolean
+  nativeMediaProbe: boolean
+}
+
+export type NativeMediaProbeStatus = {
+  available: boolean
+  provider: 'ffprobe'
+  detail?: string
+}
+
+export type NativeMediaMetadata = {
+  duration?: number
+  width?: number
+  height?: number
+  videoCodec?: string
+  audioCodec?: string
 }
 
 export type NativeLibrarySelection = {
@@ -87,6 +102,8 @@ export type VoidPlatform = {
   createMediaUrl?: (absolutePath: string) => string
   revealFile?: (absolutePath: string) => Promise<void>
   hashFile?: (absolutePath: string) => Promise<string>
+  getMediaProbeStatus?: () => Promise<NativeMediaProbeStatus>
+  probeMedia?: (absolutePath: string) => Promise<NativeMediaMetadata>
 }
 
 const WEB_CAPABILITIES: PlatformCapabilities = {
@@ -95,6 +112,7 @@ const WEB_CAPABILITIES: PlatformCapabilities = {
   diskThumbnailCache: false,
   revealInFileManager: false,
   fullFileHashing: false,
+  nativeMediaProbe: false,
 }
 
 let activePlatform: VoidPlatform = {

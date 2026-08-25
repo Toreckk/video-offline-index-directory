@@ -72,3 +72,21 @@ pub struct NativeCatalog {
     pub saved_at: u64,
     pub assets: Vec<NativeCatalogAsset>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeMediaProbeStatus {
+    pub available: bool,
+    pub provider: String,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeMediaMetadata {
+    pub duration: Option<f64>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub video_codec: Option<String>,
+    pub audio_codec: Option<String>,
+}

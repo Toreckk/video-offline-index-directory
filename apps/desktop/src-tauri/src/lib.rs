@@ -1,5 +1,6 @@
 mod catalog;
 mod commands;
+mod media_probe;
 mod model;
 mod state;
 mod watcher;
@@ -38,6 +39,8 @@ pub fn run() {
             commands::clear_thumbnail_cache,
             commands::reveal_file,
             commands::hash_file,
+            media_probe::media_probe_status,
+            media_probe::probe_media,
         ])
         .run(tauri::generate_context!())
         .expect("error while running V.O.I.D.");
