@@ -151,6 +151,8 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 
 ## Desktop v0.3.1 collection and control polish
 
+- With the themed title bar enabled, relaunch the desktop app several times and confirm only the themed V.O.I.D. bar appears—never the native Windows bar above it.
+- Toggle `Use native Windows title bar` on and off rapidly, then relaunch once with each preference. Confirm exactly one title bar appears and its minimize, maximize/restore, close, drag, and double-click controls work.
 - In Library Source, confirm a native library says `Persistent desktop access`, a retained browser handle says `Persistent browser access`, and Firefox/session selection says `Session-only browser access`.
 - Confirm the native-library source also explains that desktop file actions are explicit and require confirmation.
 - In Explorer and a smart collection duration rule, change both duration limits and use the quiet `Min` and `Max` buttons to restore the shortest and longest measured library values. Confirm direct numeric entry and both slider handles still work.

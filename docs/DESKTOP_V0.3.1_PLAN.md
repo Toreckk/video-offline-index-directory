@@ -2,7 +2,7 @@
 
 ## Outcome
 
-Ship a compatible polish release that makes smart-collection Boolean structure easier to discover and reorganize, while correcting Library Source wording and improving duration-range resets.
+Ship a compatible polish release that makes smart-collection Boolean structure easier to discover and reorganize, while correcting Library Source wording, improving duration-range resets, and making themed desktop-title-bar restoration reliable.
 
 ## Committed scope
 
@@ -18,6 +18,11 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 - Replace blanket read-only wording with source-aware browser, session, and desktop access descriptions.
 - Keep desktop file actions described as explicit and confirmed.
 - Hide native number steppers on duration fields and add quiet Min/Max resets to measured library bounds without changing direct entry or the dual-handle slider.
+
+### Desktop shell reliability
+
+- Wait for persisted settings to hydrate before changing native Windows decorations.
+- Serialize title-bar decoration transitions so the latest preference wins even during rapid changes.
 
 ### Release work
 
@@ -36,7 +41,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 2. Done: implement prominent nested-group creation, aligned bulk selection, bulk grouping, and individual rule movement.
 3. Done: implement source-aware access wording and duration Min/Max resets.
 4. Done: complete focused automated tests, full shared/native validation, and release documentation.
-5. In progress: current-commit NSIS/MSI installers build successfully; manual QA remains pending.
+5. In progress: native/themed title-bar overlap is fixed and current-commit NSIS/MSI installers build successfully; final manual QA remains pending.
 6. Pending: finalize the proposal, obtain merge approval, and publish v0.3.1.
 
 ## Acceptance gates
@@ -46,6 +51,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 - Moving an individual rule changes only its parent group and persists after save/relaunch.
 - Duration reset controls use library-derived bounds and remain accessible by keyboard and screen-reader label.
 - Browser/session/desktop source wording accurately describes the active capability without implying all desktop operations are read-only.
+- The native Windows frame and themed V.O.I.D. title bar never appear together across repeated relaunches or rapid preference changes.
 - Shared tests, lint, web/desktop UI builds, Rust gates, version verification, and 5,000-video regressions pass.
 - Current-commit NSIS and MSI installers build and pass the standard smoke test.
 
@@ -55,9 +61,9 @@ The draft proposal targets `master`. Its merge changes `release-manifest.json` o
 
 ## Validation evidence
 
-- `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 47 test files and 166 tests are green.
+- `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 48 test files and 168 tests are green, including hydration and rapid title-bar preference regression coverage.
 - Rust formatting, Clippy with warnings denied, and native tests pass; 16 tests pass and the opt-in media corpus benchmark remains intentionally ignored.
 - Local browser interaction confirms nested-group hierarchy, aligned bulk selection/grouping, and move controls with no console warnings.
 - Current-commit Windows installers build with normal WiX ICE validation:
-  - NSIS: 2,981,408 bytes; SHA-256 `9d46e2f71453b3e27646f5ea169bc4ca96e149368f63cbc890374875da36faff`.
-  - MSI: 5,230,592 bytes; SHA-256 `ae2c7cdb1e48127d85c8cec9503406583279b7fc99da762f05c44fe16e711f8f`.
+  - NSIS: 2,981,882 bytes; SHA-256 `c20699275b2f844a96619eef8bd83c3ac76b495e96b40b2a6d28fdc77bf9add5`.
+  - MSI: 5,230,592 bytes; SHA-256 `35f774fd62e134536fd1e5a091b7780897eb0b40d62954e661706ab608ee0dde`.

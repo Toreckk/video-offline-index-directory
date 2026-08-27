@@ -22,6 +22,7 @@ This belongs in v0.3.0 because native media enrichment is intended to make durat
 - Replace the Library Source message `Persistent read-only access · including subfolders` with capability-aware wording. The browser remains non-destructive, while desktop now supports narrowly scoped, explicitly confirmed Recycle Bin operations and may gain other native actions later; the status text must not make an inaccurate blanket claim.
 - Replace the native numeric input steppers on the duration minimum and maximum fields with subtle in-field reset buttons. The minimum button jumps to the shortest measured library duration and the maximum button jumps to the longest. Keep them visually quiet until hover/focus, preserve direct numeric entry and the dual-handle slider, and provide explicit accessible labels.
 - Make nested-group creation visually distinct, align bulk-selection controls, allow multiple direct rules to be wrapped into a new All/Any group, and provide an explicit move control for individual rules. Keep this keyboard-accessible and avoid introducing nested drag-and-drop complexity.
+- Make desktop decoration restoration wait for persisted settings and serialize later changes so the native and themed title bars cannot overlap.
 
 These are compatible interaction and copy improvements following the QA-approved v0.3.0 release.
 
