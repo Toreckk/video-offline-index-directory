@@ -26,6 +26,20 @@ This belongs in v0.3.0 because native media enrichment is intended to make durat
 
 These are compatible interaction and copy improvements following the QA-approved v0.3.0 release.
 
+## v0.3.2 — Shared thumbnail reuse and collection scalability
+
+Make Explorer, Collections, collection creation/preview, and duplicate review consume one asset-keyed thumbnail resource layer instead of independently reading the same cached JPEG and creating a new object URL for every mounted tile.
+
+Recommended implementation:
+
+- Add a shared, reference-aware in-memory thumbnail URL cache keyed by the versioned thumbnail blob key, with deduplicated in-flight reads and explicit invalidation when a thumbnail changes.
+- Bound retained URLs by entry count or decoded-byte estimate and revoke object URLs only after their final consumer releases them or an unused entry is evicted.
+- Reuse the virtualized media grid for collection results and previews so a collection containing thousands of videos mounts only the visible rows plus a small overscan window.
+- Preserve the existing persistent desktop/browser thumbnail cache as the source of truth; this layer should avoid repeated reads and decoding within a session, not duplicate persisted data.
+- Add navigation benchmarks for Explorer → Collection → Explorer and large collection editing against 2,500- and 5,000-video fixtures, asserting bounded mounted tiles, deduplicated cache reads, and responsive interaction.
+
+This is a compatible performance patch and should precede the larger Insights workspace. It directly targets the current large-library freeze without changing collection matching or thumbnail-generation behavior.
+
 ## v0.4.0 — Local viewing insights
 
 Add an offline-only analytics workspace after playback-history semantics and technical metadata are stable. The recommended label is **Insights** or **Stats**, not **States**: “states” suggests workflow status rather than analysis.
