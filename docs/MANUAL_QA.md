@@ -149,6 +149,18 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Confirm both installed applications report the release version from `release-manifest.json` and Windows identifies them as unsigned rather than as a trusted publisher.
 - Hash both downloaded installers and confirm they match `SHA256SUMS.txt` from the GitHub Release.
 
+## Desktop v0.3.1 collection and control polish
+
+- In Library Source, confirm a native library says `Persistent desktop access`, a retained browser handle says `Persistent browser access`, and Firefox/session selection says `Session-only browser access`.
+- Confirm the native-library source also explains that desktop file actions are explicit and require confirmation.
+- In Explorer and a smart collection duration rule, change both duration limits and use the quiet `Min` and `Max` buttons to restore the shortest and longest measured library values. Confirm direct numeric entry and both slider handles still work.
+- Create four tag rules A, B, C, and E. Confirm `Add nested group` is visually separated beneath the ordinary rule actions.
+- Select A, B, and C, group them as `Any rule`, and confirm the preview reads `(A OR B OR C) AND E` using the selected tag names and comparisons.
+- Change E to `Does not have` and confirm the preview and saved collection results represent `(A OR B OR C) AND NOT E`.
+- Add another nested group, move one individual rule into it using the move control, save, reopen, and confirm the structure and results persist.
+- Repeat selection, grouping, moving, and nested-group creation with keyboard controls only; confirm selected rules remain clear and no rule is duplicated or lost.
+- Complete the standard Windows installer smoke test above with the current-commit NSIS and MSI packages.
+
 ## Desktop v0.3.0 media intelligence and cleanup
 
 Use disposable copies of media for every cleanup test. Never exercise an in-development removal workflow against the only copy of a personal video.

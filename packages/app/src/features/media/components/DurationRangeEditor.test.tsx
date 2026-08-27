@@ -28,6 +28,18 @@ describe('DurationRangeEditor', () => {
     expect(screen.queryByRole('button', { name: 'Any' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Unknown/ })).not.toBeInTheDocument()
   })
+
+  it('provides one-click resets to the measured library limits', () => {
+    render(<Harness />)
+    fireEvent.change(screen.getByLabelText('Minimum minutes'), { target: { value: '9' } })
+    fireEvent.change(screen.getByLabelText('Maximum minutes'), { target: { value: '10' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset minimum minutes to library min' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reset maximum minutes to library max' }))
+
+    expect(screen.getByLabelText('Minimum minutes')).toHaveValue(8)
+    expect(screen.getByLabelText('Maximum minutes')).toHaveValue(12)
+  })
 })
 
 function Harness() {

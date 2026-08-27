@@ -1,6 +1,6 @@
 [package]
 name = "void-desktop"
-version = "0.3.0"
+version = "0.3.1"
 description = "V.O.I.D. — Video Offline Index Directory"
 authors = ["VOID contributors"]
 edition = "2024"

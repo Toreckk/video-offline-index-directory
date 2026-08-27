@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Smart-collection logic previews, multi-select bulk grouping, and explicit movement of individual rules between existing groups.
+
+### Changed
+
+- Nested-group creation is now a prominent dedicated action with stronger visual hierarchy instead of the last item in the ordinary rule-button row.
+- Duration inputs replace low-value numeric steppers with subtle one-click resets to the shortest and longest measured library durations.
+- Library Source describes browser, session, and desktop access accurately and explains that desktop file actions remain explicit and confirmed.
+
 ## [0.3.0] - 2026-08-27
 
 ### Added
