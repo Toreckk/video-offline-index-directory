@@ -78,8 +78,13 @@ The release must improve duplicate decisions without turning a probable match in
 - Done: v0.3.0 release branch created from the published v0.2.0 merge commit.
 - Done: v0.3.0 version alignment, draft release notes, and optional native media-probe contract.
 - Done: path-validated desktop `ffprobe` invocation, availability reporting, metadata parsing, bounded diagnostics, and an opt-in corpus benchmark test without changing current media behavior.
+- Done: MP4/WebM probe benchmark and licensing/size review. v0.3 keeps ffprobe optional and does not bundle the 64.58 MiB compressed / 146.04 MiB runtime candidate; evidence is recorded in `docs/performance/v0.3-media-probe.md`.
+- Done: deferred native metadata enrichment and catalog persistence for duration, dimensions, and audio/video codecs when an optional probe is available. The quick WebView thumbnail pass remains first and unchanged.
 - Done: shared Explorer and persisted smart-collection duration filtering with library-derived slider bounds, precise numeric inputs, an inactive full-library default span, and portable backup support.
-- Next: provide an approved LGPL test binary, exercise the probe against a representative corpus, and record the FFmpeg go/no-go evidence.
+- Done: exact complete-hash and probable evidence groups are visibly separated, with natural duplicate-name ordering and codec/dimension/duration evidence.
+- Done: explicit desktop-only Recycle Bin cleanup for selected exact copies, including trusted-root validation, immediate hash revalidation, keeper protection, metadata transfer, catalog reconciliation, and partial-failure reporting.
+- Done: Windows signing, updater-key custody, rollback, and compromised-key architecture documented in `docs/UPDATE_SIGNING_ARCHITECTURE.md`; v0.3 remains unsigned and manual-download only.
+- Next: complete full automated gates, 5,000-video regression evidence, installer builds, and the destructive manual QA checklist on disposable media.
 
 ## Acceptance gates
 

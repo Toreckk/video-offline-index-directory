@@ -11,6 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - An optional shared native-media-probe capability and desktop `ffprobe` adapter for duration, dimensions, video codec, and audio codec metadata.
 - Native probe availability reporting, trusted-library path validation, bounded diagnostics, parser coverage, and an opt-in MP4/WebM corpus benchmark.
 - Shared Explorer and smart-collection duration filtering with a library-scaled dual-handle range, precise bounds, a full-library default span, and portable persisted collection rules.
+- Cached background enrichment for duration, dimensions, and audio/video codecs when an optional desktop `ffprobe` is available, without delaying the normal thumbnail pass.
+- Clearly separated exact byte-for-byte and probable duplicate groups with visible filename, size, duration, dimensions, codec, sampled-content, and complete-hash evidence.
+- Guarded desktop-only cleanup that revalidates exact hashes, protects the selected keeper, merges supported metadata, and moves selected redundant copies to the Windows Recycle Bin with per-file results.
+
+### Changed
+
+- Duplicate filename families use natural ordering so an unsuffixed original appears before `(1)`, `(2)`, and later copies.
+- v0.3 keeps ffprobe optional after an LGPL build review found a 64.58 MiB compressed / 146.04 MiB runtime packaging cost; the web and default desktop thumbnail paths remain unchanged.
 
 ## [0.2.0] - 2026-08-23
 

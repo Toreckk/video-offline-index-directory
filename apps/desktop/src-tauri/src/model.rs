@@ -61,6 +61,9 @@ pub struct NativeCatalogAsset {
     pub duration: Option<f64>,
     pub width: Option<u32>,
     pub height: Option<u32>,
+    pub video_codec: Option<String>,
+    pub audio_codec: Option<String>,
+    pub media_probe_status: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -89,4 +92,34 @@ pub struct NativeMediaMetadata {
     pub height: Option<u32>,
     pub video_codec: Option<String>,
     pub audio_codec: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeDuplicateCleanupFile {
+    pub absolute_path: String,
+    pub expected_sha256: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeDuplicateCleanupRequest {
+    pub keeper: NativeDuplicateCleanupFile,
+    pub redundant_files: Vec<NativeDuplicateCleanupFile>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeDuplicateCleanupIssue {
+    pub absolute_path: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeDuplicateCleanupResult {
+    pub kept_path: String,
+    pub moved_paths: Vec<String>,
+    pub skipped: Vec<NativeDuplicateCleanupIssue>,
+    pub failed: Vec<NativeDuplicateCleanupIssue>,
 }

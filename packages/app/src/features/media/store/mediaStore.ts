@@ -20,6 +20,9 @@ export type MediaAsset = {
   duration?: number
   width?: number
   height?: number
+  videoCodec?: string
+  audioCodec?: string
+  mediaProbeStatus?: 'ready' | 'error'
 }
 
 type MediaState = {
@@ -73,6 +76,9 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
           duration: asset.duration ?? existing?.duration,
           width: asset.width ?? existing?.width,
           height: asset.height ?? existing?.height,
+          videoCodec: asset.videoCodec ?? existing?.videoCodec,
+          audioCodec: asset.audioCodec ?? existing?.audioCodec,
+          mediaProbeStatus: asset.mediaProbeStatus ?? existing?.mediaProbeStatus,
           thumbnailBlobKey: asset.thumbnailBlobKey ?? existing?.thumbnailBlobKey,
           thumbnailStatus:
             asset.thumbnailStatus === 'idle' && existing?.thumbnailStatus === 'ready'

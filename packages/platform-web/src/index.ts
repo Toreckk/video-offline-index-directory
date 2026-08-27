@@ -11,6 +11,7 @@ export function createWebPlatform(): VoidPlatform {
       revealInFileManager: false,
       fullFileHashing: false,
       nativeMediaProbe: false,
+      recycleBinCleanup: false,
     },
   }
 }

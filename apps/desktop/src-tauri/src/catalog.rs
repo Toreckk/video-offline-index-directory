@@ -114,6 +114,9 @@ mod tests {
                     duration: Some(30.0 + (index % 300) as f64),
                     width: Some(1920),
                     height: Some(1080),
+                    video_codec: Some("h264".to_string()),
+                    audio_codec: Some("aac".to_string()),
+                    media_probe_status: Some("ready".to_string()),
                 })
                 .collect(),
         }

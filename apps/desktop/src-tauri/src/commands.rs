@@ -1,10 +1,15 @@
 use crate::{
     catalog,
-    model::{NativeCatalog, NativeLibrarySelection, NativeMediaFile, NativeScanOptions},
+    model::{
+        NativeCatalog, NativeDuplicateCleanupFile, NativeDuplicateCleanupIssue,
+        NativeDuplicateCleanupRequest, NativeDuplicateCleanupResult, NativeLibrarySelection,
+        NativeMediaFile, NativeScanOptions,
+    },
     state::{AppState, display_error},
 };
 use sha2::{Digest, Sha256};
 use std::{
+    collections::HashSet,
     ffi::OsStr,
     fs::File,
     io::{Read, Write},
@@ -275,6 +280,114 @@ fn hash_file_contents(path: &Path) -> Result<String, String> {
     Ok(format!("{result:x}"))
 }
 
+#[derive(Debug)]
+struct ValidatedCleanupFile {
+    path: PathBuf,
+    expected_sha256: String,
+}
+
+#[tauri::command]
+pub async fn cleanup_duplicate_files(
+    app: AppHandle,
+    request: NativeDuplicateCleanupRequest,
+) -> Result<NativeDuplicateCleanupResult, String> {
+    let (keeper, redundant_files) = validate_cleanup_request(&app.state::<AppState>(), request)?;
+    async_runtime::spawn_blocking(move || {
+        perform_duplicate_cleanup(keeper, redundant_files, |path| {
+            trash::delete(path).map_err(display_error)
+        })
+    })
+    .await
+    .map_err(display_error)?
+}
+
+fn validate_cleanup_request(
+    state: &AppState,
+    request: NativeDuplicateCleanupRequest,
+) -> Result<(ValidatedCleanupFile, Vec<ValidatedCleanupFile>), String> {
+    if request.redundant_files.is_empty() {
+        return Err(
+            "Choose at least one redundant duplicate to move to the Recycle Bin.".to_string(),
+        );
+    }
+    let keeper = validate_cleanup_file(state, request.keeper)?;
+    let mut seen = HashSet::from([keeper.path.clone()]);
+    let mut redundant_files = Vec::with_capacity(request.redundant_files.len());
+    for file in request.redundant_files {
+        let file = validate_cleanup_file(state, file)?;
+        if !seen.insert(file.path.clone()) {
+            return Err(
+                "The cleanup request contains the keeper or a duplicate path more than once."
+                    .to_string(),
+            );
+        }
+        redundant_files.push(file);
+    }
+    Ok((keeper, redundant_files))
+}
+
+fn validate_cleanup_file(
+    state: &AppState,
+    file: NativeDuplicateCleanupFile,
+) -> Result<ValidatedCleanupFile, String> {
+    let expected_sha256 = file.expected_sha256.to_ascii_lowercase();
+    if expected_sha256.len() != 64 || !expected_sha256.bytes().all(|byte| byte.is_ascii_hexdigit())
+    {
+        return Err("Duplicate cleanup requires a complete SHA-256 fingerprint.".to_string());
+    }
+    Ok(ValidatedCleanupFile {
+        path: state.validate_file(Path::new(&file.absolute_path))?,
+        expected_sha256,
+    })
+}
+
+fn perform_duplicate_cleanup(
+    keeper: ValidatedCleanupFile,
+    redundant_files: Vec<ValidatedCleanupFile>,
+    mut move_to_trash: impl FnMut(&Path) -> Result<(), String>,
+) -> Result<NativeDuplicateCleanupResult, String> {
+    let keeper_hash = hash_file_contents(&keeper.path)?;
+    if keeper_hash != keeper.expected_sha256 {
+        return Err(
+            "The selected keeper changed after duplicate analysis. Run the scan again.".to_string(),
+        );
+    }
+
+    let kept_path = keeper.path.to_string_lossy().into_owned();
+    let mut result = NativeDuplicateCleanupResult {
+        kept_path,
+        moved_paths: Vec::new(),
+        skipped: Vec::new(),
+        failed: Vec::new(),
+    };
+    for file in redundant_files {
+        let absolute_path = file.path.to_string_lossy().into_owned();
+        match hash_file_contents(&file.path) {
+            Ok(current_hash)
+                if current_hash != keeper_hash || current_hash != file.expected_sha256 =>
+            {
+                result.skipped.push(NativeDuplicateCleanupIssue {
+                    absolute_path,
+                    message: "The file changed after duplicate analysis. It was left in place."
+                        .to_string(),
+                });
+            }
+            Err(message) => result.failed.push(NativeDuplicateCleanupIssue {
+                absolute_path,
+                message,
+            }),
+            Ok(_) => match move_to_trash(&file.path) {
+                Ok(()) => result.moved_paths.push(absolute_path),
+                Err(message) => result.failed.push(NativeDuplicateCleanupIssue {
+                    absolute_path,
+                    message,
+                }),
+            },
+        }
+    }
+    Ok(result)
+}
+
 #[tauri::command]
 pub fn reveal_file(state: State<'_, AppState>, absolute_path: String) -> Result<(), String> {
     let path = state.validate_file(Path::new(&absolute_path))?;
@@ -312,9 +425,20 @@ fn not_hidden_void_directory(entry: &DirEntry) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_supported_video, restore_catalog_root, scan_directory, thumbnail_path};
-    use crate::{catalog, model::NativeCatalog, state::AppState};
-    use std::{fs::File, path::Path, time::Instant};
+    use super::{
+        hash_file_contents, is_supported_video, perform_duplicate_cleanup, restore_catalog_root,
+        scan_directory, thumbnail_path, validate_cleanup_request,
+    };
+    use crate::{
+        catalog,
+        model::{NativeCatalog, NativeDuplicateCleanupFile, NativeDuplicateCleanupRequest},
+        state::AppState,
+    };
+    use std::{
+        fs::{self, File},
+        path::Path,
+        time::Instant,
+    };
     use tempfile::tempdir;
 
     #[test]
@@ -382,5 +506,122 @@ mod tests {
             selected.path().canonicalize().expect("canonical root")
         );
         assert!(state.validate_root(selected.path()).is_ok());
+    }
+
+    #[test]
+    fn cleanup_revalidates_complete_hashes_and_preserves_the_keeper() {
+        let app_data = tempdir().expect("app data");
+        let selected = tempdir().expect("selected library");
+        let keeper_path = selected.path().join("keeper.mp4");
+        let duplicate_path = selected.path().join("duplicate.mp4");
+        fs::write(&keeper_path, b"identical bytes").expect("keeper");
+        fs::write(&duplicate_path, b"identical bytes").expect("duplicate");
+        let expected_sha256 = hash_file_contents(&keeper_path).expect("hash");
+        let state = AppState::new(
+            app_data.path().join("catalog.db"),
+            app_data.path().join("thumbnails"),
+        )
+        .expect("application state");
+        state.register_root(selected.path()).expect("selected root");
+        let (keeper, redundant_files) = validate_cleanup_request(
+            &state,
+            cleanup_request(&keeper_path, &[&duplicate_path], &expected_sha256),
+        )
+        .expect("validated cleanup");
+        let mut moved = Vec::new();
+
+        let result = perform_duplicate_cleanup(keeper, redundant_files, |path| {
+            moved.push(path.to_path_buf());
+            Ok(())
+        })
+        .expect("cleanup result");
+
+        assert_eq!(
+            moved,
+            vec![duplicate_path.canonicalize().expect("canonical duplicate")]
+        );
+        assert_eq!(result.moved_paths.len(), 1);
+        assert!(result.skipped.is_empty());
+        assert!(result.failed.is_empty());
+        assert!(keeper_path.exists());
+    }
+
+    #[test]
+    fn cleanup_skips_changed_files_and_reports_recycle_bin_failures() {
+        let app_data = tempdir().expect("app data");
+        let selected = tempdir().expect("selected library");
+        let keeper_path = selected.path().join("keeper.mp4");
+        let changed_path = selected.path().join("changed.mp4");
+        let failed_path = selected.path().join("failed.mp4");
+        for path in [&keeper_path, &changed_path, &failed_path] {
+            fs::write(path, b"identical bytes").expect("fixture");
+        }
+        let expected_sha256 = hash_file_contents(&keeper_path).expect("hash");
+        let state = AppState::new(
+            app_data.path().join("catalog.db"),
+            app_data.path().join("thumbnails"),
+        )
+        .expect("application state");
+        state.register_root(selected.path()).expect("selected root");
+        let (keeper, redundant_files) = validate_cleanup_request(
+            &state,
+            cleanup_request(
+                &keeper_path,
+                &[&changed_path, &failed_path],
+                &expected_sha256,
+            ),
+        )
+        .expect("validated cleanup");
+        fs::write(&changed_path, b"changed after scan").expect("changed fixture");
+
+        let result = perform_duplicate_cleanup(keeper, redundant_files, |_| {
+            Err("Recycle Bin unavailable".to_string())
+        })
+        .expect("cleanup result");
+
+        assert!(result.moved_paths.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert_eq!(result.failed.len(), 1);
+    }
+
+    #[test]
+    fn cleanup_rejects_paths_outside_the_selected_library() {
+        let app_data = tempdir().expect("app data");
+        let selected = tempdir().expect("selected library");
+        let outside = tempdir().expect("outside directory");
+        let keeper_path = selected.path().join("keeper.mp4");
+        let outside_path = outside.path().join("outside.mp4");
+        fs::write(&keeper_path, b"identical bytes").expect("keeper");
+        fs::write(&outside_path, b"identical bytes").expect("outside");
+        let expected_sha256 = hash_file_contents(&keeper_path).expect("hash");
+        let state = AppState::new(
+            app_data.path().join("catalog.db"),
+            app_data.path().join("thumbnails"),
+        )
+        .expect("application state");
+        state.register_root(selected.path()).expect("selected root");
+
+        assert!(
+            validate_cleanup_request(
+                &state,
+                cleanup_request(&keeper_path, &[&outside_path], &expected_sha256),
+            )
+            .is_err()
+        );
+    }
+
+    fn cleanup_request(
+        keeper_path: &Path,
+        redundant_paths: &[&Path],
+        expected_sha256: &str,
+    ) -> NativeDuplicateCleanupRequest {
+        let file = |path: &Path| NativeDuplicateCleanupFile {
+            absolute_path: path.to_string_lossy().into_owned(),
+            expected_sha256: expected_sha256.to_string(),
+        };
+        NativeDuplicateCleanupRequest {
+            keeper: file(keeper_path),
+            redundant_files: redundant_paths.iter().map(|path| file(path)).collect(),
+        }
     }
 }

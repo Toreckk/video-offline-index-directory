@@ -8,6 +8,8 @@ import type {
   NativeMediaMetadata,
   NativeMediaFile,
   NativeMediaProbeStatus,
+  NativeDuplicateCleanupRequest,
+  NativeDuplicateCleanupResult,
   VoidPlatform,
 } from '@void/core'
 
@@ -43,6 +45,7 @@ export function createDesktopPlatform(): VoidPlatform {
       revealInFileManager: true,
       fullFileHashing: true,
       nativeMediaProbe: true,
+      recycleBinCleanup: true,
     },
     selectLibrary: () =>
       invoke<NativeLibrarySelection | null>('select_library'),
@@ -92,5 +95,7 @@ export function createDesktopPlatform(): VoidPlatform {
       invoke<NativeMediaProbeStatus>('media_probe_status'),
     probeMedia: (absolutePath) =>
       invoke<NativeMediaMetadata>('probe_media', { absolutePath }),
+    cleanupDuplicateFiles: (request: NativeDuplicateCleanupRequest) =>
+      invoke<NativeDuplicateCleanupResult>('cleanup_duplicate_files', { request }),
   }
 }

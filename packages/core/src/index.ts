@@ -7,6 +7,7 @@ export type PlatformCapabilities = {
   revealInFileManager: boolean
   fullFileHashing: boolean
   nativeMediaProbe: boolean
+  recycleBinCleanup: boolean
 }
 
 export type NativeMediaProbeStatus = {
@@ -21,6 +22,28 @@ export type NativeMediaMetadata = {
   height?: number
   videoCodec?: string
   audioCodec?: string
+}
+
+export type NativeDuplicateCleanupFile = {
+  absolutePath: string
+  expectedSha256: string
+}
+
+export type NativeDuplicateCleanupRequest = {
+  keeper: NativeDuplicateCleanupFile
+  redundantFiles: NativeDuplicateCleanupFile[]
+}
+
+export type NativeDuplicateCleanupIssue = {
+  absolutePath: string
+  message: string
+}
+
+export type NativeDuplicateCleanupResult = {
+  keptPath: string
+  movedPaths: string[]
+  skipped: NativeDuplicateCleanupIssue[]
+  failed: NativeDuplicateCleanupIssue[]
 }
 
 export type NativeLibrarySelection = {
@@ -46,6 +69,9 @@ export type NativeCatalogAsset = NativeMediaFile & {
   duration?: number
   width?: number
   height?: number
+  videoCodec?: string
+  audioCodec?: string
+  mediaProbeStatus?: 'ready' | 'error'
 }
 
 export type NativeCatalog = {
@@ -104,6 +130,9 @@ export type VoidPlatform = {
   hashFile?: (absolutePath: string) => Promise<string>
   getMediaProbeStatus?: () => Promise<NativeMediaProbeStatus>
   probeMedia?: (absolutePath: string) => Promise<NativeMediaMetadata>
+  cleanupDuplicateFiles?: (
+    request: NativeDuplicateCleanupRequest,
+  ) => Promise<NativeDuplicateCleanupResult>
 }
 
 const WEB_CAPABILITIES: PlatformCapabilities = {
@@ -113,6 +142,7 @@ const WEB_CAPABILITIES: PlatformCapabilities = {
   revealInFileManager: false,
   fullFileHashing: false,
   nativeMediaProbe: false,
+  recycleBinCleanup: false,
 }
 
 let activePlatform: VoidPlatform = {

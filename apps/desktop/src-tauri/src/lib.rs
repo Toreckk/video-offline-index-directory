@@ -39,6 +39,7 @@ pub fn run() {
             commands::clear_thumbnail_cache,
             commands::reveal_file,
             commands::hash_file,
+            commands::cleanup_duplicate_files,
             media_probe::media_probe_status,
             media_probe::probe_media,
         ])
