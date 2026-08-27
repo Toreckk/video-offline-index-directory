@@ -43,8 +43,8 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 2. Done: implement prominent nested-group creation, aligned bulk selection, bulk grouping, and individual rule movement.
 3. Done: implement source-aware access wording and duration Min/Max resets.
 4. Done: complete focused automated tests, full shared/native validation, and release documentation.
-5. In progress: native/themed title-bar overlap is fixed and current-commit NSIS/MSI installers build successfully; final manual QA remains pending.
-6. Pending: finalize the proposal, obtain merge approval, and publish v0.3.1.
+5. Done: native/themed title-bar reliability and player spacing are fixed, current-commit NSIS/MSI installers build successfully, and user-led application QA is approved.
+6. In progress: freeze the changelog, confirm exact-head CI and installer smoke tests, then obtain merge approval and publish v0.3.1.
 
 ## Acceptance gates
 
