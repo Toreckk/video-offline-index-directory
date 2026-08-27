@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
-- Desktop title-bar decoration changes now wait for settings hydration and run in order, preventing the native Windows frame and themed V.O.I.D. bar from appearing together.
+- Desktop title-bar decoration changes now wait for settings hydration, survive development remounts, and run in order, preventing the native Windows frame and themed V.O.I.D. bar from both appearing—or both disappearing.
 
 ## [0.3.0] - 2026-08-27
 

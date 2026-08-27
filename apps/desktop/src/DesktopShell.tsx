@@ -39,8 +39,11 @@ export function DesktopShellFrame({
   const isMountedRef = useRef(true)
   const decorationQueue = useRef<Promise<void>>(Promise.resolve())
 
-  useEffect(() => () => {
-    isMountedRef.current = false
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
   }, [])
 
   useEffect(() => {

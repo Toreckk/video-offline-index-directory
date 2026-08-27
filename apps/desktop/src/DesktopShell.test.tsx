@@ -2,6 +2,7 @@
 
 import 'fake-indexeddb/auto'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DesktopWindowController } from '@void/platform-desktop'
 import { DesktopShellFrame } from './DesktopShell'
@@ -9,6 +10,21 @@ import { DesktopShellFrame } from './DesktopShell'
 afterEach(cleanup)
 
 describe('DesktopShellFrame', () => {
+  it('restores the themed title bar after the Strict Mode effect remount', async () => {
+    const controller = createController()
+
+    render(
+      <StrictMode>
+        <DesktopShellFrame controller={controller} isHydrated prefersThemedTitleBar>
+          <main>Content</main>
+        </DesktopShellFrame>
+      </StrictMode>,
+    )
+
+    await waitFor(() => expect(controller.setDecorations).toHaveBeenCalledWith(false))
+    await waitFor(() => expect(screen.getByRole('banner')).toBeInTheDocument())
+  })
+
   it('waits for settings hydration before changing window decorations', async () => {
     const controller = createController()
     const view = render(

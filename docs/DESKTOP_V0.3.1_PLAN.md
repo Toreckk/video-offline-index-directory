@@ -22,6 +22,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 ### Desktop shell reliability
 
 - Wait for persisted settings to hydrate before changing native Windows decorations.
+- Restore the mounted-state guard after React development remounts so the themed bar is rendered after native decorations are removed.
 - Serialize title-bar decoration transitions so the latest preference wins even during rapid changes.
 
 ### Release work
@@ -51,7 +52,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 - Moving an individual rule changes only its parent group and persists after save/relaunch.
 - Duration reset controls use library-derived bounds and remain accessible by keyboard and screen-reader label.
 - Browser/session/desktop source wording accurately describes the active capability without implying all desktop operations are read-only.
-- The native Windows frame and themed V.O.I.D. title bar never appear together across repeated relaunches or rapid preference changes.
+- Exactly one of the native Windows frame and themed V.O.I.D. title bar remains visible across development remounts, repeated relaunches, and rapid preference changes.
 - Shared tests, lint, web/desktop UI builds, Rust gates, version verification, and 5,000-video regressions pass.
 - Current-commit NSIS and MSI installers build and pass the standard smoke test.
 
@@ -61,9 +62,9 @@ The draft proposal targets `master`. Its merge changes `release-manifest.json` o
 
 ## Validation evidence
 
-- `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 48 test files and 168 tests are green, including hydration and rapid title-bar preference regression coverage.
+- `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 48 test files and 169 tests are green, including Strict Mode remount, hydration, and rapid title-bar preference regression coverage.
 - Rust formatting, Clippy with warnings denied, and native tests pass; 16 tests pass and the opt-in media corpus benchmark remains intentionally ignored.
 - Local browser interaction confirms nested-group hierarchy, aligned bulk selection/grouping, and move controls with no console warnings.
 - Current-commit Windows installers build with normal WiX ICE validation:
-  - NSIS: 2,981,882 bytes; SHA-256 `c20699275b2f844a96619eef8bd83c3ac76b495e96b40b2a6d28fdc77bf9add5`.
-  - MSI: 5,230,592 bytes; SHA-256 `35f774fd62e134536fd1e5a091b7780897eb0b40d62954e661706ab608ee0dde`.
+  - NSIS: 2,981,417 bytes; SHA-256 `5ac118b2c0f1f80cb59f4887c76410dcce494e9bbe4eca7d7a0cfefce7e4dedf`.
+  - MSI: 5,230,592 bytes; SHA-256 `a8a9679cb0730c76ad5225e94e4c6bcdce6c9432705d788206f3c401d52ee6c8`.
