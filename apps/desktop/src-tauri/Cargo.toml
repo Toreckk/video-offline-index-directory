@@ -1,6 +1,6 @@
 [package]
 name = "void-desktop"
-version = "0.2.0"
+version = "0.3.0"
 description = "V.O.I.D. — Video Offline Index Directory"
 authors = ["VOID contributors"]
 edition = "2024"
@@ -21,6 +21,7 @@ serde_json = "1"
 sha2 = "0.10"
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
+trash = "5.2.6"
 walkdir = "2"
 
 [dev-dependencies]

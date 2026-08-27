@@ -11,6 +11,7 @@ import type { NativeLibraryScanSource } from '../../media/services/mediaFileSour
 import { reconcileMediaAssets } from '../../media/services/reconcileMediaAssets'
 import { scheduleThumbnailEnrichment } from '../../media/services/thumbnailEnrichmentPipeline'
 import { thumbnailQueue } from '../../media/services/thumbnailQueue'
+import { scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
 import { getMediaAssets, useMediaStore } from '../../media/store/mediaStore'
 import { runDiscoveryPipeline } from '../services/discoveryPipeline'
 import { useLibraryStore } from '../store/libraryStore'
@@ -189,7 +190,7 @@ async function reconcileOnce(
   if (reconciliation.affectedAssets.length > 0) {
     enrichAffectedAssets(source, reconciliation.affectedAssets, signal)
   }
-  return reconciliation.affectedAssets.map((asset) => asset.id)
+  return reconciliation.affectedAssets.flatMap((asset) => [asset.id, `media-probe:${asset.id}`])
 }
 
 function enrichAffectedAssets(
@@ -233,6 +234,22 @@ function enrichAffectedAssets(
       if (!signal.aborted) void persistCurrentCatalog()
     },
   })
+  void scheduleNativeMetadataEnrichment({
+    assets,
+    signal,
+    onAssetUpdate: (id, patch) => useMediaStore.getState().updateAsset(id, patch),
+    onDiagnostic: (asset, error) => {
+      useLibraryStore.getState().addScanDiagnostic({
+        stage: 'metadata',
+        severity: 'warning',
+        path: [...asset.pathParts, asset.name].join('/'),
+        message: error instanceof Error ? error.message : 'Native media analysis failed.',
+      })
+    },
+    onComplete: () => {
+      if (!signal.aborted) void persistCurrentCatalog()
+    },
+  }).catch((error: unknown) => console.warn('Could not schedule native metadata updates.', error))
 }
 
 function getCurrentAssets() {

@@ -8,6 +8,7 @@ import {
   type SmartCollection,
   type SmartCollectionRules,
 } from '../model/collectionTypes'
+import { normalizeDurationRange } from '../../media/model/durationRange'
 
 type CollectionState = {
   collectionsById: Record<string, SmartCollection>
@@ -113,6 +114,7 @@ function normalizeGroup(group: CollectionRuleGroup, depth: number): CollectionRu
   const children = group.children.slice(0, 100).map((child) => {
     if (child.kind === 'group') return normalizeGroup(child, depth + 1)
     if (child.kind === 'tag') return { ...child, tagId: child.tagId.trim() }
+    if (child.kind === 'duration') return { ...child, range: normalizeDurationRange(child.range) }
     return { ...child }
   }).filter((child) => child.kind !== 'tag' || child.tagId.length > 0)
   return { ...group, operator: group.operator === 'or' ? 'or' : 'and', negated: group.negated === true, children }

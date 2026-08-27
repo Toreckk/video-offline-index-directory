@@ -78,6 +78,9 @@ function toNativeCatalogAsset(asset: MediaAsset): NativeCatalogAsset[] {
     duration: asset.duration,
     width: asset.width,
     height: asset.height,
+    videoCodec: asset.videoCodec,
+    audioCodec: asset.audioCodec,
+    mediaProbeStatus: asset.mediaProbeStatus,
   }]
 }
 
@@ -100,5 +103,8 @@ function fromNativeCatalogAsset(asset: NativeCatalogAsset): MediaAsset[] {
     duration: asset.duration,
     width: asset.width,
     height: asset.height,
+    videoCodec: asset.videoCodec,
+    audioCodec: asset.audioCodec,
+    mediaProbeStatus: asset.mediaProbeStatus,
   }]
 }

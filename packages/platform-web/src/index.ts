@@ -10,6 +10,8 @@ export function createWebPlatform(): VoidPlatform {
       diskThumbnailCache: false,
       revealInFileManager: false,
       fullFileHashing: false,
+      nativeMediaProbe: false,
+      recycleBinCleanup: false,
     },
   }
 }

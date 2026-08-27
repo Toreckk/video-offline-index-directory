@@ -367,6 +367,8 @@ function webPlatform(): VoidPlatform {
       diskThumbnailCache: false,
       revealInFileManager: false,
       fullFileHashing: false,
+      nativeMediaProbe: false,
+      recycleBinCleanup: false,
     },
   }
 }
@@ -380,6 +382,8 @@ function desktopPlatform(patch: Partial<VoidPlatform> = {}): VoidPlatform {
       diskThumbnailCache: true,
       revealInFileManager: true,
       fullFileHashing: true,
+      nativeMediaProbe: true,
+      recycleBinCleanup: true,
     },
     ...patch,
   }

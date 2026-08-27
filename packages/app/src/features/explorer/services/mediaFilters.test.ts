@@ -20,6 +20,7 @@ describe('matchesMediaFilters', () => {
       matchesMediaFilters(asset, annotation, {
         searchQuery: '',
         folderFilter: null,
+        durationFilter: null,
         favoritesOnly: false,
         untaggedOnly: false,
         selectedTagIds: ['year-2025', 'christmas'],
@@ -30,6 +31,7 @@ describe('matchesMediaFilters', () => {
       matchesMediaFilters(asset, annotation, {
         searchQuery: '',
         folderFilter: null,
+        durationFilter: null,
         favoritesOnly: false,
         untaggedOnly: false,
         selectedTagIds: ['year-2025', 'missing'],
@@ -42,6 +44,7 @@ describe('matchesMediaFilters', () => {
       matchesMediaFilters(asset, annotation, {
         searchQuery: 'morning',
         folderFilter: 'Holidays',
+        durationFilter: null,
         favoritesOnly: true,
         untaggedOnly: false,
         selectedTagIds: [],
@@ -50,8 +53,16 @@ describe('matchesMediaFilters', () => {
   })
 
   it('can isolate videos without any tags', () => {
-    const filters = { searchQuery: '', folderFilter: null, favoritesOnly: false, untaggedOnly: true, selectedTagIds: [] }
+    const filters = { searchQuery: '', folderFilter: null, durationFilter: null, favoritesOnly: false, untaggedOnly: true, selectedTagIds: [] }
     expect(matchesMediaFilters(asset, undefined, filters)).toBe(true)
     expect(matchesMediaFilters(asset, annotation, filters)).toBe(false)
+  })
+
+  it('applies known and unknown duration ranges', () => {
+    const filters = { searchQuery: '', folderFilter: null, favoritesOnly: false, untaggedOnly: false, selectedTagIds: [] }
+    expect(matchesMediaFilters({ ...asset, duration: 299.9 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(true)
+    expect(matchesMediaFilters({ ...asset, duration: 300 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(true)
+    expect(matchesMediaFilters({ ...asset, duration: 300.1 }, annotation, { ...filters, durationFilter: { mode: 'known', maximumSeconds: 300 } })).toBe(false)
+    expect(matchesMediaFilters(asset, annotation, { ...filters, durationFilter: { mode: 'unknown' } })).toBe(true)
   })
 })

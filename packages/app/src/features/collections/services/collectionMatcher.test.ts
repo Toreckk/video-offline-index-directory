@@ -30,4 +30,12 @@ describe('matchesCollectionRules', () => {
     ])
     expect(matchesCollectionRules(annotation, { positionSeconds: 0, durationSeconds: 1, watched: true, lastPlayedAt: 1, playCount: 1 }, expression)).toBe(true)
   })
+
+  it('uses the same inclusive duration bounds as Explorer', () => {
+    const expression = rules('and', [{ id: 'duration', kind: 'duration', range: { mode: 'known', minimumSeconds: 300, maximumSeconds: 900 } }])
+    expect(matchesCollectionRules(annotation, undefined, expression, 300)).toBe(true)
+    expect(matchesCollectionRules(annotation, undefined, expression, 900)).toBe(true)
+    expect(matchesCollectionRules(annotation, undefined, expression, 900.1)).toBe(false)
+    expect(matchesCollectionRules(annotation, undefined, rules('and', [{ id: 'unknown', kind: 'duration', range: { mode: 'unknown' } }]))).toBe(true)
+  })
 })

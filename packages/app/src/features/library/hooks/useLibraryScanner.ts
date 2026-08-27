@@ -12,6 +12,7 @@ import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
 import { runDiscoveryPipeline } from '../services/discoveryPipeline'
+import { scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
 
 export function useLibraryScanner() {
   const activeScanRef = useRef<AbortController | null>(null)
@@ -90,6 +91,7 @@ export function useLibraryScanner() {
             ),
             controller.signal,
           )
+          void enqueueNativeMetadata(assets, controller.signal)
         }
       } catch (error) {
         if (isAbortError(error)) {
@@ -123,6 +125,32 @@ export function useLibraryScanner() {
   useEffect(() => cancelScan, [cancelScan])
 
   return { startScan, cancelScan }
+}
+
+async function enqueueNativeMetadata(assets: MediaAsset[], signal: AbortSignal) {
+  try {
+    await scheduleNativeMetadataEnrichment({
+      assets,
+      signal,
+      onAssetUpdate: (id, patch) => useMediaStore.getState().updateAsset(id, patch),
+      onDiagnostic: (asset, error) => {
+        useLibraryStore.getState().addScanDiagnostic({
+          stage: 'metadata',
+          severity: 'warning',
+          path: [...asset.pathParts, asset.name].join('/'),
+          message: getErrorMessage(error),
+        })
+      },
+      onComplete: () => {
+        const store = useLibraryStore.getState()
+        if (store.libraryId) {
+          void persistCatalog(store.libraryId, getCurrentAssets(), store.rootPath ?? undefined)
+        }
+      },
+    })
+  } catch (error) {
+    console.warn('Native media analysis could not be scheduled.', error)
+  }
 }
 
 function enqueueThumbnails(assets: MediaAsset[], signal: AbortSignal) {

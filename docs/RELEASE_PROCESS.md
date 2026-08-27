@@ -18,6 +18,20 @@ VOID follows Semantic Versioning and Conventional Commits.
 
 The root release manifest is the release intent. Package, Cargo, and Tauri versions must match it before publishing.
 
+## Changelog and release notes
+
+`CHANGELOG.md` follows Keep a Changelog 2.0 and is the concise, user-relevant history across releases. Add notable completed work to `[Unreleased]` as it lands; do not list ideas or promises as shipped changes.
+
+At final release preparation:
+
+1. Review the complete release diff and rewrite raw implementation details as user-observable changes.
+2. Move the relevant `[Unreleased]` entries into `## [X.Y.Z] - YYYY-MM-DD` and recreate an empty `[Unreleased]` section.
+3. Maintain compare links for `[Unreleased]` and the new version.
+4. Derive `docs/releases/vX.Y.Z.md` from the same facts, adding narrative highlights, downloads, supported systems, migrations, safety limits, and signing status.
+5. Verify the changelog, release notes, proposal checklist, manifest, and GitHub Release describe the same scope.
+
+Use the standard Added, Changed, Deprecated, Removed, Fixed, and Security groups only when they contain notable entries. A released changelog section and tag are immutable; corrections ship in a new version.
+
 ## Automated publication
 
 The publication workflow runs after `release-manifest.json` changes on `master`. It:

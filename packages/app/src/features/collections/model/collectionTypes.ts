@@ -1,3 +1,5 @@
+import type { DurationRange } from '../../media/model/durationRange'
+
 export type CollectionGroupOperator = 'and' | 'or'
 
 export type CollectionTagRule = {
@@ -13,6 +15,12 @@ export type CollectionWatchedRule = {
   value: 'watched' | 'unwatched'
 }
 
+export type CollectionDurationRule = {
+  id: string
+  kind: 'duration'
+  range: DurationRange
+}
+
 export type CollectionRuleGroup = {
   id: string
   kind: 'group'
@@ -24,6 +32,7 @@ export type CollectionRuleGroup = {
 export type CollectionRuleNode =
   | CollectionTagRule
   | CollectionWatchedRule
+  | CollectionDurationRule
   | CollectionRuleGroup
 
 export type SmartCollectionRules = {

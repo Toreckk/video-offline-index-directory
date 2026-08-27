@@ -14,6 +14,7 @@ This proposal assembles the reviewed release work for `vX.Y.Z`. Focused pull req
 - [ ] Web production build passes.
 - [ ] Windows NSIS and MSI installers build successfully.
 - [ ] Release notes describe features, supported systems, safety limits, and signing status.
+- [ ] `CHANGELOG.md` has accurate user-relevant entries, version/date headings, and compare links.
 - [ ] Manual smoke test is complete.
 - [ ] Generated installers are absent from the Git diff.
 

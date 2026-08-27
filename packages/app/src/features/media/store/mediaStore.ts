@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { SupportedVideoExtension } from '../../library/services/fileSystem'
 import type { MediaFileSource } from '../services/mediaFileSource'
+import type { DurationRange } from '../model/durationRange'
 
 export type ThumbnailStatus = 'idle' | 'queued' | 'ready' | 'error'
 
@@ -19,6 +20,9 @@ export type MediaAsset = {
   duration?: number
   width?: number
   height?: number
+  videoCodec?: string
+  audioCodec?: string
+  mediaProbeStatus?: 'ready' | 'error'
 }
 
 type MediaState = {
@@ -26,6 +30,7 @@ type MediaState = {
   orderedIds: string[]
   searchQuery: string
   folderFilter: string | null
+  durationFilter: DurationRange | null
   activePreviewId: string | null
 }
 
@@ -38,6 +43,7 @@ type MediaActions = {
   updateAssets: (patches: readonly { id: string; patch: Partial<MediaAsset> }[]) => void
   setSearchQuery: (query: string) => void
   setFolderFilter: (folder: string | null) => void
+  setDurationFilter: (range: DurationRange | null) => void
   setActivePreviewId: (id: string | null) => void
 }
 
@@ -46,6 +52,7 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
   orderedIds: [],
   searchQuery: '',
   folderFilter: null,
+  durationFilter: null,
   activePreviewId: null,
 
   clearAssets: () =>
@@ -53,6 +60,7 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
       assetsById: {},
       orderedIds: [],
       folderFilter: null,
+      durationFilter: null,
       activePreviewId: null,
     }),
   addAssets: (assets) =>
@@ -68,6 +76,9 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
           duration: asset.duration ?? existing?.duration,
           width: asset.width ?? existing?.width,
           height: asset.height ?? existing?.height,
+          videoCodec: asset.videoCodec ?? existing?.videoCodec,
+          audioCodec: asset.audioCodec ?? existing?.audioCodec,
+          mediaProbeStatus: asset.mediaProbeStatus ?? existing?.mediaProbeStatus,
           thumbnailBlobKey: asset.thumbnailBlobKey ?? existing?.thumbnailBlobKey,
           thumbnailStatus:
             asset.thumbnailStatus === 'idle' && existing?.thumbnailStatus === 'ready'
@@ -115,6 +126,7 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
     }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setFolderFilter: (folderFilter) => set({ folderFilter }),
+  setDurationFilter: (durationFilter) => set({ durationFilter }),
   setActivePreviewId: (activePreviewId) => set({ activePreviewId }),
 }))
 

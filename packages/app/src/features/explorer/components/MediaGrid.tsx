@@ -9,6 +9,7 @@ import { matchesMediaFilters } from '../services/mediaFilters'
 import { sortMediaAssets } from '../services/sortMediaAssets'
 import { buildTagUsageCounts } from '../../annotations/services/tagCatalog'
 import { usePlaybackStore } from '../../playback/store/playbackStore'
+import { getDurationBounds } from '../../media/model/durationRange'
 
 const EMPTY_PLAYBACK_RECORDS = {}
 
@@ -23,6 +24,7 @@ export function MediaGrid() {
   const orderedIds = useMediaStore((state) => state.orderedIds)
   const searchQuery = useMediaStore((state) => state.searchQuery)
   const folderFilter = useMediaStore((state) => state.folderFilter)
+  const durationFilter = useMediaStore((state) => state.durationFilter)
   const sortOrder = useSettingsStore((state) => state.defaultSortOrder)
   const tileDensity = useSettingsStore((state) => state.tileDensity)
   const annotationsByMediaId = useAnnotationStore(
@@ -64,6 +66,10 @@ export function MediaGrid() {
       ).sort((left, right) => left.localeCompare(right)),
     [assetsById, orderedIds],
   )
+  const durationBounds = useMemo(
+    () => getDurationBounds(orderedIds.map((id) => assetsById[id]?.duration)),
+    [assetsById, orderedIds],
+  )
 
   const visibleAssets = useMemo(() => {
     const assets = orderedIds.flatMap((id) => {
@@ -73,6 +79,7 @@ export function MediaGrid() {
       return matchesMediaFilters(asset, annotation, {
         searchQuery,
         folderFilter,
+        durationFilter,
         favoritesOnly,
         untaggedOnly,
         selectedTagIds,
@@ -88,6 +95,7 @@ export function MediaGrid() {
     favoritesOnly,
     untaggedOnly,
     folderFilter,
+    durationFilter,
     orderedIds,
     playbackByMediaId,
     searchQuery,
@@ -104,6 +112,7 @@ export function MediaGrid() {
         availableFolders={availableFolders}
         favoriteCount={filterCounts.favoriteCount}
         untaggedCount={filterCounts.untaggedCount}
+        durationBounds={durationBounds}
         tagCounts={filterCounts.tagCounts}
         folderCounts={filterCounts.folderCounts}
       />

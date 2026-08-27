@@ -35,7 +35,10 @@ const collection: SmartCollection = {
       kind: 'group',
       operator: 'and',
       negated: false,
-      children: [{ id: 'rule', kind: 'tag', tagId: 'holiday', negated: false }],
+      children: [
+        { id: 'rule', kind: 'tag', tagId: 'holiday', negated: false },
+        { id: 'duration-rule', kind: 'duration', range: { mode: 'known', minimumSeconds: 300, maximumSeconds: 900 } },
+      ],
     },
   },
 }
@@ -74,6 +77,7 @@ describe('library metadata transfer', () => {
     expect(merged.annotations.annotationsByMediaId['new-library/Trips/clip.mp4']?.favorite).toBe(true)
     expect(merged.playback.recordsByMediaId['new-library/Trips/clip.mp4']?.positionSeconds).toBe(12)
     expect(merged.collectionsById['collection-holiday']?.rules.root.children[0]).toMatchObject({ kind: 'tag', tagId: 'holiday' })
+    expect(merged.collectionsById['collection-holiday']?.rules.root.children[1]).toMatchObject({ kind: 'duration', range: { mode: 'known', minimumSeconds: 300, maximumSeconds: 900 } })
     expect(merged.favoriteTagIds).toEqual(['holiday'])
   })
 
