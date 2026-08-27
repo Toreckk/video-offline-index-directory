@@ -1,7 +1,7 @@
 # Windows Desktop v0.3.0 Plan
 
 - Release: v0.3.0
-- Status: In development
+- Status: Ready for review
 - Release branch: `release/v0.3.0`
 - Supported desktop platform: Windows 10 and Windows 11, x86-64
 
@@ -84,7 +84,8 @@ The release must improve duplicate decisions without turning a probable match in
 - Done: exact complete-hash and probable evidence groups are visibly separated, with natural duplicate-name ordering and codec/dimension/duration evidence.
 - Done: explicit desktop-only Recycle Bin cleanup for selected exact copies, including trusted-root validation, immediate hash revalidation, keeper protection, metadata transfer, catalog reconciliation, and partial-failure reporting.
 - Done: Windows signing, updater-key custody, rollback, and compromised-key architecture documented in `docs/UPDATE_SIGNING_ARCHITECTURE.md`; v0.3 remains unsigned and manual-download only.
-- Next: complete full automated gates, 5,000-video regression evidence, installer builds, and the destructive manual QA checklist on disposable media.
+- Done: all shared/web/native gates pass, including 5,000-video regressions; current-commit NSIS and MSI installers build successfully.
+- Done: manual duration, duplicate cleanup/recovery, probe fallback, and installer smoke QA approved on 2026-08-27.
 
 ## Acceptance gates
 
@@ -103,6 +104,7 @@ The release must improve duplicate decisions without turning a probable match in
 
 ## Future release placement
 
+- v0.3.1 is the recommended home for small post-release polish: make Library Source access wording capability-aware now that desktop can perform explicitly approved Recycle Bin operations, and replace duration input steppers with subtle one-click library-min/library-max reset buttons while preserving manual entry and the slider.
 - v0.4.0 is the recommended home for an offline viewing-statistics workspace, after v0.3 stabilizes duration, technical metadata, duplicate evidence, and cleanup semantics.
 - Use `Insights` or `Stats` as the user-facing label. The recommended first layout is a `Collections | Insights` tab pair with whole-library/collection scope and Overview, Watch activity, Tags, Collections, and Library composition views.
 - Historical charts require timestamped playback events or durable daily aggregates; current last-played and play-count fields are insufficient for accurate trends.

@@ -17,6 +17,13 @@ Recommended controls:
 
 This belongs in v0.3.0 because native media enrichment is intended to make duration coverage reliable, duplicate intelligence already consumes duration, and the shared predicate can serve both Explorer and collections without duplicating UI logic.
 
+## v0.3.1 candidate — Source and duration-control polish
+
+- Replace the Library Source message `Persistent read-only access · including subfolders` with capability-aware wording. The browser remains non-destructive, while desktop now supports narrowly scoped, explicitly confirmed Recycle Bin operations and may gain other native actions later; the status text must not make an inaccurate blanket claim.
+- Replace the native numeric input steppers on the duration minimum and maximum fields with subtle in-field reset buttons. The minimum button jumps to the shortest measured library duration and the maximum button jumps to the longest. Keep them visually quiet until hover/focus, preserve direct numeric entry and the dual-handle slider, and provide explicit accessible labels.
+
+These are compatible interaction/copy improvements and should not delay the QA-approved v0.3.0 release.
+
 ## v0.4.0 — Local viewing insights
 
 Add an offline-only analytics workspace after playback-history semantics and technical metadata are stable. The recommended label is **Insights** or **Stats**, not **States**: “states” suggests workflow status rather than analysis.

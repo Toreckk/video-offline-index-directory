@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-27
+
 ### Added
 
 - An optional shared native-media-probe capability and desktop `ffprobe` adapter for duration, dimensions, video codec, and audio codec metadata.
@@ -60,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Desktop thumbnail generation no longer fails because canvas reads are tainted by native media URLs.
 - Imported legacy annotations and favorites remap to the current native library identity when relative media paths still match.
 
-[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Toreckk/video-offline-index-directory/releases/tag/v0.1.0
