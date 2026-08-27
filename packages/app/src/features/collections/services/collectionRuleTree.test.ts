@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { TagDefinition } from '../../annotations/model/annotationTypes'
 import type { CollectionRuleGroup, CollectionRuleNode } from '../model/collectionTypes'
 import {
   collectGroupOptions,
-  describeCollectionRules,
   groupDirectRules,
   moveRuleToGroup,
 } from './collectionRuleTree'
-
-const tags: TagDefinition[] = ['A', 'B', 'C', 'E', 'G'].map((name) => ({
-  id: name.toLowerCase(),
-  name,
-  color: '#A78BFA',
-  createdAt: 1,
-}))
 
 describe('collectionRuleTree', () => {
   it('wraps selected direct rules in an Any group without disturbing siblings', () => {
@@ -43,14 +34,12 @@ describe('collectionRuleTree', () => {
     expect(moveRuleToGroup(root, 'g', 'missing')).toBe(root)
   })
 
-  it('describes nested collection logic using tag names', () => {
+  it('labels nested groups by their visible position and operator', () => {
     const root = group('root', 'and', [
       group('nested', 'or', [tag('a'), tag('b'), tag('c')]),
       tag('g'),
       tag('e', true),
     ])
-
-    expect(describeCollectionRules(root, tags)).toBe('(has “A” OR has “B” OR has “C”) AND has “G” AND does not have “E”')
     expect(collectGroupOptions(root)).toEqual([
       { value: 'root', label: 'Root group (All)' },
       { value: 'nested', label: 'Group 1 (Any)' },

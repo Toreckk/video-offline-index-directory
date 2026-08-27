@@ -14,7 +14,6 @@ import { DurationRangeEditor } from '../../media/components/DurationRangeEditor'
 import type { DurationBounds } from '../../media/model/durationRange'
 import {
   collectGroupOptions,
-  describeCollectionRules,
   groupDirectRules,
   moveRuleToGroup,
   type CollectionGroupOption,
@@ -35,7 +34,6 @@ export function CollectionRuleEditor({ tags, durationBounds, value, onChange }: 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [groupingOperators, setGroupingOperators] = useState<Record<string, CollectionGroupOperator>>({})
   const groupOptions = useMemo(() => collectGroupOptions(value.root), [value.root])
-  const logicPreview = useMemo(() => describeCollectionRules(value.root, tags), [tags, value.root])
 
   const updateNode = (id: string, update: (node: CollectionRuleNode) => CollectionRuleNode) => {
     onChange({ root: mapNode(value.root, id, update) as CollectionRuleGroup })
@@ -64,10 +62,6 @@ export function CollectionRuleEditor({ tags, durationBounds, value, onChange }: 
       <p className="mb-4 max-w-3xl text-sm leading-6 text-on-secondary">
         Build the filter as a sentence. Groups can match all or any rules; individual rules and whole nested groups can be excluded.
       </p>
-      <div className="mb-4 border border-primary/25 bg-primary/5 px-4 py-3" aria-live="polite">
-        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-primary-fixed-dim">Logic preview</span>
-        <p className="mt-1 text-sm leading-6 text-white">{logicPreview}</p>
-      </div>
       <RuleGroupEditor
         group={value.root}
         tags={tags}
@@ -158,7 +152,7 @@ function RuleRow({ node, tags, durationBounds, parentGroupId, selected, groupOpt
 }) {
   return (
     <div className={`flex flex-wrap items-end gap-2 border bg-surface-container p-3 ${selected ? 'border-primary/50' : 'border-white/8'}`}>
-      <label className="mb-2.5 flex h-8 w-8 cursor-pointer items-center justify-center" title="Select this rule for bulk grouping">
+      <label className="flex h-11 w-8 cursor-pointer items-center justify-center" title="Select this rule for bulk grouping">
         <input type="checkbox" checked={selected} onChange={() => onToggleSelected(node.id)} aria-label={`Select ${node.kind} rule`} className="h-4 w-4 accent-primary" />
       </label>
       <span className="mb-3 w-20 text-xs font-black uppercase tracking-wider text-on-secondary">{node.kind === 'tag' ? 'Tag' : node.kind === 'watched' ? 'Status' : 'Duration'}</span>

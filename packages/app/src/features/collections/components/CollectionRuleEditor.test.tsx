@@ -21,13 +21,13 @@ describe('CollectionRuleEditor', () => {
     render(<Harness />)
 
     expect(screen.getByRole('button', { name: 'Add nested group' })).toBeInTheDocument()
-    expect(screen.getByText('has “A” AND has “B” AND has “C” AND does not have “E”')).toBeInTheDocument()
+    expect(screen.queryByText('Logic preview')).not.toBeInTheDocument()
 
     screen.getAllByRole('checkbox', { name: 'Select tag rule' }).slice(0, 3).forEach((checkbox) => fireEvent.click(checkbox))
     fireEvent.click(screen.getByRole('button', { name: 'Group selected rules' }))
 
-    expect(screen.getByText('(has “A” OR has “B” OR has “C”) AND does not have “E”')).toBeInTheDocument()
     expect(screen.getByText('Nested group matching')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Group match operator' })[1]).toHaveTextContent('Any rule')
   })
 })
 

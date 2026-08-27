@@ -1,5 +1,3 @@
-import type { TagDefinition } from '../../annotations/model/annotationTypes'
-import { describeDurationRange } from '../../media/model/durationRange'
 import type {
   CollectionGroupOperator,
   CollectionRuleGroup,
@@ -69,25 +67,6 @@ export function collectGroupOptions(root: CollectionRuleGroup): CollectionGroupO
   }
   visit(root, [])
   return options
-}
-
-export function describeCollectionRules(root: CollectionRuleGroup, tags: readonly TagDefinition[]) {
-  const tagNames = new Map(tags.map((tag) => [tag.id, tag.name]))
-  return describeNode(root, tagNames, true)
-}
-
-function describeNode(node: CollectionRuleNode, tagNames: ReadonlyMap<string, string>, isRoot = false): string {
-  if (node.kind === 'tag') {
-    const name = tagNames.get(node.tagId) ?? 'Missing tag'
-    return node.negated ? `does not have “${name}”` : `has “${name}”`
-  }
-  if (node.kind === 'watched') return node.value === 'watched' ? 'is watched' : 'is unwatched'
-  if (node.kind === 'duration') return `duration is ${describeDurationRange(node.range)}`
-  if (node.children.length === 0) return node.negated ? 'no videos' : 'all videos'
-  const separator = node.operator === 'and' ? ' AND ' : ' OR '
-  const expression = node.children.map((child) => describeNode(child, tagNames)).join(separator)
-  const grouped = isRoot && !node.negated ? expression : `(${expression})`
-  return node.negated ? `NOT ${grouped}` : grouped
 }
 
 function mapGroup(group: CollectionRuleGroup, update: (group: CollectionRuleGroup) => CollectionRuleGroup): CollectionRuleGroup {

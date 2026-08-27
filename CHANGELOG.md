@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Added
 
-- Smart-collection logic previews, multi-select bulk grouping, and explicit movement of individual rules between existing groups.
+- Smart-collection multi-select bulk grouping and explicit movement of individual rules between existing groups.
 
 ### Changed
 

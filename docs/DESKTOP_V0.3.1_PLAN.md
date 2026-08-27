@@ -9,7 +9,6 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 ### Smart-collection editing
 
 - Separate `Add nested group` from ordinary rule creation with a prominent full-width action and stronger nested-group hierarchy.
-- Show a live human-readable expression for the current rules.
 - Allow two or more direct rules in one group to be selected and wrapped into a new All/Any nested group without recreating them.
 - Allow an individual non-group rule to move to another existing group through an explicit keyboard-accessible control.
 - Preserve the existing persisted rule schema and matching semantics.
@@ -34,7 +33,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 ## Sequence and progress
 
 1. Done: create `release/v0.3.1` from the published v0.3.0 merge commit and align release intent.
-2. Done: implement prominent nested-group creation, logic preview, bulk grouping, and individual rule movement.
+2. Done: implement prominent nested-group creation, aligned bulk selection, bulk grouping, and individual rule movement.
 3. Done: implement source-aware access wording and duration Min/Max resets.
 4. Done: complete focused automated tests, full shared/native validation, and release documentation.
 5. In progress: current-commit NSIS/MSI installers build successfully; manual QA remains pending.
@@ -45,7 +44,6 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 - Existing collection rule data loads without migration and produces unchanged results.
 - Bulk grouping preserves selected rule order, leaves unselected siblings in place, and introduces no duplicates or losses.
 - Moving an individual rule changes only its parent group and persists after save/relaunch.
-- Logic previews reflect tag comparisons, group All/Any operators, group exclusion, watch state, and duration rules.
 - Duration reset controls use library-derived bounds and remain accessible by keyboard and screen-reader label.
 - Browser/session/desktop source wording accurately describes the active capability without implying all desktop operations are read-only.
 - Shared tests, lint, web/desktop UI builds, Rust gates, version verification, and 5,000-video regressions pass.
@@ -59,7 +57,7 @@ The draft proposal targets `master`. Its merge changes `release-manifest.json` o
 
 - `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 47 test files and 166 tests are green.
 - Rust formatting, Clippy with warnings denied, and native tests pass; 16 tests pass and the opt-in media corpus benchmark remains intentionally ignored.
-- Local browser interaction confirms nested-group hierarchy, bulk selection/grouping, move controls, and logic preview with no console warnings.
+- Local browser interaction confirms nested-group hierarchy, aligned bulk selection/grouping, and move controls with no console warnings.
 - Current-commit Windows installers build with normal WiX ICE validation:
-  - NSIS: 2,985,118 bytes; SHA-256 `da73188a43d7c9e57e8e201f46e119fe57b37b5e6d406d096bc07522525f13ce`.
-  - MSI: 5,230,592 bytes; SHA-256 `fdd463c0ad5803b8d9b104141a136412dea40984e6ad0d3eb97cbe520db018d3`.
+  - NSIS: 2,981,408 bytes; SHA-256 `9d46e2f71453b3e27646f5ea169bc4ca96e149368f63cbc890374875da36faff`.
+  - MSI: 5,230,592 bytes; SHA-256 `ae2c7cdb1e48127d85c8cec9503406583279b7fc99da762f05c44fe16e711f8f`.
