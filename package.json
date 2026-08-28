@@ -1,7 +1,7 @@
 {
   "name": "void-workspace",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "test": "tsc -p tsconfig.test.json && vitest run",
     "bench:v0.2": "vitest bench benchmarks/v0.2.bench.ts benchmarks/v0.2-render.bench.tsx --run --no-file-parallelism",
+    "bench:v0.3.2": "vitest bench benchmarks/v0.3.2-thumbnail-navigation.bench.tsx --run --no-file-parallelism",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 [package]
 name = "void-desktop"
-version = "0.3.1"
-description = "V.O.I.D. — Video Offline Index Directory"
+version = "0.3.2"
+description = "VOID — Video Offline Index Directory"
 authors = ["VOID contributors"]
 edition = "2024"
 rust-version = "1.85"

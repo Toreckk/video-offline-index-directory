@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "V.O.I.D.",
-  "version": "0.3.1",
+  "productName": "VOID",
+  "version": "0.3.2",
   "identifier": "com.toreckk.void",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "V.O.I.D.",
+        "title": "VOID",
         "width": 1440,
         "height": 900,
         "minWidth": 1024,

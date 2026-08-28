@@ -143,15 +143,26 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 
 ## Windows installer smoke test
 
-- On a clean Windows 10 or Windows 11 x64 account, install the NSIS `.exe`, launch V.O.I.D., select a disposable library, and complete one scan and playback check.
+- On a clean Windows 10 or Windows 11 x64 account, install the NSIS `.exe`, launch VOID, select a disposable library, and complete one scan and playback check.
 - Uninstall the NSIS build and confirm the application entry and installed program files are removed without touching the selected video library.
 - Repeat install, launch, scan, playback, and uninstall with the MSI package.
 - Confirm both installed applications report the release version from `release-manifest.json` and Windows identifies them as unsigned rather than as a trusted publisher.
 - Hash both downloaded installers and confirm they match `SHA256SUMS.txt` from the GitHub Release.
 
+## Desktop v0.3.2 thumbnail reuse and VOID naming
+
+- Load Explorer until representative thumbnails are visible, open a large smart collection containing the same videos, then return to Explorer. Confirm already-seen thumbnails paint promptly without a second loading wave, UI freeze, or object-URL warnings.
+- Open collections with roughly 2,500 and 5,000 matches. Scroll rapidly from beginning to end, confirm tiles continue filling, and open several videos to verify the playback queue still covers the complete collection in displayed order.
+- While a large collection is open, edit and save its rules. Confirm the grid repositions correctly below the editor, matching results remain accurate, and scrolling stays responsive.
+- Clear the local thumbnail cache in Settings, return to Explorer and Collections, and confirm thumbnails regenerate normally without broken retained images or stale previews.
+- Let the quick thumbnail pass complete and wait for black-frame refinement. Confirm an updated thumbnail appears when remounted and no old object URL is revoked while still visible.
+- Confirm the browser tab, themed and native desktop title bars, Windows application entry, installer UI, and About/system metadata use `VOID` without dotted spelling.
+- Install v0.3.2 over a populated v0.3.1 installation. Confirm there is one Windows application entry named `VOID`, and settings, the selected library, catalog, tags, favorites, collections, playback data, and cached thumbnails remain available.
+- Complete the standard Windows installer smoke test above with the current-commit `VOID` NSIS and MSI packages.
+
 ## Desktop v0.3.1 collection and control polish
 
-- With the themed title bar enabled, launch through `pnpm dev:desktop` and relaunch several times. Confirm the themed V.O.I.D. bar is always present and the native Windows bar never appears above it.
+- With the themed title bar enabled, launch through `pnpm dev:desktop` and relaunch several times. Confirm the themed VOID bar is always present and the native Windows bar never appears above it.
 - Toggle `Use native Windows title bar` on and off rapidly, then relaunch once with each preference. Confirm exactly one title bar appears and its minimize, maximize/restore, close, drag, and double-click controls work.
 - Open a video with the themed title bar enabled, then open and close the docked tagging workspace. Confirm both layouts retain a clear gap below the title bar and all top-right player controls remain unobstructed. Enter true fullscreen and confirm the player uses the complete display.
 - In Library Source, confirm a native library says `Persistent desktop access`, a retained browser handle says `Persistent browser access`, and Firefox/session selection says `Session-only browser access`.

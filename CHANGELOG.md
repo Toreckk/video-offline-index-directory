@@ -1,10 +1,20 @@
 # Changelog
 
-All notable changes to V.O.I.D. are documented in this file.
+All notable changes to VOID are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Release notes remain the place for narrative highlights, downloads, supported systems, and safety notices; this changelog is the concise cross-release history.
 
 ## [Unreleased]
+
+### Changed
+
+- Explorer and Collections now share one bounded, reference-aware thumbnail URL layer, avoiding repeated persistent-cache reads and image decoding when navigating between views.
+- Large smart collections use the same virtualized media grid as Explorer, keeping mounted tiles bounded for multi-thousand-video results.
+- Product naming is standardized as `VOID` across the application, Windows metadata, installers, release automation, documentation, and user-facing copy.
+
+### Fixed
+
+- Clearing or replacing cached thumbnails explicitly invalidates shared in-memory resources without revoking images that are still in use.
 
 ## [0.3.1] - 2026-08-28
 
@@ -20,7 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
-- Desktop title-bar decoration changes now wait for settings hydration, survive development remounts, and run in order, preventing the native Windows frame and themed V.O.I.D. bar from both appearing—or both disappearing.
+- Desktop title-bar decoration changes now wait for settings hydration, survive development remounts, and run in order, preventing the native Windows frame and themed VOID bar from both appearing—or both disappearing.
 - The maximized player and docked tagging workspace now retain their intended breathing room below the themed desktop title bar.
 
 ## [0.3.0] - 2026-08-27
