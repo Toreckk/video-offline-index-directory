@@ -37,6 +37,7 @@ Recommended implementation:
 - Reuse the virtualized media grid for collection results and previews so a collection containing thousands of videos mounts only the visible rows plus a small overscan window.
 - Preserve the existing persistent desktop/browser thumbnail cache as the source of truth; this layer should avoid repeated reads and decoding within a session, not duplicate persisted data.
 - Add navigation benchmarks for Explorer → Collection → Explorer and large collection editing against 2,500- and 5,000-video fixtures, asserting bounded mounted tiles, deduplicated cache reads, and responsive interaction.
+- Preserve same-format Windows upgrade continuity while renaming the displayed product: pin the existing MSI upgrade identity, migrate the legacy NSIS uninstall entry without deleting application data, and make both invariants part of release validation.
 
 This is a compatible performance patch and should precede the larger Insights workspace. It directly targets the current large-library freeze without changing collection matching or thumbnail-generation behavior.
 

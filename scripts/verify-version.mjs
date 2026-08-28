@@ -34,6 +34,42 @@ if (tauriConfig.version !== expected) {
   throw new Error(`tauri.conf.json has version ${tauriConfig.version}; expected ${expected}`)
 }
 
+const legacyMsiUpgradeCode = '71ad7b99-f1e4-5189-90f0-1eb90aa8c545'
+const windowsBundle = tauriConfig.bundle?.windows
+
+if (windowsBundle?.wix?.upgradeCode !== legacyMsiUpgradeCode) {
+  throw new Error(
+    `tauri.conf.json must retain the v0.3.1 MSI upgrade code ${legacyMsiUpgradeCode}`,
+  )
+}
+
+const installerHooksPath = windowsBundle?.nsis?.installerHooks
+if (installerHooksPath !== 'windows/installer-hooks.nsh') {
+  throw new Error('tauri.conf.json must retain the legacy NSIS installer migration hook')
+}
+
+const installerHooks = await readFile(
+  resolve(root, 'apps/desktop/src-tauri', installerHooksPath),
+  'utf8',
+)
+const requiredInstallerHookFragments = [
+  '!macro NSIS_HOOK_PREINSTALL',
+  'V.O.I.D.',
+  'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+  'ExecWait',
+  '/P _?=',
+]
+
+for (const fragment of requiredInstallerHookFragments) {
+  if (!installerHooks.includes(fragment)) {
+    throw new Error(`Legacy NSIS installer migration hook is missing: ${fragment}`)
+  }
+}
+
+if (/ExecWait[^\r\n]*\/UPDATE/.test(installerHooks)) {
+  throw new Error('Legacy NSIS migration must remove old shortcuts instead of using /UPDATE')
+}
+
 const cargoToml = await readFile(resolve(root, 'apps/desktop/src-tauri/Cargo.toml'), 'utf8')
 const cargoVersion = cargoToml.match(/^version\s*=\s*"([^"]+)"/m)?.[1]
 if (cargoVersion !== expected) {

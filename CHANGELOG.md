@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Fixed
 
 - Clearing or replacing cached thumbnails explicitly invalidates shared in-memory resources without revoking images that are still in use.
+- Windows installers preserve the v0.3.1 upgrade identity and migrate the legacy NSIS registration, so installing the same package type replaces the previous dotted-name application instead of creating a second installation.
 
 ## [0.3.1] - 2026-08-28
 

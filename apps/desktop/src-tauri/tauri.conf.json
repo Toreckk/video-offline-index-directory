@@ -42,8 +42,12 @@
     "shortDescription": "Offline-first local video library",
     "longDescription": "Browse, tag, organize, and review a local video library without uploading media.",
     "windows": {
+      "wix": {
+        "upgradeCode": "71ad7b99-f1e4-5189-90f0-1eb90aa8c545"
+      },
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "windows/installer-hooks.nsh"
       }
     }
   }

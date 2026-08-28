@@ -157,7 +157,11 @@ Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefo
 - Clear the local thumbnail cache in Settings, return to Explorer and Collections, and confirm thumbnails regenerate normally without broken retained images or stale previews.
 - Let the quick thumbnail pass complete and wait for black-frame refinement. Confirm an updated thumbnail appears when remounted and no old object URL is revoked while still visible.
 - Confirm the browser tab, themed and native desktop title bars, Windows application entry, installer UI, and About/system metadata use `VOID` without dotted spelling.
-- Install v0.3.2 over a populated v0.3.1 installation. Confirm there is one Windows application entry named `VOID`, and settings, the selected library, catalog, tags, favorites, collections, playback data, and cached thumbnails remain available.
+- Install the v0.3.1 NSIS package, populate settings and library metadata, close the app, then run the v0.3.2 NSIS package. Confirm there is one Windows application entry named `VOID`, no dotted-name shortcut remains, and settings, the selected library, catalog, tags, favorites, collections, playback data, and cached thumbnails remain available.
+- Repeat the populated in-place upgrade from the v0.3.1 MSI to the v0.3.2 MSI. Confirm Windows replaces the earlier entry, reports v0.3.2, and retains the same application data.
+- With the v0.3.1 NSIS-installed app still running, start the v0.3.2 NSIS installer. Confirm it closes the previous app, completes the replacement, and launches v0.3.2 without a second installation entry.
+- On a disposable v0.3.1 NSIS installation, make its registered uninstaller unavailable, then start v0.3.2. Confirm the installer explains that removal failed and stops before creating a partial second installation; restore the uninstaller before cleanup.
+- To switch installer formats, uninstall v0.3.1 without selecting deletion of app data, install v0.3.2 using the other format, and confirm the populated application data is restored. Confirm the release notes do not promise automatic cross-format replacement.
 - Complete the standard Windows installer smoke test above with the current-commit `VOID` NSIS and MSI packages.
 
 ## Desktop v0.3.1 collection and control polish
