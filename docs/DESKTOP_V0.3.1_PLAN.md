@@ -44,7 +44,8 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 3. Done: implement source-aware access wording and duration Min/Max resets.
 4. Done: complete focused automated tests, full shared/native validation, and release documentation.
 5. Done: native/themed title-bar reliability and player spacing are fixed, current-commit NSIS/MSI installers build successfully, and user-led application QA is approved.
-6. In progress: freeze the changelog, confirm exact-head CI and installer smoke tests, then obtain merge approval and publish v0.3.1.
+6. Done: freeze the changelog, confirm exact-head CI, and complete user-approved NSIS/MSI install, launch, and uninstall smoke tests.
+7. Pending: obtain explicit merge approval, merge the proposal, and verify automated v0.3.1 publication.
 
 ## Acceptance gates
 
@@ -67,6 +68,7 @@ The draft proposal targets `master`. Its merge changes `release-manifest.json` o
 - `pnpm verify:version`, `pnpm lint`, `pnpm test`, `pnpm build:web`, and `pnpm build:desktop-ui` pass; 48 test files and 169 tests are green, including Strict Mode remount, hydration, and rapid title-bar preference regression coverage.
 - Rust formatting, Clippy with warnings denied, and native tests pass; 16 tests pass and the opt-in media corpus benchmark remains intentionally ignored.
 - Local browser interaction confirms nested-group hierarchy, aligned bulk selection/grouping, and move controls with no console warnings.
+- User-led application QA and packaged NSIS/MSI install, launch, and uninstall smoke tests pass.
 - Current-commit Windows installers build with normal WiX ICE validation:
   - NSIS: 2,984,236 bytes; SHA-256 `e41828871e50d527fe422cde39eddc6de9945577acbae7d92cd943d8fba8eb01`.
   - MSI: 5,230,592 bytes; SHA-256 `ecddaaeb4d575c77e08210dc20842372db79c10455d75dd210900ddfc6e95f40`.
