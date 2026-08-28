@@ -1,4 +1,4 @@
-# V.O.I.D. Desktop v0.3.1 Plan
+# VOID Desktop v0.3.1 Plan
 
 ## Outcome
 
@@ -54,7 +54,7 @@ Ship a compatible polish release that makes smart-collection Boolean structure e
 - Moving an individual rule changes only its parent group and persists after save/relaunch.
 - Duration reset controls use library-derived bounds and remain accessible by keyboard and screen-reader label.
 - Browser/session/desktop source wording accurately describes the active capability without implying all desktop operations are read-only.
-- Exactly one of the native Windows frame and themed V.O.I.D. title bar remains visible across development remounts, repeated relaunches, and rapid preference changes.
+- Exactly one of the native Windows frame and themed VOID title bar remains visible across development remounts, repeated relaunches, and rapid preference changes.
 - The maximized player and docked tagging workspace preserve visible top padding below the themed title bar, while true fullscreen still uses the complete display.
 - Shared tests, lint, web/desktop UI builds, Rust gates, version verification, and 5,000-video regressions pass.
 - Current-commit NSIS and MSI installers build and pass the standard smoke test.

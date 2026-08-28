@@ -30,7 +30,7 @@ export function DesktopTitleBar({ controller }: DesktopTitleBarProps) {
     <header className="desktop-titlebar" data-tauri-drag-region>
       <div className="desktop-titlebar__identity" data-tauri-drag-region>
         <img className="desktop-titlebar__icon" src="/favicon.svg" alt="" />
-        <span data-tauri-drag-region>V.O.I.D.</span>
+        <span data-tauri-drag-region>VOID</span>
       </div>
       <div className="desktop-titlebar__controls">
         <button className="desktop-titlebar__button" type="button" aria-label="Minimize" title="Minimize" onClick={() => void controller.minimize().catch((error: unknown) => console.error('Unable to minimize the desktop window.', error))}>

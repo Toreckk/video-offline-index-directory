@@ -69,7 +69,7 @@ export function LibraryHealth() {
         </div>
         {probeStatus && <div className={`mt-5 border p-4 text-xs ${probeStatus.available ? 'border-emerald-300/15 bg-emerald-400/5 text-emerald-100' : 'border-white/8 bg-black/10 text-on-secondary'}`}>
           <p className="font-black">Optional native media analysis: {probeStatus.available ? 'available' : 'not installed'}</p>
-          <p className="mt-1 leading-5">{probeStatus.available ? 'Technical metadata is enriched after visible thumbnail work and cached for unchanged files.' : 'V.O.I.D. continues using browser/WebView metadata. No ffprobe binary is bundled in v0.3.'}{probeStatus.detail ? ` ${probeStatus.detail}` : ''}</p>
+          <p className="mt-1 leading-5">{probeStatus.available ? 'Technical metadata is enriched after visible thumbnail work and cached for unchanged files.' : 'VOID continues using browser/WebView metadata. No ffprobe binary is bundled in v0.3.'}{probeStatus.detail ? ` ${probeStatus.detail}` : ''}</p>
         </div>}
         {diagnostics.length === 0 ? (
           <div className="mt-6 flex items-center gap-4 border border-emerald-300/15 bg-emerald-400/5 p-5 text-emerald-200">

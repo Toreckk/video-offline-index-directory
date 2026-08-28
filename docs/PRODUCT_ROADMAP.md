@@ -54,7 +54,7 @@ Suggested views:
 4. **Collections** — size, watched percentage, time spent, completion, recent activity, and comparisons between saved collections.
 5. **Library composition** — duration distribution, formats, codecs, resolutions, storage use, untagged media, duplicate candidates, and media-health coverage.
 
-Before implementation, define whether V.O.I.D. stores a privacy-preserving event ledger or only daily aggregates. Current last-played/play-count data can support totals and recency, but accurate historical trends and heatmaps require timestamped events or durable daily rollups. All analytics remain local and must be included deliberately in backup/export schema decisions.
+Before implementation, define whether VOID stores a privacy-preserving event ledger or only daily aggregates. Current last-played/play-count data can support totals and recency, but accurate historical trends and heatmaps require timestamped events or durable daily rollups. All analytics remain local and must be included deliberately in backup/export schema decisions.
 
 ## v0.5.0 candidate — Trusted updates
 
