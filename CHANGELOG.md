@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-28
+
+### Added
+
+- Smart-collection multi-select bulk grouping and explicit movement of individual rules between existing groups.
+
+### Changed
+
+- Nested-group creation is now a prominent dedicated action with stronger visual hierarchy instead of the last item in the ordinary rule-button row.
+- Duration inputs replace low-value numeric steppers with subtle one-click resets to the shortest and longest measured library durations.
+- Library Source describes browser, session, and desktop access accurately and explains that desktop file actions remain explicit and confirmed.
+
+### Fixed
+
+- Desktop title-bar decoration changes now wait for settings hydration, survive development remounts, and run in order, preventing the native Windows frame and themed V.O.I.D. bar from both appearing—or both disappearing.
+- The maximized player and docked tagging workspace now retain their intended breathing room below the themed desktop title bar.
+
 ## [0.3.0] - 2026-08-27
 
 ### Added
@@ -62,7 +79,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Desktop thumbnail generation no longer fails because canvas reads are tainted by native media URLs.
 - Imported legacy annotations and favorites remap to the current native library identity when relative media paths still match.
 
-[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Toreckk/video-offline-index-directory/releases/tag/v0.1.0

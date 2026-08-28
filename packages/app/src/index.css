@@ -116,6 +116,18 @@ select option {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 65%, transparent);
 }
 
+.void-duration-number {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.void-duration-number::-webkit-inner-spin-button,
+.void-duration-number::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {

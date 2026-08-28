@@ -44,8 +44,8 @@ export function DurationRangeEditor({ value, bounds, onChange, idPrefix = 'durat
             <input aria-label="Maximum duration" type="range" min={bounds.minimumSeconds} max={bounds.maximumSeconds} step="1" value={selectedMaximum} onChange={(event) => setKnownRange(selectedMinimum, Math.max(Number(event.target.value), selectedMinimum))} className="void-duration-range absolute inset-0 z-30 w-full" />
           </div>
           <div className="mt-2 grid grid-cols-2 gap-3">
-            <DurationNumberField id={`${idPrefix}-minimum`} label="Minimum minutes" value={selectedMinimum} bounds={bounds} onChange={(seconds) => setKnownRange(Math.min(seconds, selectedMaximum), selectedMaximum)} />
-            <DurationNumberField id={`${idPrefix}-maximum`} label="Maximum minutes" value={selectedMaximum} bounds={bounds} onChange={(seconds) => setKnownRange(selectedMinimum, Math.max(seconds, selectedMinimum))} />
+            <DurationNumberField id={`${idPrefix}-minimum`} label="Minimum minutes" value={selectedMinimum} bounds={bounds} resetLabel="Min" resetValue={bounds.minimumSeconds} onChange={(seconds) => setKnownRange(Math.min(seconds, selectedMaximum), selectedMaximum)} />
+            <DurationNumberField id={`${idPrefix}-maximum`} label="Maximum minutes" value={selectedMaximum} bounds={bounds} resetLabel="Max" resetValue={bounds.maximumSeconds} onChange={(seconds) => setKnownRange(selectedMinimum, Math.max(seconds, selectedMinimum))} />
           </div>
           <p className="mt-2 text-[10px] text-on-secondary">Library range: {formatDuration(bounds.minimumSeconds)} to {formatDuration(bounds.maximumSeconds)}. Both selected limits are included.</p>
         </div>
@@ -54,20 +54,27 @@ export function DurationRangeEditor({ value, bounds, onChange, idPrefix = 'durat
   )
 }
 
-function DurationNumberField({ id, label, value, bounds, onChange }: {
+function DurationNumberField({ id, label, value, bounds, resetLabel, resetValue, onChange }: {
   id: string
   label: string
   value: number
   bounds: DurationBounds
+  resetLabel: 'Min' | 'Max'
+  resetValue: number
   onChange: (seconds: number) => void
 }) {
   return (
     <label htmlFor={id} className="text-[10px] font-black uppercase tracking-wider text-on-secondary">
       {label}
-      <input id={id} type="number" min={toMinutes(bounds.minimumSeconds)} max={toMinutes(bounds.maximumSeconds)} step="0.1" value={toMinutes(value)} onChange={(event) => {
-        const minutes = Number(event.target.value)
-        if (Number.isFinite(minutes)) onChange(clamp(minutes * 60, bounds))
-      }} className="mt-1 h-10 w-full border border-white/10 bg-surface-dim px-3 text-sm text-white outline-none focus:border-primary/60" />
+      <span className="relative mt-1 block">
+        <input id={id} type="number" min={toMinutes(bounds.minimumSeconds)} max={toMinutes(bounds.maximumSeconds)} step="0.1" value={toMinutes(value)} onChange={(event) => {
+          const minutes = Number(event.target.value)
+          if (Number.isFinite(minutes)) onChange(clamp(minutes * 60, bounds))
+        }} className="void-duration-number h-10 w-full border border-white/10 bg-surface-dim px-3 pr-14 text-sm text-white outline-none focus:border-primary/60" />
+        <button type="button" onClick={() => onChange(resetValue)} aria-label={`Reset ${label.toLowerCase()} to library ${resetLabel.toLowerCase()}`} className="absolute bottom-1 right-1 top-1 min-w-10 border border-white/5 bg-white/3 px-2 text-[10px] font-black normal-case tracking-normal text-on-secondary/45 transition hover:border-white/15 hover:bg-white/8 hover:text-white focus-visible:text-white">
+          {resetLabel}
+        </button>
+      </span>
     </label>
   )
 }

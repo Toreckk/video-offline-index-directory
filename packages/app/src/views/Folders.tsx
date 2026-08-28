@@ -98,10 +98,13 @@ export default function Folders() {
                   <h3 className="mt-2 text-2xl font-black">{directoryName}</h3>
                   <p className="mt-2 text-sm text-on-secondary">
                     {sourceKind === 'session-files'
-                      ? 'Session folder access'
-                      : 'Persistent read-only access'}{' '}
+                      ? 'Session-only browser access'
+                      : sourceKind === 'native-directory'
+                        ? 'Persistent desktop access'
+                        : 'Persistent browser access'}{' '}
                     · {scanSubfolders ? 'including' : 'excluding'} subfolders
                   </p>
+                  {sourceKind === 'native-directory' && <p className="mt-1 text-xs text-on-secondary">Desktop file actions remain explicit and require confirmation.</p>}
                 </div>
                 <span
                   className={`border px-3 py-1 text-xs font-black uppercase tracking-wider ${

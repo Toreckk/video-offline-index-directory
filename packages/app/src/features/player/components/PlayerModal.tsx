@@ -106,7 +106,7 @@ export function PlayerModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-2 backdrop-blur-md"
+      className="void-player-modal fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-2 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label={`Playing ${asset.name}`}

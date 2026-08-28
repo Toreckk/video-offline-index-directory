@@ -5,8 +5,9 @@
 }
 
 .desktop-shell--themed {
+  --void-desktop-titlebar-height: 32px;
   display: grid;
-  grid-template-rows: 32px minmax(0, 1fr);
+  grid-template-rows: var(--void-desktop-titlebar-height) minmax(0, 1fr);
 }
 
 .desktop-shell__content {
@@ -19,7 +20,7 @@
   position: relative;
   z-index: 10000;
   display: flex;
-  height: 32px;
+  height: var(--void-desktop-titlebar-height, 32px);
   align-items: stretch;
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
@@ -27,6 +28,10 @@
   color: #aeb4bd;
   font: 500 12px/1 "Inter", "Segoe UI", sans-serif;
   user-select: none;
+}
+
+.desktop-shell--themed .void-player-modal {
+  top: var(--void-desktop-titlebar-height);
 }
 
 .desktop-titlebar__identity {
