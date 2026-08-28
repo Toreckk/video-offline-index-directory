@@ -1,5 +1,9 @@
 import { del, get, keys, set } from 'idb-keyval'
 import { getVoidPlatform } from '@void/core'
+import {
+  clearThumbnailResourceCache,
+  invalidateThumbnailResource,
+} from './thumbnailResourceCache'
 
 const THUMBNAIL_KEY_PREFIX = 'void-thumbnail:'
 const THUMBNAIL_CACHE_VERSION = 'v2'
@@ -34,15 +38,19 @@ export async function cacheThumbnail(key: string, blob: Blob) {
   const platform = getVoidPlatform()
   if (platform.kind === 'desktop' && platform.writeThumbnail) {
     await platform.writeThumbnail(key, new Uint8Array(await blob.arrayBuffer()))
+    invalidateThumbnailResource(key)
     return
   }
   await set(key, blob)
+  invalidateThumbnailResource(key)
 }
 
 export async function clearThumbnailCache() {
   const platform = getVoidPlatform()
   if (platform.kind === 'desktop' && platform.clearThumbnailCache) {
-    return platform.clearThumbnailCache()
+    const removedCount = await platform.clearThumbnailCache()
+    clearThumbnailResourceCache()
+    return removedCount
   }
   const databaseKeys = await keys()
   const thumbnailKeys = databaseKeys.filter(
@@ -51,5 +59,6 @@ export async function clearThumbnailCache() {
   )
 
   await Promise.all(thumbnailKeys.map((key) => del(key)))
+  clearThumbnailResourceCache()
   return thumbnailKeys.length
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCachedThumbnail } from '../../media/services/thumbnailCache'
+import { acquireThumbnailResource } from '../../media/services/thumbnailResourceCache'
 
 export function useThumbnailUrl(
   thumbnailBlobKey: string | undefined,
@@ -14,16 +15,15 @@ export function useThumbnailUrl(
     if (!thumbnailBlobKey || thumbnailStatus !== 'ready') return
 
     let active = true
-    let objectUrl: string | null = null
-    void getCachedThumbnail(thumbnailBlobKey).then((blob) => {
-      if (!active || !blob) return
-      objectUrl = URL.createObjectURL(blob)
-      setThumbnailResource({ key: thumbnailBlobKey, url: objectUrl })
+    const lease = acquireThumbnailResource(thumbnailBlobKey, getCachedThumbnail)
+    void lease.url.then((url) => {
+      if (!active || !url) return
+      setThumbnailResource({ key: thumbnailBlobKey, url })
     })
 
     return () => {
       active = false
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      lease.release()
     }
   }, [thumbnailBlobKey, thumbnailStatus])
 
