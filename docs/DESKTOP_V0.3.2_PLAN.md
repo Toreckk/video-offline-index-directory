@@ -49,7 +49,7 @@ Ship a compatible performance patch that reuses already-loaded thumbnails across
 4. Done: normalize current product naming and release output to `VOID`.
 5. Done: preserve v0.3.1 MSI and NSIS installer continuity across the product rename and add automated release invariants.
 6. Done: repeat full automated validation, performance evidence, and current-commit Windows packaging with the migration enabled.
-7. Pending: complete manual application and installer QA, freeze release notes/changelog, and obtain explicit merge approval.
+7. In progress: application and NSIS upgrade QA pass; freeze release notes/changelog, complete the remaining MSI installer smoke test, and obtain explicit merge approval.
 8. Pending: merge the proposal and verify automated v0.3.2 publication.
 
 ## Acceptance gates
