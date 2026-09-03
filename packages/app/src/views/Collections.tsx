@@ -8,7 +8,7 @@ import { useAnnotationStore } from '../features/annotations/store/annotationStor
 import { useMediaStore } from '../features/media/store/mediaStore'
 import { usePlaybackStore } from '../features/playback/store/playbackStore'
 import { matchesCollectionRules } from '../features/collections/services/collectionMatcher'
-import { MediaTile } from '../features/explorer/components/MediaTile'
+import { VirtualizedMediaTiles } from '../features/explorer/components/VirtualizedMediaTiles'
 import { getDurationBounds, type DurationBounds } from '../features/media/model/durationRange'
 
 export default function Collections() {
@@ -77,7 +77,7 @@ export default function Collections() {
       </header>
       {isEditing && <CollectionEditor name={name} rules={rules} tags={tags} durationBounds={durationBounds} error={error} isUpdate onNameChange={(value) => { setName(value); setError(null) }} onRulesChange={setRules} onSave={save} />}
       <section className="mt-7">
-        {matchingAssets.length === 0 ? <div className="border border-dashed border-white/10 py-20 text-center text-on-secondary">No videos currently match this collection.</div> : <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-px">{matchingAssets.map((asset, index) => <MediaTile key={asset.id} asset={asset} priorityIndex={index} queueIds={queueIds} />)}</div>}
+        {matchingAssets.length === 0 ? <div className="border border-dashed border-white/10 py-20 text-center text-on-secondary">No videos currently match this collection.</div> : <VirtualizedMediaTiles assets={matchingAssets} queueIds={queueIds} minimumTileWidth={240} layoutKey={isEditing} />}
       </section>
     </div>
   }

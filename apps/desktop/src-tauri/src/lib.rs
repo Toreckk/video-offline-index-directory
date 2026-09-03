@@ -44,5 +44,5 @@ pub fn run() {
             media_probe::probe_media,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running V.O.I.D.");
+        .expect("error while running VOID");
 }

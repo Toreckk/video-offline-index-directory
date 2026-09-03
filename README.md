@@ -1,6 +1,6 @@
-# V.O.I.D.
+# VOID
 
-V.O.I.D. (Video Offline Index Directory) is an offline-first local video organizer. It provides Explorer, collections, tagging, playback queues, library health tools, and non-destructive duplicate review as both a browser application and a native Windows desktop application.
+VOID (Video Offline Index Directory) is an offline-first local video organizer. It provides Explorer, collections, tagging, playback queues, library health tools, and non-destructive duplicate review as both a browser application and a native Windows desktop application.
 
 The desktop edition is not a thin web wrapper: it adds native scanning, a persistent SQLite catalog, a disk-backed thumbnail cache, direct local-media delivery, Windows Explorer integration, and streaming file hashes. The product UI and domain behavior are shared between editions through ports and adapters.
 

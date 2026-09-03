@@ -37,6 +37,7 @@ Recommended implementation:
 - Reuse the virtualized media grid for collection results and previews so a collection containing thousands of videos mounts only the visible rows plus a small overscan window.
 - Preserve the existing persistent desktop/browser thumbnail cache as the source of truth; this layer should avoid repeated reads and decoding within a session, not duplicate persisted data.
 - Add navigation benchmarks for Explorer → Collection → Explorer and large collection editing against 2,500- and 5,000-video fixtures, asserting bounded mounted tiles, deduplicated cache reads, and responsive interaction.
+- Preserve same-format Windows upgrade continuity while renaming the displayed product: pin the existing MSI upgrade identity, migrate the legacy NSIS uninstall entry without deleting application data, and make both invariants part of release validation.
 
 This is a compatible performance patch and should precede the larger Insights workspace. It directly targets the current large-library freeze without changing collection matching or thumbnail-generation behavior.
 
@@ -54,7 +55,7 @@ Suggested views:
 4. **Collections** — size, watched percentage, time spent, completion, recent activity, and comparisons between saved collections.
 5. **Library composition** — duration distribution, formats, codecs, resolutions, storage use, untagged media, duplicate candidates, and media-health coverage.
 
-Before implementation, define whether V.O.I.D. stores a privacy-preserving event ledger or only daily aggregates. Current last-played/play-count data can support totals and recency, but accurate historical trends and heatmaps require timestamped events or durable daily rollups. All analytics remain local and must be included deliberately in backup/export schema decisions.
+Before implementation, define whether VOID stores a privacy-preserving event ledger or only daily aggregates. Current last-played/play-count data can support totals and recency, but accurate historical trends and heatmaps require timestamped events or durable daily rollups. All analytics remain local and must be included deliberately in backup/export schema decisions.
 
 ## v0.5.0 candidate — Trusted updates
 

@@ -261,7 +261,7 @@ function DuplicateGroup({ group, onAssetsRemoved, onCleanupReport }: {
       </div>
       {isConfirmingCleanup && <div className="w-full border border-red-300/20 bg-red-500/5 p-4">
         <p className="flex items-center gap-2 text-sm font-black text-red-100"><AlertTriangle size={17} />Move {removalIds.length} selected file{removalIds.length === 1 ? '' : 's'} to the Recycle Bin?</p>
-        <p className="mt-2 text-xs leading-5 text-on-secondary">V.O.I.D. will merge their supported metadata into <strong className="text-white">{keeper?.name}</strong>, then re-hash every selected file. Changed files are skipped and the keeper always remains.</p>
+        <p className="mt-2 text-xs leading-5 text-on-secondary">VOID will merge their supported metadata into <strong className="text-white">{keeper?.name}</strong>, then re-hash every selected file. Changed files are skipped and the keeper always remains.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" onClick={() => void cleanupDuplicates()} disabled={isCleaning} className="flex items-center gap-2 bg-red-500 px-4 py-2.5 text-xs font-black disabled:opacity-50">{isCleaning ? <LoaderCircle size={15} className="animate-spin" /> : <Trash2 size={15} />}Confirm Recycle Bin move</button>
           <button type="button" onClick={() => setIsConfirmingCleanup(false)} disabled={isCleaning} className="border border-white/10 px-4 py-2.5 text-xs font-black text-on-secondary hover:text-white">Cancel</button>

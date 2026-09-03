@@ -86,7 +86,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if ($env:VOID_RELEASE_EXISTS -ne 'true') {
-            gh release create $env:VOID_RELEASE_TAG --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "V.O.I.D. $env:VOID_RELEASE_TAG" --notes-file $env:VOID_RELEASE_NOTES --draft
+            gh release create $env:VOID_RELEASE_TAG --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "VOID $env:VOID_RELEASE_TAG" --notes-file $env:VOID_RELEASE_NOTES --draft
             if ($LASTEXITCODE -ne 0) { throw "Failed to create the draft release" }
           }
           Get-ChildItem release-assets -File | ForEach-Object {

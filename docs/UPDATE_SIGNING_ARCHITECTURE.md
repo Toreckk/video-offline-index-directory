@@ -1,8 +1,8 @@
 # Windows Signing and Update Trust Architecture
 
-## Current v0.3.0 position
+## Current v0.3.2 position
 
-V.O.I.D. v0.3.0 produces unsigned Windows x86-64 NSIS and MSI installers. It does not include an automatic updater. SHA-256 checksums published with each GitHub Release provide download-integrity evidence, but they are not publisher identity and do not suppress Windows SmartScreen warnings.
+VOID v0.3.2 produces unsigned Windows x86-64 NSIS and MSI installers. It does not include an automatic updater. SHA-256 checksums published with each GitHub Release provide download-integrity evidence, but they are not publisher identity and do not suppress Windows SmartScreen warnings.
 
 This is an explicit release limitation, not an implicit trust claim. The current publication workflow builds installers from the merged release commit and publishes only after tests, lint, Rust checks, and both installer builds succeed.
 
@@ -13,7 +13,16 @@ Windows Authenticode and Tauri updater signatures solve different problems:
 - **Authenticode** signs executables and installers with a certificate tied to a publisher. Tauri's [Windows signing guidance](https://v2.tauri.app/distribute/sign/windows/) describes it as the mechanism that establishes publisher identity and improves the Windows/SmartScreen experience.
 - **Tauri updater signing** proves that an update artifact was authorized by the app publisher. Tauri's [updater documentation](https://v2.tauri.app/plugin/updater/) requires these signatures and does not permit disabling their verification.
 
-Enabling one does not replace the other. V.O.I.D. should not advertise trusted automatic updates until both the updater key lifecycle and the Windows signing path are operational.
+Enabling one does not replace the other. VOID should not advertise trusted automatic updates until both the updater key lifecycle and the Windows signing path are operational.
+
+## Manual installer continuity
+
+- Same-format updates are supported: NSIS replaces the earlier NSIS installation, and MSI replaces the earlier MSI installation.
+- The MSI package pins the upgrade code first published under the legacy dotted product name. Product display-name changes must never regenerate this identity.
+- The NSIS package has a one-time pre-install migration for the legacy uninstall registration. It invokes the prior uninstaller passively without its delete-app-data option, removes the legacy shortcuts, and stops the new install if removal fails.
+- The application identifier and local data locations remain stable, so a successful same-format replacement retains settings, library metadata, annotations, collections, playback state, and cached thumbnails.
+- NSIS and MSI are separate Windows installer technologies. Switching formats requires uninstalling the current package without choosing deletion of app data, then installing the other format; it is not an in-place update path.
+- Version verification treats the MSI upgrade code and NSIS migration hook as release invariants so later product-copy edits cannot silently break replacement behavior.
 
 ## Proposed stable-channel design
 
@@ -62,4 +71,4 @@ Loss of the updater private key prevents existing installations from accepting n
 - Static update manifest generation is reproducible and tied to the same immutable release assets and checksums.
 - Signing status and recovery limitations are documented in release notes.
 
-Until every gate is satisfied, V.O.I.D. remains manual-download only and clearly labels its installers unsigned.
+Until every gate is satisfied, VOID remains manual-download only and clearly labels its installers unsigned.
