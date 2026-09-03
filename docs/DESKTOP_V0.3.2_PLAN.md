@@ -78,5 +78,5 @@ The draft proposal targets `master`. Its merge changes `release-manifest.json` o
 - Rust formatting, Clippy with warnings denied, and native tests pass; 16 tests pass and the opt-in media corpus benchmark remains intentionally ignored.
 - Current-worktree product metadata reports `VOID` version `0.3.2`; generated installer source contains the legacy NSIS pre-install hook and the pinned MSI upgrade code `71ad7b99-f1e4-5189-90f0-1eb90aa8c545`.
 - Continuity-enabled packaging produces:
-  - NSIS `VOID_0.3.2_x64-setup.exe`: 2,984,792 bytes; SHA-256 `1d90bd9ae41c56a8626c4b085f72181d880b73500ae1d9573456a6ad833a6563`.
-  - MSI `VOID_0.3.2_x64_en-US.msi`: 5,230,592 bytes; SHA-256 `28709e9393a961cecfcf2bb3640af65b729829c2f0b7b8d9531535ac79783066`.
+  - NSIS `VOID_0.3.2_x64-setup.exe`: 2,983,752 bytes; SHA-256 `00e4dad085b733937ac7fa43fe7464ed2e0b0740daf30af9bec5562252874493`.
+  - MSI `VOID_0.3.2_x64_en-US.msi`: 5,230,592 bytes; SHA-256 `ef04868ade2c754c216c85dd872f20f9ece1bc20551c5aa4e2c4e18259c1ec99`.
