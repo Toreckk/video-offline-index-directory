@@ -68,6 +68,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     {
       name: 'void-settings-store',
       storage: createJSONStorage(() => idbStateStorage),
+      skipHydration: true,
       partialize: (state) => ({
         autoplayHoverPreview: state.autoplayHoverPreview,
         previewDelayMs: state.previewDelayMs,

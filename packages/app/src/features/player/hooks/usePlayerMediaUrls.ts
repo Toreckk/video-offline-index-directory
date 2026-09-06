@@ -18,11 +18,13 @@ export function usePlayerMediaUrls(
   const [urlResource, setUrlResource] = useState<{
     key: string
     urlsById: Record<string, string>
+    failedIds: string[]
   } | null>(null)
 
   useEffect(() => {
     let active = true
     const revokeUrls: (() => void)[] = []
+    const failedIds: string[] = []
 
     void Promise.all(
       warmedIds.map(async (id) => {
@@ -37,6 +39,7 @@ export function usePlayerMediaUrls(
           revokeUrls.push(resource.revoke)
           return [id, resource.url] as const
         } catch (error) {
+          failedIds.push(id)
           console.error(`Could not prepare ${asset.name} for playback`, error)
           return null
         }
@@ -46,6 +49,7 @@ export function usePlayerMediaUrls(
       setUrlResource({
         key: warmKey,
         urlsById: Object.fromEntries(entries.filter((entry) => entry !== null)),
+        failedIds,
       })
     })
 
@@ -55,7 +59,10 @@ export function usePlayerMediaUrls(
     }
   }, [warmKey, warmedIds])
 
-  return selectedAssetId && urlResource?.key === warmKey
-    ? urlResource.urlsById[selectedAssetId] ?? null
-    : null
+  const current = selectedAssetId && urlResource?.key === warmKey ? urlResource : null
+  return {
+    src: selectedAssetId ? current?.urlsById[selectedAssetId] ?? null : null,
+    error: selectedAssetId && current?.failedIds.includes(selectedAssetId)
+      ? 'This video is unavailable. Reconnect its folder or rescan, then open it again.' : null,
+  }
 }

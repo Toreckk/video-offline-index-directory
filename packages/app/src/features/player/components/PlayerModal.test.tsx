@@ -8,7 +8,7 @@ import { usePlayerStore } from '../store/playerStore'
 import { DEFAULT_SETTINGS, useSettingsStore } from '../../settings/store/settingsStore'
 
 vi.mock('idb-keyval', () => ({ get: vi.fn(async () => undefined), set: vi.fn(async () => undefined), del: vi.fn(async () => undefined) }))
-vi.mock('../hooks/usePlayerMediaUrls', () => ({ usePlayerMediaUrls: () => 'blob:test-video' }))
+vi.mock('../hooks/usePlayerMediaUrls', () => ({ usePlayerMediaUrls: () => ({ src: 'blob:test-video', error: null }) }))
 vi.mock('./PlayerVideo', () => ({ PlayerVideo: ({ title }: { title: string }) => <video aria-label={title} /> }))
 vi.mock('./PlayerAnnotationControls', () => ({ PlayerAnnotationControls: () => null }))
 vi.mock('../../annotations/components/MediaTagEditor', () => ({ MediaTagEditor: () => null }))

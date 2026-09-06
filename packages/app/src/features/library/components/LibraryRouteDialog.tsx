@@ -1,4 +1,6 @@
 import { FolderOpen, Info, X } from 'lucide-react'
+import { useRef } from 'react'
+import { useModalFocus } from '../../../shared/useModalFocus'
 import { getVoidPlatform } from '@void/core'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 
@@ -13,9 +15,6 @@ type LibraryRouteDialogProps = {
 const FORMATS = [
   { label: '.mp4', enabled: true },
   { label: '.webm', enabled: true },
-  { label: '.mov', enabled: false },
-  { label: '.mkv', enabled: false },
-  { label: '.r3d', enabled: false },
 ]
 
 export function LibraryRouteDialog({
@@ -26,11 +25,15 @@ export function LibraryRouteDialog({
   onPickDirectory,
 }: LibraryRouteDialogProps) {
   const platform = getVoidPlatform()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocus(dialogRef, true, onClose)
   const scanSubfolders = useSettingsStore((state) => state.scanSubfolders)
   const updateSetting = useSettingsStore((state) => state.updateSetting)
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
@@ -43,7 +46,7 @@ export function LibraryRouteDialog({
               Local-first indexing
             </p>
             <h2 id="library-route-title" className="mt-3 text-3xl font-black">
-              Choose a folder to index
+              Add a video folder
             </h2>
           </div>
           <button
@@ -87,6 +90,8 @@ export function LibraryRouteDialog({
             </span>
           ))}
         </div>
+
+        <p className="mt-3 text-sm text-on-secondary">MP4 and WebM are recognized. Playback depends on the codecs available on this device.</p>
 
         <label className="mt-7 flex cursor-pointer items-center justify-between border border-white/7 bg-black/20 p-4">
           <span>

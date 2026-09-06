@@ -1,13 +1,13 @@
 {
   "name": "@void/web",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.4.0",
   "type": "module",
   "dependencies": {
     "@void/app": "workspace:*",
     "@void/core": "workspace:*",
     "@void/platform-web": "workspace:*",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

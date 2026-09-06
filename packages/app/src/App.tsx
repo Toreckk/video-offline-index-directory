@@ -8,8 +8,13 @@ import { useLibraryStore } from './features/library/store/libraryStore'
 import { useSettingsStore } from './features/settings/store/settingsStore'
 import { PlayerModal } from './features/player/components/PlayerModal'
 import { BackgroundWorkCoordinator } from './features/explorer/components/BackgroundWorkCoordinator'
+import { UserDataGate } from './shared/persistence/UserDataGate'
 
 export default function App() {
+  return <UserDataGate><HydratedApp /></UserDataGate>
+}
+
+function HydratedApp() {
   const restoreStartedRef = useRef(false)
   const isHydrated = useLibraryStore((state) => state.isHydrated)
   const isLoadingPersistedLibrary = useLibraryStore(

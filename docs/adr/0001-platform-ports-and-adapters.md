@@ -51,5 +51,11 @@ Native commands are coarse-grained and validate every path against a library roo
 - Desktop can improve scanning and persistence without forking the UI.
 - Platform behavior can be tested with contract suites and in-memory fakes.
 - Adding a new platform requires a new adapter rather than changes throughout the product.
-- File deletion is deliberately outside v0.1.0. A future implementation must use recoverable deletion, verify complete hashes, and prevent removal of the final verified copy.
+- File deletion was deliberately outside v0.1.0. The later desktop implementation follows this boundary: it is limited to redundant members of exact-duplicate groups, revalidates complete hashes, protects the selected keeper, asks for confirmation, and uses the Windows Recycle Bin.
+
+## Current implementation note (v0.3.2)
+
+The platform split remains accepted and is now implemented. Desktop owns discovery, change watching, the SQLite media catalog, disk thumbnail storage, direct media URLs, Explorer reveal, hashing, and guarded cleanup. The shared application owns UI, filtering, tagging, collections, playback, and portable backup behavior.
+
+One boundary is intentionally incomplete: user-authored tags, favorites, collections, playback records, and settings still persist through the shared WebView/IndexedDB store. Moving those records behind a versioned persistence port with a transactional desktop adapter and a non-destructive migration is planned for v0.4.0. This extends the decision; it does not justify a desktop-only fork of the shared domain or UI.
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { flushUserData } from '../../../shared/persistence/userDataCoordinator'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -184,6 +185,8 @@ function DuplicateGroup({ group, onAssetsRemoved, onCleanupReport }: {
     mergeMediaAnnotations(keeper.id, redundantIds)
     mergePlaybackRecords(keeper.id, redundantIds)
     try {
+      // The keeper's personal data must be durable before any source file moves.
+      await flushUserData()
       const cleanup = await platform.cleanupDuplicateFiles({
         keeper: { absolutePath: keeper.source.absolutePath, expectedSha256: completeHash },
         redundantFiles: redundant.map((asset) => {
@@ -201,6 +204,7 @@ function DuplicateGroup({ group, onAssetsRemoved, onCleanupReport }: {
       if (movedIds.length) {
         moveMediaAnnotations(keeper.id, movedIds)
         movePlaybackRecords(keeper.id, movedIds)
+        await flushUserData()
         const mediaStore = useMediaStore.getState()
         const remainingIds = mediaStore.orderedIds.filter((id) => !movedIds.includes(id))
         mediaStore.retainAssets(remainingIds)
@@ -261,6 +265,7 @@ function DuplicateGroup({ group, onAssetsRemoved, onCleanupReport }: {
       </div>
       {isConfirmingCleanup && <div className="w-full border border-red-300/20 bg-red-500/5 p-4">
         <p className="flex items-center gap-2 text-sm font-black text-red-100"><AlertTriangle size={17} />Move {removalIds.length} selected file{removalIds.length === 1 ? '' : 's'} to the Recycle Bin?</p>
+        <p className="mt-2 text-xs leading-5 text-on-secondary">VOID locks and verifies the files, then stages each selected copy under its folder’s .void/cleanup-* directory before recycling it. To undo, restore from the Windows Recycle Bin, then follow recovery.json in that directory to return it to its original path. Never overwrite a replacement file.</p>
         <p className="mt-2 text-xs leading-5 text-on-secondary">VOID will merge their supported metadata into <strong className="text-white">{keeper?.name}</strong>, then re-hash every selected file. Changed files are skipped and the keeper always remains.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" onClick={() => void cleanupDuplicates()} disabled={isCleaning} className="flex items-center gap-2 bg-red-500 px-4 py-2.5 text-xs font-black disabled:opacity-50">{isCleaning ? <LoaderCircle size={15} className="animate-spin" /> : <Trash2 size={15} />}Confirm Recycle Bin move</button>

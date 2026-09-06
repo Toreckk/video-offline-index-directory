@@ -1,10 +1,10 @@
 [package]
 name = "void-desktop"
-version = "0.3.2"
+version = "0.4.0"
 description = "VOID — Video Offline Index Directory"
 authors = ["VOID contributors"]
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.98"
 
 [lib]
 name = "void_desktop_lib"
@@ -23,6 +23,8 @@ tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2"
 trash = "5.2.6"
 walkdir = "2"
-
-[dev-dependencies]
 tempfile = "3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+windows = { version = "0.56", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_Shell"] }

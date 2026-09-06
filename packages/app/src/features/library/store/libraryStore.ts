@@ -11,9 +11,11 @@ import {
   requestPermissionStatus,
   type DirectoryFileSelection,
 } from '../services/fileSystem'
-import { createLibraryId, isSameDirectory } from '../services/libraryIdentity'
+import { createLibraryId, isSameDirectory, sameNativeRoot } from '../services/libraryIdentity'
 import { idbStateStorage } from '../../../shared/persistence/idbStateStorage'
 import { deleteMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { restoreMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { useMediaStore } from '../../media/store/mediaStore'
 
 export const DIRECTORY_HANDLE_KEY = 'void-directory-handle'
 export const LIBRARY_STATE_KEY = 'void-library-store'
@@ -22,6 +24,7 @@ export type LibraryPermissionStatus = 'unknown' | 'granted' | 'prompt' | 'denied
 export type LibrarySourceKind = 'persistent-handle' | 'session-files' | 'native-directory'
 
 export type RecentDirectory = {
+  rootPath?: string
   libraryId: string
   name: string
   timestamp: number
@@ -58,6 +61,7 @@ export type LibraryState = {
   scanError: string | null
   scanDiagnostics: ScanDiagnostic[]
   recentDirectories: RecentDirectory[]
+  libraryRegistry: Record<string, { name: string; rootPath?: string }>
   mediaIds: string[]
   isBackgroundScanning: boolean
   isHydrated: boolean
@@ -121,6 +125,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
       permissionStatus: 'unknown',
       ...resetScanState,
       recentDirectories: [],
+      libraryRegistry: {},
       isHydrated: false,
       isLoadingPersistedLibrary: true,
 
@@ -178,10 +183,10 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
         const current = get()
         const sameDirectory =
           current.sourceKind === 'native-directory' &&
-          current.rootPath === selection.rootPath
+          Boolean(current.rootPath && sameNativeRoot(current.rootPath, selection.rootPath))
         const libraryId =
           options.libraryId ??
-          (sameDirectory && current.libraryId ? current.libraryId : createLibraryId())
+          (sameDirectory && current.libraryId ? current.libraryId : Object.entries(current.libraryRegistry).find(([, entry]) => entry.rootPath && sameNativeRoot(entry.rootPath, selection.rootPath))?.[0] ?? createLibraryId())
         set({
           libraryId,
           sourceKind: 'native-directory',
@@ -210,7 +215,7 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
             persisted.rootPath
           ) {
             if (!platform.restoreLibrary) {
-              set({ permissionStatus: 'prompt', ...resetScanState })
+              set({ permissionStatus: 'prompt', ...resetScanState, scanError: 'Desktop folder access is unavailable. Restart VOID and try reconnecting.' })
               return
             }
             let selection: NativeLibrarySelection
@@ -222,6 +227,11 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
             } catch (error) {
               console.warn('The saved native library needs to be selected again.', error)
               set({ permissionStatus: 'prompt', ...resetScanState })
+              try {
+                const assets = (await restoreMediaCatalog(persisted.libraryId, persisted.rootPath)).map((asset) => ({ ...asset, availability: 'unavailable' as const }))
+                useMediaStore.getState().replaceAssets(assets)
+                set({ mediaIds: assets.map((asset) => asset.id), scanStatus: assets.length ? 'ready' : 'idle', scanError: 'The saved folder could not be authorized. Reconnect Library will retry, then let you select the same folder to restore access.' })
+              } catch { /* The reconnect controls remain available when the catalog is also missing. */ }
               return
             }
             set({
@@ -312,19 +322,36 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           current.libraryId &&
           current.rootPath
         ) {
-          const restoreLibrary = getVoidPlatform().restoreLibrary
-          if (!restoreLibrary) return false
+          const platform = getVoidPlatform()
           try {
-            const selection = await restoreLibrary(current.libraryId, current.rootPath)
+            let selection: NativeLibrarySelection
+            try {
+              if (!platform.restoreLibrary) throw new Error('Desktop restore is unavailable.')
+              selection = await platform.restoreLibrary(current.libraryId, current.rootPath)
+            } catch {
+              // Migration or a cleared cache may leave a valid saved root without
+              // a trusted native catalog. A user-picked folder reauthorizes access.
+              if (!platform.selectLibrary) throw new Error('Select the saved folder again using Choose Another Folder.')
+              const picked = await platform.selectLibrary()
+              if (!picked) {
+                set({ permissionStatus: 'prompt', scanError: 'Reconnect cancelled. Your saved library and metadata were kept.' })
+                return false
+              }
+              if (!sameNativeRoot(current.rootPath, picked.rootPath)) throw new Error(`Select the saved folder “${current.rootPath}” to reconnect. Use Choose Another Folder for a different library.`)
+              selection = picked
+            }
+            if (get().libraryId !== current.libraryId || get().rootPath !== current.rootPath) return false
             set({
               rootPath: selection.rootPath,
               directoryName: selection.rootName,
               permissionStatus: 'granted',
+              scanError: null,
             })
+            get().addRecentDirectory(current.libraryId, selection.rootName)
             return true
           } catch (error) {
             console.warn('The native library could not be reconnected.', error)
-            set({ permissionStatus: 'prompt' })
+            set({ permissionStatus: 'prompt', scanError: error instanceof Error ? error.message : 'The folder could not be reconnected. Select it again.' })
             return false
           }
         }
@@ -371,8 +398,9 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
           )
           .sort((left, right) => right.timestamp - left.timestamp)
         set({
+          libraryRegistry: { ...get().libraryRegistry, [libraryId]: { name, ...(get().rootPath ? { rootPath: get().rootPath! } : {}) } },
           recentDirectories: [
-            { libraryId, name, timestamp },
+            { libraryId, name, timestamp, ...(get().rootPath ? { rootPath: get().rootPath! } : {}) },
             ...filtered,
           ].slice(0, 5),
         })
@@ -395,20 +423,24 @@ export const useLibraryStore = create<LibraryState & LibraryActions>()(
     {
       name: LIBRARY_STATE_KEY,
       storage: createJSONStorage(() => idbStateStorage),
+      skipHydration: true,
       partialize: (state) => ({
         libraryId: state.libraryId,
         sourceKind: state.sourceKind,
         rootPath: state.rootPath,
         directoryName: state.directoryName,
-        permissionStatus: state.permissionStatus,
-        scanStatus: state.scanStatus,
-        scanPhase: state.scanPhase,
-        scanProgress: state.scanProgress,
-        scanError: state.scanError,
         recentDirectories: state.recentDirectories,
-        mediaIds: state.mediaIds,
-        isBackgroundScanning: state.isBackgroundScanning,
+        libraryRegistry: state.libraryRegistry,
       }),
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<LibraryState>
+        const libraryRegistry = { ...saved.libraryRegistry }
+        for (const recent of saved.recentDirectories ?? []) {
+          if (recent.libraryId && recent.rootPath) libraryRegistry[recent.libraryId] ??= { name: recent.name, rootPath: recent.rootPath }
+        }
+        if (saved.libraryId && saved.directoryName) libraryRegistry[saved.libraryId] ??= { name: saved.directoryName, ...(saved.rootPath ? { rootPath: saved.rootPath } : {}) }
+        return { ...current, ...saved, libraryRegistry, ...resetScanState, permissionStatus: 'unknown', directoryHandle: null, sessionFiles: [], isHydrated: false, isLoadingPersistedLibrary: true }
+      },
       version: 2,
       migrate: (persistedState) => migrateLibraryState(persistedState),
       onRehydrateStorage: () => (_state, error) => {

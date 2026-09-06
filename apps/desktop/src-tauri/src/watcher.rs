@@ -92,8 +92,6 @@ fn watch_event_loop(
 struct WatchBatch {
     paths: HashSet<String>,
     renames: Vec<NativeLibraryRename>,
-    rename_from_paths: Vec<String>,
-    rename_to_paths: Vec<String>,
     had_error: bool,
 }
 
@@ -121,26 +119,14 @@ impl WatchBatch {
                     to_path: relative_paths[relative_paths.len() - 1].clone(),
                 });
             }
-            EventKind::Modify(ModifyKind::Name(RenameMode::From)) => {
-                self.rename_from_paths.extend(relative_paths);
-            }
-            EventKind::Modify(ModifyKind::Name(RenameMode::To)) => {
-                self.rename_to_paths.extend(relative_paths);
-            }
             _ => {}
         }
     }
 
-    fn into_payload(mut self, watch_id: String) -> Option<NativeLibraryWatchEvent> {
+    fn into_payload(self, watch_id: String) -> Option<NativeLibraryWatchEvent> {
         if self.paths.is_empty() && !self.had_error {
             return None;
         }
-        self.renames.extend(
-            self.rename_from_paths
-                .into_iter()
-                .zip(self.rename_to_paths)
-                .map(|(from_path, to_path)| NativeLibraryRename { from_path, to_path }),
-        );
         let mut paths: Vec<String> = self.paths.into_iter().collect();
         paths.sort_unstable();
         Some(NativeLibraryWatchEvent {
@@ -241,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn split_native_rename_events_are_paired_within_a_batch() {
+    fn uncorrelated_split_rename_events_are_not_guessed() {
         let root = Path::new(r"C:\Videos");
         let mut batch = WatchBatch::default();
         batch.push(
@@ -262,8 +248,7 @@ mod tests {
         let payload = batch
             .into_payload("watch-test".to_string())
             .expect("payload");
-        assert_eq!(payload.renames.len(), 1);
-        assert_eq!(payload.renames[0].from_path, "before.mp4");
-        assert_eq!(payload.renames[0].to_path, "after.mp4");
+        assert!(payload.renames.is_empty());
+        assert_eq!(payload.paths.len(), 2);
     }
 }

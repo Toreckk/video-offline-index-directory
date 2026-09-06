@@ -4,14 +4,13 @@ import {
   type NativeLibraryRename,
   type NativeLibraryWatchEvent,
 } from '@void/core'
-import { useAnnotationStore } from '../../annotations/store/annotationStore'
-import { usePlaybackStore } from '../../playback/store/playbackStore'
-import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { saveMediaCatalog, toNativeCatalogAsset } from '../../media/services/mediaCatalogCache'
+import { commitReconciliation } from '../../media/services/commitReconciliation'
 import type { NativeLibraryScanSource } from '../../media/services/mediaFileSource'
 import { reconcileMediaAssets } from '../../media/services/reconcileMediaAssets'
 import { scheduleThumbnailEnrichment } from '../../media/services/thumbnailEnrichmentPipeline'
 import { thumbnailQueue } from '../../media/services/thumbnailQueue'
-import { scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
+import { nativeProbeQueue, scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
 import { getMediaAssets, useMediaStore } from '../../media/store/mediaStore'
 import { runDiscoveryPipeline } from '../services/discoveryPipeline'
 import { useLibraryStore } from '../store/libraryStore'
@@ -67,6 +66,7 @@ export function useNativeLibraryWatcher({
           queuedRenames = []
           activeController?.abort()
           thumbnailQueue.cancelPending(activeEnrichmentIds)
+          nativeProbeQueue.cancelPending(activeEnrichmentIds)
           activeEnrichmentIds = []
           activeController = new AbortController()
           activeEnrichmentIds = await reconcileOnce(
@@ -100,7 +100,7 @@ export function useNativeLibraryWatcher({
           event.message ?? 'The native library watcher reported an error.',
         )
       }
-      if (event.paths.length > 0) void reconcile(event.renames)
+      if (event.kind === 'error' || event.paths.length > 0) void reconcile(event.renames)
     }
 
     void platform
@@ -128,6 +128,7 @@ export function useNativeLibraryWatcher({
       disposed = true
       activeController?.abort()
       thumbnailQueue.cancelPending(activeEnrichmentIds)
+      nativeProbeQueue.cancelPending(activeEnrichmentIds)
       if (subscription) void subscription.stop().catch((error: unknown) => {
         console.warn('Native library watcher could not be stopped cleanly.', error)
       })
@@ -146,7 +147,7 @@ async function reconcileOnce(
   const discoveredAssets: ReturnType<typeof getCurrentAssets> = []
   const diagnostics: Array<{ path: string; message: string }> = []
 
-  await runDiscoveryPipeline({
+  const discovery = await runDiscoveryPipeline({
     source,
     scanSubfolders,
     signal,
@@ -156,26 +157,23 @@ async function reconcileOnce(
     onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
   })
   throwIfAborted(signal)
-  if (diagnostics.length > 0) {
+  if (!discovery.complete) {
     const first = diagnostics[0]
-    throw new Error(
-      `Reconciliation kept the previous catalog because discovery failed at ${first?.path ?? 'the library root'}: ${first?.message ?? 'unknown error'}`,
-    )
+    useLibraryStore.getState().addScanDiagnostic({ stage: 'reconciliation', severity: 'warning', path: first?.path ?? 'Library root',
+      message: `Incomplete scan: unseen files were kept as unavailable. ${first?.message ?? 'Discovery could not read every entry.'}` })
   }
-
+  const existing = getCurrentAssets()
+  const discoveredIds = new Set(discoveredAssets.map((asset) => asset.id))
   const reconciliation = reconcileMediaAssets(
-    getCurrentAssets(),
-    discoveredAssets,
-    renames,
+    existing,
+    discovery.complete ? discoveredAssets : [...discoveredAssets, ...existing.filter((asset) => !discoveredIds.has(asset.id)).map((asset) => ({ ...asset, availability: 'unavailable' as const }))],
+    discovery.complete ? renames : [],
   )
-  await saveMediaCatalog(source.libraryId, reconciliation.assets, source.rootPath)
+  await commitReconciliation({ version: 1, libraryId: source.libraryId, rootPath: source.rootPath,
+    savedAt: Date.now(), assets: reconciliation.assets.flatMap(toNativeCatalogAsset) }, reconciliation.renamedMediaIds, () => {
+    if (!signal.aborted) useMediaStore.getState().replaceAssets(reconciliation.assets)
+  })
   throwIfAborted(signal)
-
-  for (const { fromId, toId } of reconciliation.renamedMediaIds) {
-    useAnnotationStore.getState().moveMediaAnnotations(toId, [fromId])
-    usePlaybackStore.getState().movePlaybackRecords(toId, [fromId])
-  }
-  useMediaStore.getState().replaceAssets(reconciliation.assets)
   const committedIds = reconciliation.assets.map((asset) => asset.id)
   const committedStore = useLibraryStore.getState()
   committedStore.setMediaIds(committedIds)
@@ -187,10 +185,11 @@ async function reconcileOnce(
     ).length,
   })
 
-  if (reconciliation.affectedAssets.length > 0) {
-    enrichAffectedAssets(source, reconciliation.affectedAssets, signal)
+  const affected = reconciliation.affectedAssets.filter((asset) => asset.availability !== 'unavailable')
+  if (affected.length > 0) {
+    enrichAffectedAssets(source, affected, signal)
   }
-  return reconciliation.affectedAssets.flatMap((asset) => [asset.id, `media-probe:${asset.id}`])
+  return affected.flatMap((asset) => [asset.id, `media-probe:${asset.id}`])
 }
 
 function enrichAffectedAssets(

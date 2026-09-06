@@ -2,6 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { type MediaAsset, useMediaStore } from './mediaStore'
 
 describe('mediaStore', () => {
+  it('invalidates thumbnail and probe data when a path now refers to different bytes', () => {
+    const asset = createAsset('same-path')
+    useMediaStore.getState().addAssets([{ ...asset, thumbnailStatus: 'ready', thumbnailBlobKey: 'old-key', duration: 12, videoCodec: 'h264', mediaProbeStatus: 'ready' }])
+    useMediaStore.getState().addAssets([{ ...asset, lastModified: asset.lastModified + 1 }])
+    expect(useMediaStore.getState().assetsById[asset.id]).toMatchObject({ thumbnailStatus: 'idle', duration: undefined, thumbnailBlobKey: undefined, videoCodec: undefined, mediaProbeStatus: undefined })
+  })
   beforeEach(() => {
     useMediaStore.setState({
       assetsById: {},

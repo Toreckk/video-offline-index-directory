@@ -18,15 +18,19 @@ jobs:
   web:
     name: Web and shared application
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level=high
       - run: pnpm verify:version
+      - run: pnpm verify:docs
+      - run: pnpm test:release
       - run: pnpm test
       - run: pnpm lint
       - run: pnpm build:web
@@ -34,18 +38,42 @@ jobs:
   desktop:
     name: Desktop native checks
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c
         with:
+          toolchain: 1.98.0
           components: clippy,rustfmt
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:desktop-ui
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
+      - run: pnpm inventory:dependencies
+      - run: pnpm test:release:native
       - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
-      - run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
-      - run: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - run: cargo clippy --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+      - name: Probe synthetic real media with a verified test helper
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/ffmpeg | Out-Null
+          curl.exe --silent --show-error --location --fail --max-time 300 https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.1-essentials_build.7z --output artifacts/ffmpeg/tool.7z
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the test helper' }
+          if ((Get-FileHash artifacts/ffmpeg/tool.7z -Algorithm SHA256).Hash -ne '49a73bdf0850092a252ac4641d922f3048d63ed113e196cc65ce1e4f7fb33e85') { throw 'Test-helper checksum mismatch' }
+          tar -xf artifacts/ffmpeg/tool.7z -C artifacts/ffmpeg
+          if ($LASTEXITCODE -ne 0) { throw 'Could not extract the test helper' }
+          $env:VOID_FFPROBE_PATH = Join-Path $PWD 'artifacts/ffmpeg/ffmpeg-9.0.1-essentials_build/bin/ffprobe.exe'
+          $env:VOID_MEDIA_PROBE_FIXTURE = Join-Path $PWD 'fixtures/media'
+          cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --lib benchmarks_a_configured_media_corpus -- --ignored --nocapture
+
+  candidate:
+    name: Release branch installers
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+    needs: [web, desktop]
+    uses: ./.github/workflows/windows-package.yml

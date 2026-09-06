@@ -57,6 +57,7 @@ describe('useLibraryStore', () => {
       scanError: null,
       scanDiagnostics: [],
       recentDirectories: [],
+      libraryRegistry: {},
       mediaIds: [],
       isBackgroundScanning: false,
       isHydrated: false,
@@ -290,6 +291,35 @@ describe('useLibraryStore', () => {
 
     expect(await useLibraryStore.getState().requestLibraryPermission()).toBe(false)
     expect(useLibraryStore.getState().permissionStatus).toBe('prompt')
+  })
+
+  it('hydrates a fresh profile with no saved library record', async () => {
+    db.delete(LIBRARY_STATE_KEY)
+    await useLibraryStore.persist.rehydrate()
+    expect(useLibraryStore.persist.hasHydrated()).toBe(true)
+    expect(useLibraryStore.getState()).toMatchObject({ libraryId: null, libraryRegistry: {}, permissionStatus: 'unknown', isHydrated: true })
+  })
+
+  it('reauthorizes a migrated desktop root through the picker without changing its library id', async () => {
+    const restoreLibrary = vi.fn().mockRejectedValue(new Error('saved catalog is unavailable'))
+    const selectLibrary = vi.fn().mockResolvedValue({ rootName: 'Videos', rootPath: 'c:/videos' })
+    installVoidPlatform(desktopPlatform({ restoreLibrary, selectLibrary }))
+    useLibraryStore.setState({ libraryId: 'lib_migrated', sourceKind: 'native-directory', directoryName: 'Videos', rootPath: 'C:\\Videos', permissionStatus: 'prompt', scanError: 'old failure' })
+    expect(await useLibraryStore.getState().requestLibraryPermission()).toBe(true)
+    expect(selectLibrary).toHaveBeenCalledOnce()
+    expect(useLibraryStore.getState()).toMatchObject({ libraryId: 'lib_migrated', permissionStatus: 'granted', scanError: null })
+    expect(useLibraryStore.getState().libraryRegistry.lib_migrated).toEqual({ name: 'Videos', rootPath: 'c:/videos' })
+  })
+
+  it('keeps the migrated root and reports cancellation or a same-named different folder', async () => {
+    const selectLibrary = vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ rootName: 'Videos', rootPath: 'D:\\Other\\Videos' })
+    installVoidPlatform(desktopPlatform({ restoreLibrary: vi.fn().mockRejectedValue(new Error('missing catalog')), selectLibrary }))
+    useLibraryStore.setState({ libraryId: 'lib_migrated', sourceKind: 'native-directory', directoryName: 'Videos', rootPath: 'C:\\Videos', permissionStatus: 'prompt' })
+    expect(await useLibraryStore.getState().requestLibraryPermission()).toBe(false)
+    expect(useLibraryStore.getState().scanError).toContain('cancelled')
+    expect(await useLibraryStore.getState().requestLibraryPermission()).toBe(false)
+    expect(useLibraryStore.getState().scanError).toContain('Select the saved folder')
+    expect(useLibraryStore.getState()).toMatchObject({ libraryId: 'lib_migrated', rootPath: 'C:\\Videos', permissionStatus: 'prompt' })
   })
 
   it('reuses an explicit durable id when reconnecting session files', async () => {

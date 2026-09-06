@@ -16,6 +16,20 @@ pub struct NativeScanOptions {
 
 pub type NativeLibraryWatchOptions = NativeScanOptions;
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeScanResult {
+    pub files: Vec<NativeMediaFile>,
+    pub complete: bool,
+    pub diagnostics: Vec<NativeScanDiagnostic>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct NativeScanDiagnostic {
+    pub path: String,
+    pub message: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeLibraryRename {
@@ -36,6 +50,7 @@ pub struct NativeLibraryWatchEvent {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeMediaFile {
+    pub file_identity: Option<String>,
     pub name: String,
     pub extension: String,
     pub path_parts: Vec<String>,
@@ -47,6 +62,10 @@ pub struct NativeMediaFile {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeCatalogAsset {
+    #[serde(default)]
+    pub availability: Option<String>,
+    #[serde(default)]
+    pub file_identity: Option<String>,
     pub id: String,
     pub library_id: String,
     pub root_name: String,

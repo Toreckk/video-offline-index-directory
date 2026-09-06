@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useModalFocus } from '../../../shared/useModalFocus'
 import { CheckCircle2, Clock3, Eye, FileVideo2, Folder, HardDrive, Tags, X } from 'lucide-react'
 import type { MediaAsset } from '../../media/store/mediaStore'
 import type { TagDefinition } from '../../annotations/model/annotationTypes'
@@ -11,16 +12,16 @@ export function VideoInfoDialog({ asset, tags, playback, onClose }: {
   playback: PlaybackRecord | undefined
   onClose: () => void
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocus(dialogRef, true, onClose)
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKeyDown)
-    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener('keydown', onKeyDown) }
+    return () => { document.body.style.overflow = previousOverflow }
   }, [onClose])
 
   const progress = playback && playback.durationSeconds > 0 ? Math.round((playback.positionSeconds / playback.durationSeconds) * 100) : 0
-  return <div className="fixed inset-0 z-[350] flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`Information for ${asset.name}`} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+  return <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[350] flex items-center justify-center bg-black/80 p-5 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={`Information for ${asset.name}`} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="max-h-[85vh] w-full max-w-2xl overflow-y-auto overscroll-contain border border-white/10 bg-surface-container-high shadow-2xl">
       <header className="sticky top-0 z-10 flex items-start justify-between gap-5 border-b border-white/8 bg-surface-container-high px-6 py-5">
         <div className="min-w-0"><p className="text-xs font-black uppercase tracking-wider text-primary-fixed-dim">Video information</p><h3 className="mt-2 truncate text-xl font-black">{asset.name}</h3></div>

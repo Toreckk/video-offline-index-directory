@@ -1,8 +1,11 @@
 mod catalog;
 mod commands;
+mod file_identity;
 mod media_probe;
 mod model;
+mod safe_cleanup;
 mod state;
+mod user_data;
 mod watcher;
 
 use state::AppState;
@@ -15,8 +18,22 @@ pub fn run() {
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir()?;
             let app_cache_dir = app.path().app_cache_dir()?;
-            std::fs::create_dir_all(&app_data_dir)?;
-            std::fs::create_dir_all(&app_cache_dir)?;
+            let app_data_dir = if cfg!(debug_assertions) {
+                app_data_dir.join("development")
+            } else {
+                app_data_dir
+            };
+            let app_cache_dir = if cfg!(debug_assertions) {
+                app_cache_dir.join("development")
+            } else {
+                app_cache_dir
+            };
+            if let Err(error) = std::fs::create_dir_all(&app_data_dir) {
+                eprintln!("User-data directory is unavailable: {error}");
+            }
+            if let Err(error) = std::fs::create_dir_all(&app_cache_dir) {
+                eprintln!("Cache directory is unavailable: {error}");
+            }
 
             let state = AppState::new(
                 app_data_dir.join("void-catalog.db"),
@@ -27,6 +44,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::select_library,
+            user_data::load_user_data,
+            user_data::commit_user_data,
+            user_data::user_data_recovery,
+            user_data::raw_user_data,
             commands::restore_library,
             commands::scan_library,
             watcher::start_library_watch,
@@ -42,6 +63,7 @@ pub fn run() {
             commands::cleanup_duplicate_files,
             media_probe::media_probe_status,
             media_probe::probe_media,
+            media_probe::cancel_media_probe,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VOID");

@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Transactional desktop user-data storage and a browser storage adapter, with a legacy-data migration preview, retained recovery snapshots, bounded imports and visible save failures.
+- Metadata backup previews distinguish one-library exports from all-library exports and preserve ownership of unmatched records.
+
+### Fixed
+
+- Desktop reconnect can reauthorize the same folder through the native picker when a migrated reference has no cached catalog, preserving its library identity and reporting cancellation or errors instead of silently doing nothing.
+- Library Source uses desktop-specific reconnect guidance and displays progress while reconnecting.
+- Verified file-identity renames commit catalog, tags and playback records together; incomplete discovery retains the previous records and changed files invalidate stale enrichment.
+- Player sessions detach outgoing media and ignore stale callbacks, with actionable playback errors and focus restoration for critical dialogs.
+- Fresh profiles initialize without a saved library, and desktop window close waits for pending metadata and playback progress to save.
+- Exact duplicate cleanup saves keeper metadata before file actions, protects verified handles against concurrent replacement, and journals staging paths for recoverable Recycle Bin moves.
+- Missing or corrupt thumbnails receive bounded regeneration attempts, and native metadata probes have independent scheduling, cancellation, deadlines and output limits.
+
+### Security
+
+- Updated JavaScript dependencies and Rust transitive dependencies to resolve the vulnerabilities reported by the release dependency audits; desktop builds now require Rust 1.98 or newer.
+
+### Changed
+
+- Project documentation now uses one current product-scope reference and one unreleased roadmap, with an evergreen QA checklist replacing completed release plans and outdated implementation notes.
+- Repository assessment, desktop performance criteria, UI/brand brief, contributor guidance and a gated roadmap now prioritize reliability before Insights and broader features.
+- Windows release tooling separates read-only candidate packaging from protected publication, retains reviewable artifacts and build provenance, and checks installer hashes, exact commit/tag state and upload results before publication.
+- Release validation now covers Cargo.lock, stable application identity, manifest/bundle targets, note headings and finalized changelog readiness, with regression tests and consolidated local check commands.
+- Development native data uses a separate namespace from installed data; migration/recovery and same-path reauthorization are documented explicitly.
+- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures.
+
 ## [0.3.2] - 2026-09-03
 
 ### Changed

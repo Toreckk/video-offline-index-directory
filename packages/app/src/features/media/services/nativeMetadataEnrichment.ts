@@ -1,6 +1,8 @@
 import { getVoidPlatform, type NativeMediaMetadata } from '@void/core'
 import type { MediaAsset } from '../store/mediaStore'
-import { thumbnailQueue, type ThumbnailJob } from './thumbnailQueue'
+import { ThumbnailQueue, type ThumbnailJob } from './thumbnailQueue'
+
+export const nativeProbeQueue = new ThumbnailQueue()
 
 export type NativeMetadataPatch = Partial<Pick<
   MediaAsset,
@@ -14,7 +16,7 @@ type ProbeQueue = {
 type NativeMetadataDependencies = {
   queue: ProbeQueue
   getStatus: () => Promise<{ available: boolean }>
-  probe: (absolutePath: string) => Promise<NativeMediaMetadata>
+  probe: (absolutePath: string, signal?: AbortSignal) => Promise<NativeMediaMetadata>
 }
 
 export async function scheduleNativeMetadataEnrichment(options: {
@@ -45,7 +47,7 @@ export async function scheduleNativeMetadataEnrichment(options: {
       run: async () => {
         try {
           if (options.signal.aborted || asset.source.kind !== 'desktop-path') return
-          const metadata = await dependencies.probe(asset.source.absolutePath)
+          const metadata = await dependencies.probe(asset.source.absolutePath, options.signal)
           if (options.signal.aborted) return
           options.onAssetUpdate(asset.id, {
             duration: metadata.duration ?? asset.duration,
@@ -76,11 +78,11 @@ export async function scheduleNativeMetadataEnrichment(options: {
 function createDefaultDependencies(): NativeMetadataDependencies {
   const platform = getVoidPlatform()
   return {
-    queue: thumbnailQueue,
+    queue: nativeProbeQueue,
     getStatus: async () => platform.getMediaProbeStatus?.() ?? { available: false },
-    probe: async (absolutePath) => {
+    probe: async (absolutePath, signal) => {
       if (!platform.probeMedia) throw new Error('Native media analysis is unavailable.')
-      return platform.probeMedia(absolutePath)
+      return platform.probeMedia(absolutePath, signal)
     },
   }
 }

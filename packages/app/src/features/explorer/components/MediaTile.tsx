@@ -13,6 +13,7 @@ import { getPlaybackProgress, usePlaybackStore } from '../../playback/store/play
 import { TileActionsMenu } from './TileActionsMenu'
 import { VideoInfoDialog } from './VideoInfoDialog'
 import { usePlayerStore } from '../../player/store/playerStore'
+import { recoverThumbnail } from '../../media/services/thumbnailRecovery'
 
 type MediaTileProps = {
   asset: MediaAsset
@@ -26,6 +27,7 @@ export const MediaTile = memo(function MediaTile({ asset, priorityIndex, queueId
   const thumbnailUrl = useThumbnailUrl(
     asset.thumbnailBlobKey,
     asset.thumbnailStatus,
+    asset.id,
   )
   const showFilenames = useSettingsStore((state) => state.showFilenames)
   const thumbnailPriority = useSettingsStore((state) => state.thumbnailPriority)
@@ -94,12 +96,15 @@ export const MediaTile = memo(function MediaTile({ asset, priorityIndex, queueId
     >
       <button
         type="button"
+        disabled={!bulkTagId && asset.availability === 'unavailable'}
         onClick={bulkTagId ? () => toggleBulkMedia(asset.id) : onOpen}
         className="absolute inset-0 h-full w-full overflow-hidden text-left outline-none ring-inset transition focus-visible:ring-2 focus-visible:ring-primary"
         aria-label={bulkTagId ? `${isBulkSelected ? 'Deselect' : 'Select'} ${asset.name}` : `Play ${asset.name}`}
       >
+        {asset.availability === 'unavailable' && <span className="absolute left-2 top-2 z-10 bg-black/85 px-2 py-1 text-xs text-amber-200">Unavailable · reconnect folder</span>}
         {thumbnailUrl ? (
           <img
+            onError={() => { if (asset.thumbnailBlobKey) recoverThumbnail(asset.id, asset.thumbnailBlobKey) }}
             src={thumbnailUrl}
             alt=""
             className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"

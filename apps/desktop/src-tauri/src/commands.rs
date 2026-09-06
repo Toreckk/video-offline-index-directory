@@ -3,7 +3,7 @@ use crate::{
     model::{
         NativeCatalog, NativeDuplicateCleanupFile, NativeDuplicateCleanupIssue,
         NativeDuplicateCleanupRequest, NativeDuplicateCleanupResult, NativeLibrarySelection,
-        NativeMediaFile, NativeScanOptions,
+        NativeMediaFile, NativeScanDiagnostic, NativeScanOptions, NativeScanResult,
     },
     state::{AppState, display_error},
 };
@@ -67,7 +67,7 @@ pub fn restore_library(
 pub async fn scan_library(
     app: AppHandle,
     options: NativeScanOptions,
-) -> Result<Vec<NativeMediaFile>, String> {
+) -> Result<NativeScanResult, String> {
     let root = app
         .state::<AppState>()
         .validate_root(Path::new(&options.root_path))?;
@@ -79,10 +79,12 @@ pub async fn scan_library(
         .map_err(display_error)?
 }
 
-fn scan_directory(root: &Path, scan_subfolders: bool) -> Result<Vec<NativeMediaFile>, String> {
+fn scan_directory(root: &Path, scan_subfolders: bool) -> Result<NativeScanResult, String> {
     let root = root.canonicalize().map_err(display_error)?;
     let max_depth = if scan_subfolders { usize::MAX } else { 1 };
     let mut media = Vec::new();
+    let mut diagnostics = Vec::new();
+    let mut complete = true;
     for entry in WalkDir::new(&root)
         .follow_links(false)
         .max_depth(max_depth)
@@ -91,14 +93,33 @@ fn scan_directory(root: &Path, scan_subfolders: bool) -> Result<Vec<NativeMediaF
     {
         let entry = match entry {
             Ok(entry) => entry,
-            Err(_) => continue,
+            Err(error) => {
+                complete = false;
+                if diagnostics.len() < 100 {
+                    diagnostics.push(NativeScanDiagnostic {
+                        path: error
+                            .path()
+                            .and_then(|p| p.strip_prefix(&root).ok())
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default(),
+                        message: error.to_string(),
+                    });
+                }
+                continue;
+            }
         };
         if !entry.file_type().is_file() || !is_supported_video(entry.path()) {
             continue;
         }
         let canonical = match entry.path().canonicalize() {
             Ok(path) if path.is_file() && path.starts_with(&root) => path,
-            _ => continue,
+            _ => {
+                complete = false;
+                if diagnostics.len() < 100 {
+                    diagnostics.push(NativeScanDiagnostic { path: entry.path().strip_prefix(&root).unwrap_or(entry.path()).to_string_lossy().into_owned(), message: "The file changed, became unavailable or left the selected root during discovery.".to_string() });
+                }
+                continue;
+            }
         };
         let metadata = canonical.metadata().map_err(display_error)?;
         let relative = canonical.strip_prefix(&root).map_err(display_error)?;
@@ -128,6 +149,7 @@ fn scan_directory(root: &Path, scan_subfolders: bool) -> Result<Vec<NativeMediaF
             .map(|value| value.as_millis() as u64)
             .unwrap_or(0);
         media.push(NativeMediaFile {
+            file_identity: crate::file_identity::identity(&canonical),
             name,
             extension,
             path_parts,
@@ -137,7 +159,11 @@ fn scan_directory(root: &Path, scan_subfolders: bool) -> Result<Vec<NativeMediaF
         });
     }
     media.sort_unstable_by(|left, right| left.absolute_path.cmp(&right.absolute_path));
-    Ok(media)
+    Ok(NativeScanResult {
+        files: media,
+        complete,
+        diagnostics,
+    })
 }
 
 #[tauri::command]
@@ -150,10 +176,12 @@ pub fn load_catalog(
     let Some(catalog_value) = catalog_value else {
         return Ok(None);
     };
-    let root = state.register_root(Path::new(&catalog_value.root_path))?;
-    app.asset_protocol_scope()
-        .allow_directory(&root, true)
-        .map_err(display_error)?;
+    // A disconnected root still has useful catalog metadata; it grants no file access.
+    if let Ok(root) = state.register_root(Path::new(&catalog_value.root_path)) {
+        app.asset_protocol_scope()
+            .allow_directory(&root, true)
+            .map_err(display_error)?;
+    }
     Ok(Some(catalog_value))
 }
 
@@ -192,18 +220,36 @@ pub fn save_catalog(
     state: State<'_, AppState>,
     mut catalog_value: NativeCatalog,
 ) -> Result<(), String> {
+    validate_catalog(&state, &mut catalog_value)?;
+    catalog::save(&mut state.open_database()?, &catalog_value)
+}
+
+pub fn validate_catalog(state: &AppState, catalog_value: &mut NativeCatalog) -> Result<(), String> {
     if catalog_value.version != 1 {
         return Err("Unsupported desktop catalog version.".to_string());
     }
     let root = state.validate_root(Path::new(&catalog_value.root_path))?;
     catalog_value.root_path = root.to_string_lossy().into_owned();
     for asset in &catalog_value.assets {
-        state.validate_file(Path::new(&asset.absolute_path))?;
+        if asset.availability.as_deref() == Some("unavailable") {
+            let path = Path::new(&asset.absolute_path);
+            if !path.starts_with(&root)
+                || path
+                    .components()
+                    .any(|part| matches!(part, std::path::Component::ParentDir))
+            {
+                return Err(
+                    "Unavailable catalog entries must remain inside their library root.".into(),
+                );
+            }
+        } else {
+            state.validate_file(Path::new(&asset.absolute_path))?;
+        }
         if asset.library_id != catalog_value.library_id {
             return Err("A catalog asset belongs to a different library.".to_string());
         }
     }
-    catalog::save(&mut state.open_database()?, &catalog_value)
+    Ok(())
 }
 
 #[tauri::command]
@@ -267,6 +313,10 @@ pub async fn hash_file(app: AppHandle, absolute_path: String) -> Result<String, 
 
 fn hash_file_contents(path: &Path) -> Result<String, String> {
     let mut file = File::open(path).map_err(display_error)?;
+    hash_open_file(&mut file)
+}
+
+fn hash_open_file(file: &mut File) -> Result<String, String> {
     let mut digest = Sha256::new();
     let mut buffer = vec![0_u8; 1024 * 1024];
     loop {
@@ -293,9 +343,11 @@ pub async fn cleanup_duplicate_files(
 ) -> Result<NativeDuplicateCleanupResult, String> {
     let (keeper, redundant_files) = validate_cleanup_request(&app.state::<AppState>(), request)?;
     async_runtime::spawn_blocking(move || {
-        perform_duplicate_cleanup(keeper, redundant_files, |path| {
-            trash::delete(path).map_err(display_error)
-        })
+        perform_duplicate_cleanup(
+            keeper,
+            redundant_files,
+            crate::safe_cleanup::recycle_verified,
+        )
     })
     .await
     .map_err(display_error)?
@@ -344,9 +396,10 @@ fn validate_cleanup_file(
 fn perform_duplicate_cleanup(
     keeper: ValidatedCleanupFile,
     redundant_files: Vec<ValidatedCleanupFile>,
-    mut move_to_trash: impl FnMut(&Path) -> Result<(), String>,
+    mut move_to_trash: impl FnMut(File, &Path) -> Result<(), String>,
 ) -> Result<NativeDuplicateCleanupResult, String> {
-    let keeper_hash = hash_file_contents(&keeper.path)?;
+    let mut keeper_handle = crate::safe_cleanup::open_keeper(&keeper.path)?;
+    let keeper_hash = hash_open_file(&mut keeper_handle)?;
     if keeper_hash != keeper.expected_sha256 {
         return Err(
             "The selected keeper changed after duplicate analysis. Run the scan again.".to_string(),
@@ -362,7 +415,14 @@ fn perform_duplicate_cleanup(
     };
     for file in redundant_files {
         let absolute_path = file.path.to_string_lossy().into_owned();
-        match hash_file_contents(&file.path) {
+        let (candidate, fingerprint) = match crate::safe_cleanup::open_candidate(&file.path) {
+            Ok(mut handle) => {
+                let hash = hash_open_file(&mut handle);
+                (Some(handle), hash)
+            }
+            Err(error) => (None, Err(error)),
+        };
+        match fingerprint {
             Ok(current_hash)
                 if current_hash != keeper_hash || current_hash != file.expected_sha256 =>
             {
@@ -376,7 +436,7 @@ fn perform_duplicate_cleanup(
                 absolute_path,
                 message,
             }),
-            Ok(_) => match move_to_trash(&file.path) {
+            Ok(_) => match move_to_trash(candidate.expect("hashed open candidate"), &file.path) {
                 Ok(()) => result.moved_paths.push(absolute_path),
                 Err(message) => result.failed.push(NativeDuplicateCleanupIssue {
                     absolute_path,
@@ -471,7 +531,8 @@ mod tests {
         let media = scan_directory(directory.path(), true).expect("native scan");
         let elapsed = started.elapsed();
         eprintln!("5,000-file native discovery: {elapsed:?}");
-        assert_eq!(media.len(), 5_000);
+        assert!(media.complete);
+        assert_eq!(media.files.len(), 5_000);
         assert!(elapsed.as_secs() < 15, "scan exceeded 15 seconds");
     }
 
@@ -530,7 +591,7 @@ mod tests {
         .expect("validated cleanup");
         let mut moved = Vec::new();
 
-        let result = perform_duplicate_cleanup(keeper, redundant_files, |path| {
+        let result = perform_duplicate_cleanup(keeper, redundant_files, |_file, path| {
             moved.push(path.to_path_buf());
             Ok(())
         })
@@ -574,7 +635,7 @@ mod tests {
         .expect("validated cleanup");
         fs::write(&changed_path, b"changed after scan").expect("changed fixture");
 
-        let result = perform_duplicate_cleanup(keeper, redundant_files, |_| {
+        let result = perform_duplicate_cleanup(keeper, redundant_files, |_, _| {
             Err("Recycle Bin unavailable".to_string())
         })
         .expect("cleanup result");

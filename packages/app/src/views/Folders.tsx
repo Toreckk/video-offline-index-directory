@@ -16,6 +16,7 @@ import { LibraryHealth } from '../features/library/components/LibraryHealth'
 
 export default function Folders() {
   const [section, setSection] = useState<'source' | 'health'>('source')
+  const [isReconnecting, setIsReconnecting] = useState(false)
   const { navigate } = useAppNavigation()
   const {
     openRouteDialog,
@@ -53,7 +54,7 @@ export default function Folders() {
           </p>
           <h2 className="mt-3 text-4xl font-black">Library</h2>
           <p className="mt-3 text-on-secondary">
-            Select, reconnect, and monitor your browser-indexed media roots.
+            Select, reconnect, and monitor your local video folders.
           </p>
         </div>
         {section === 'source' && <button
@@ -119,17 +120,19 @@ export default function Folders() {
 
               {permissionStatus !== 'granted' ? (
                 <div className="mt-8 border border-amber-300/15 bg-amber-400/5 p-5">
-                  <p className="font-bold">Browser permission is missing.</p>
+                  <p className="font-bold">{sourceKind === 'native-directory' ? 'Folder access needs to be restored.' : 'Browser permission is missing.'}</p>
                   <p className="mt-2 text-sm leading-6 text-on-secondary">
-                    Reconnect through a button click so the browser can safely show
-                    its permission prompt.
+                    {sourceKind === 'native-directory'
+                      ? 'Reconnect to retry the saved path. If access cannot be restored automatically, select the same folder in the Windows picker. Your tags and playback history stay linked to this library.'
+                      : 'Reconnect through a button click so the browser can safely show its permission prompt.'}
                   </p>
                   <button
                     type="button"
-                    onClick={() => void reconnectAndScan()}
+                    disabled={isReconnecting}
+                    onClick={() => { setIsReconnecting(true); void reconnectAndScan().finally(() => setIsReconnecting(false)) }}
                     className="mt-5 bg-amber-200 px-4 py-2.5 text-sm font-black text-black"
                   >
-                    Reconnect Library
+                    {isReconnecting ? 'Reconnecting…' : 'Reconnect Library'}
                   </button>
                 </div>
               ) : (
