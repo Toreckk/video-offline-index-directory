@@ -39,6 +39,8 @@
       "icons/icon.ico"
     ],
     "category": "Entertainment",
+    "license": "MIT",
+    "licenseFile": "../../../LICENSE",
     "shortDescription": "Offline-first local video library",
     "longDescription": "Browse, tag, organize, and review a local video library without uploading media.",
     "windows": {

@@ -1,6 +1,6 @@
 # v0.4.0 release assembly
 
-Status: reliability implementation assembled on `release/v0.4.0`; maintainer reported tested flows passing except tag-popup input focus on 2026-09-07. On 2026-09-23, they also reported desktop Close stalling or failing. Both regressions are corrected and await maintainer retest. Hosted checks and candidate packaging passed on the implementation commit recorded below; the proposal PR tracks checks for its latest head. Manual release gates remain open. Publication disabled.
+Status: reliability implementation assembled on `release/v0.4.0`; the maintainer reports both tag-popup input and desktop Close regressions retested successfully on candidate `ef5d818` on 2026-09-23. They also report both NSIS and MSI clean install, same-format upgrade, migration, playback and uninstall passed on that SHA. MIT is selected. The final license-bearing candidate still needs exact-artifact smoke evidence; the proposal PR tracks checks for its latest head. Publication remains disabled during assembly.
 
 Includes the repository assessment, consolidated documentation, roadmap, README,
 contributor guidance and release-tooling improvements already prepared, together
@@ -16,13 +16,14 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 - [x] Native probe deadlines, output/cancellation bounds, local-file/container restrictions and independent scheduling. Evidence: native helper lifecycle tests and an actual ffprobe run over [the synthetic MP4/WebM corpus](../fixtures/media/README.md).
 - [x] Critical dialog focus/onboarding fixes and bounded missing/corrupt-thumbnail regeneration. Evidence: focus/thumbnail tests and fresh-profile browser smoke.
 - [x] Cleanup locks verified file handles, journals recoverable staging and uses Recycle Bin operations. Metadata flush precedes filesystem mutation. Evidence: native lock/race fixtures and a real disposable-file recycle/restore round trip in the Windows user session.
-- [x] Dependency upgrades, advisory checks, declared-license inventory, pinned toolchains and adapter contract tests. [Dependency review](DEPENDENCY_REVIEW.md) records zero reported vulnerabilities, remaining upstream warnings and the unresolved project-license decision.
+- [x] Dependency upgrades, advisory checks, declared-license inventory, pinned toolchains and adapter contract tests. [Dependency review](DEPENDENCY_REVIEW.md) records zero reported vulnerabilities and remaining upstream warnings. The maintainer selected MIT for VOID source.
 - [x] Full local automated checks and both optimized installer builds passed. See the evidence table below. WiX validation remained enabled.
 - [x] Maintainer reports the other tested application changes working and QA passed (2026-09-07); the reported Manage video tags input regression is corrected with focus/typing and Escape regression coverage.
-- [ ] Maintainer retest of both tag inputs in normal/fullscreen player and desktop Close during idle/playback/pending save. Installed WebView2 stress evidence and installer-specific records remain separate gates; the general QA report does not identify installer format or environment versions.
-- [ ] Actual clean install, same-format v0.3.2 upgrade, uninstall and migration/recovery QA for **both** NSIS and MSI.
-- [x] Hosted shared/native checks and NSIS/MSI candidate packaging passed on implementation commit `e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3`; rerun on the final proposal head after any further changes.
-- [ ] Repository/environment protections and project-license/notice approval.
+- [x] Maintainer reports both tag inputs in normal/fullscreen player and desktop Close during idle/playback/pending save passed on `ef5d818` (2026-09-23).
+- [x] Maintainer reports clean install, same-format v0.3.2 upgrade, migration, playback and uninstall passed for **both** NSIS and MSI on `ef5d818` (2026-09-23).
+- [ ] Record installer hashes and Windows/WebView2 versions, then smoke-test the final license-bearing candidate artifact on its exact SHA. The final post-merge installer bytes need separate verification.
+- [x] Hosted shared/native checks and NSIS/MSI candidate packaging passed on tested candidate `ef5d8184ff390b7167e70b7316b55451fdda6208`; rerun on the final proposal head after any further changes.
+- [ ] Repository/environment protections and third-party notice/source-availability approval. The project's MIT selection is complete.
 
 ### Evidence and its limits
 
@@ -36,9 +37,10 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 | Filesystem recovery | One newly created disposable copy was recycled and restored with bytes verified; keeper/lock fixtures passed. No personal media was used. |
 | Workflow syntax / fixtures | actionlint passed; fixture regeneration script produced both formats in an ignored output directory. |
 | Installer builds | Locked optimized NSIS and MSI passed with ordinary WiX validation; local hashes below. |
-| Tag-input follow-up | Reproduced focus loss in a failing test, then verified both inputs, tag creation and popup-first Escape in the test and isolated Edge normal/fullscreen playback. Maintainer retest pending. |
-| Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The close dialog keeps focus above a later recovery panel. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Installed desktop retest pending. |
-| Installed runtime/hosted | Application QA reported passing except the focus issue above. [Hosted candidate run 35880854844](https://github.com/Toreckk/video-offline-index-directory/actions/runs/35880854844) passed web/shared, 24 native tests (including the formerly failing output-limit test), both synthetic-file ffprobe checks, and Windows NSIS/MSI packaging at `e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3`. The obsolete test-helper URL that caused an intermediate 404 was replaced by a pinned, SHA-256-verified release asset. Artifact `windows-release-e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3` (ID `10761547281`, archive SHA-256 `5512d912edbc85f29cf206ee7bd0746c737f6ea86d5aafc0ab4393a2e35e3fcb`) contains installers, `SHA256SUMS.txt`, notes and build provenance. Recheck latest-head CI in the PR; installer-specific runtime evidence remains open; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
+| License-bearing finalization check | Frozen install, `pnpm check` (56 files / 205 tests), `pnpm check:native` (24 native and 11 publisher tests), and dependency inventory (266 JavaScript / 285 Windows Rust packages) passed. Tauri built the NSIS installer and compiled the MSI source with the MIT license file. Local WiX ICE validation could not access the Windows Installer service in this session, so the license-bearing MSI requires a passing hosted package job with normal validation. |
+| Tag-input follow-up | Reproduced focus loss in a failing test, then verified both inputs, tag creation and popup-first Escape in the test and isolated Edge normal/fullscreen playback. Maintainer reports normal/fullscreen retest passed on `ef5d818`. |
+| Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The close dialog keeps focus above a later recovery panel. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Maintainer reports idle and pending-save close passed on `ef5d818`. |
+| Installed runtime/hosted | [Hosted candidate run 35884430571](https://github.com/Toreckk/video-offline-index-directory/actions/runs/35884430571) passed web/shared, 24 native tests (including the formerly failing output-limit test), both synthetic-file ffprobe checks, and Windows NSIS/MSI packaging at `ef5d8184ff390b7167e70b7316b55451fdda6208`. The obsolete test-helper URL that caused an intermediate 404 was replaced by a pinned, SHA-256-verified release asset. Artifact `windows-release-ef5d8184ff390b7167e70b7316b55451fdda6208` (ID `10764040378`, archive SHA-256 `aeb914a55a3a7771e5a438d3ef857d09fee0c6945391c973676062838f41dfe0`) contains installers, `SHA256SUMS.txt`, notes and build provenance. Maintainer reports both formats and focused tag/close flows passed on this SHA. Recheck latest-head CI and final installer bytes after release metadata changes; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
 
 Latest local artifacts built from the corrected source before its follow-up commit (record the exact hosted artifact SHA separately):
 
@@ -52,7 +54,7 @@ These hashes identify local test binaries, not future hosted/merge-SHA bytes. Re
 Local diagnostics and generated tools live under ignored `artifacts/`; they are not release assets. Committed fixtures and tests make the checks repeatable. The draft proposal carries exact commit and hosted artifact evidence after pushing.
 
 The implementing agent records local automated evidence; the maintainer owns
-license and publication decisions. Runtime gates remain pending until performed;
+third-party notice and publication decisions. Remaining runtime gates stay open until performed;
 unit mocks or installer builds cannot close them. Each completed item must link
 tests or evidence here before release finalization.
 

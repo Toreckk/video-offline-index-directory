@@ -6,10 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-23
+
 ### Added
 
 - Transactional desktop user-data storage and a browser storage adapter, with a legacy-data migration preview, retained recovery snapshots, bounded imports and visible save failures.
 - Metadata backup previews distinguish one-library exports from all-library exports and preserve ownership of unmatched records.
+
+### Changed
+
+- VOID's source is now available under the MIT License.
+- Project documentation now uses one current product-scope reference and one unreleased roadmap, with an evergreen QA checklist replacing completed release plans and outdated implementation notes.
+- Repository assessment, desktop performance criteria, UI/brand brief, contributor guidance and a gated roadmap now prioritize reliability before Insights and broader features.
+- Windows release tooling separates read-only candidate packaging from protected publication, retains reviewable artifacts and build provenance, and checks installer hashes, exact commit/tag state and upload results before publication.
+- Release validation now covers Cargo.lock, stable application identity, manifest/bundle targets, note headings and finalized changelog readiness, with regression tests and consolidated local check commands.
+- Development native data uses a separate namespace from installed data; migration/recovery and same-path reauthorization are documented explicitly.
+- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures with a checksum-verified, pinned helper download.
 
 ### Fixed
 
@@ -26,15 +38,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Security
 
 - Updated JavaScript dependencies and Rust transitive dependencies to resolve the vulnerabilities reported by the release dependency audits; desktop builds now require Rust 1.98 or newer.
-
-### Changed
-
-- Project documentation now uses one current product-scope reference and one unreleased roadmap, with an evergreen QA checklist replacing completed release plans and outdated implementation notes.
-- Repository assessment, desktop performance criteria, UI/brand brief, contributor guidance and a gated roadmap now prioritize reliability before Insights and broader features.
-- Windows release tooling separates read-only candidate packaging from protected publication, retains reviewable artifacts and build provenance, and checks installer hashes, exact commit/tag state and upload results before publication.
-- Release validation now covers Cargo.lock, stable application identity, manifest/bundle targets, note headings and finalized changelog readiness, with regression tests and consolidated local check commands.
-- Development native data uses a separate namespace from installed data; migration/recovery and same-path reauthorization are documented explicitly.
-- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures with a checksum-verified, pinned helper download.
 
 ## [0.3.2] - 2026-09-03
 
@@ -122,7 +125,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Desktop thumbnail generation no longer fails because canvas reads are tainted by native media URLs.
 - Imported legacy annotations and favorites remap to the current native library identity when relative media paths still match.
 
-[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.2.0...v0.3.0

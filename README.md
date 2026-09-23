@@ -82,4 +82,4 @@ scripts                    Release validation and publication tooling
 - [Release process](docs/RELEASE_PROCESS.md), [signing/update design](docs/UPDATE_SIGNING_ARCHITECTURE.md), [changelog](CHANGELOG.md): how work reaches users.
 - [Security reporting](SECURITY.md): report sensitive issues without exposing private media or paths.
 
-**License status:** a project license has not yet been selected. This repository does not currently grant an open-source license; maintainers must settle the policy before broader distribution/contribution claims.
+**License:** [MIT](LICENSE), copyright 2026 Juan Coret. Third-party dependencies retain their own licenses; see the [dependency review](docs/DEPENDENCY_REVIEW.md).

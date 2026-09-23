@@ -2,6 +2,7 @@
   "name": "@void/web",
   "private": true,
   "version": "0.4.0",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@void/app": "workspace:*",

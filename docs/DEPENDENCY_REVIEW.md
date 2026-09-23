@@ -1,6 +1,6 @@
 # v0.4 dependency review
 
-Review date: 2026-09-06. Results are dated evidence, not a guarantee that no future advisories exist. Maintainer approval of the project license is still pending; this change does not select one.
+Review date: 2026-09-06; project-license decision updated 2026-09-23. Results are dated evidence, not a guarantee that no future advisories exist. The maintainer selected MIT for VOID's own source; third-party terms remain separate.
 
 ## Advisories and toolchains
 
@@ -23,12 +23,12 @@ Raw local before/after audits are under ignored `artifacts/audit`. Run `pnpm aud
 
 ## License inventory
 
-`pnpm inventory:dependencies` writes `artifacts/audit/dependency-inventory.json`. It reads package manifests and the resolved Windows Cargo graph, and fails on external packages with no declared license metadata. After a clean frozen install, the local inventory contained 266 installed JavaScript package versions and 285 Windows Rust packages, including the unlicensed workspace crate. Installed JavaScript directories can contain older versions left by local updates; clean installation avoids that overcount. Final local pnpm and Rust audits again reported zero vulnerabilities.
+`pnpm inventory:dependencies` writes `artifacts/audit/dependency-inventory.json`. It reads package manifests and the resolved Windows Cargo graph, and fails on external packages with no declared license metadata. After a clean frozen install, the refreshed inventory contained 266 installed JavaScript package versions and 285 Windows Rust packages; the workspace crate is declared MIT. Installed JavaScript directories can contain older versions left by local updates; clean installation avoids that overcount. The last local pnpm and Rust audits reported zero vulnerabilities; hosted CI repeats them for each candidate.
 
 Review found common MIT/Apache/ISC/BSD/Unicode/Zlib/BlueOak licenses and specific obligations worth retaining in release review:
 
 - `caniuse-lite` declares CC-BY-4.0 for development compatibility data.
 - `lightningcss` declares MPL-2.0 for the build tool; Rust `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext` and `selectors` also declare MPL-2.0. Preserve notices and applicable source-availability obligations when distributing executable code; no modifications to those dependencies are included here.
-- The downloaded FFmpeg/Gyan helper is GPL-licensed development tooling. Its binaries are **not bundled** into VOID or candidate release assets; only locally generated test media is committed.
+- The locally used FFmpeg/Gyan helper is GPL-licensed development tooling. Hosted CI uses a pinned LGPL shared BtbN build. Neither helper is **bundled** into VOID or candidate release assets; only locally generated test media is committed.
 
-Declared-license inventory is not legal approval or a completed distributable SBOM. Before broader contribution/distribution claims, the maintainer must choose the project license and approve applicable notices/source availability. v0.10 adds distributable SBOM/provenance; foundational review remains a v0.4 release gate. Do not infer redistribution rights from a missing license file.
+Declared-license inventory is not legal approval or a completed distributable SBOM. The MIT selection covers VOID source, not third-party code; the maintainer still needs to approve applicable notices/source availability for distribution. v0.10 adds distributable SBOM/provenance; foundational review remains a v0.4 release gate.

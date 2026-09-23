@@ -1,6 +1,6 @@
 # Contributing to VOID
 
-Read the [current scope](docs/PRODUCT_SCOPE.md), [roadmap](docs/PRODUCT_ROADMAP.md), and [architecture](docs/adr/0001-platform-ports-and-adapters.md) before proposing a feature. The maintainer has not selected a project license yet; agree on the contribution/licensing policy before submitting substantial external work. No contributor agreement is implied by this guide.
+Read the [current scope](docs/PRODUCT_SCOPE.md), [roadmap](docs/PRODUCT_ROADMAP.md), and [architecture](docs/adr/0001-platform-ports-and-adapters.md) before proposing a feature. VOID is [MIT-licensed](LICENSE); contributions are submitted under that project license unless a separate agreement is made. No contributor agreement is implied by this guide.
 
 ## Local setup and checks
 

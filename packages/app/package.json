@@ -2,6 +2,7 @@
   "name": "@void/app",
   "private": true,
   "version": "0.4.0",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@tanstack/react-virtual": "3.14.10",

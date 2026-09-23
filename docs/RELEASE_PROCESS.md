@@ -82,7 +82,7 @@ Verify these settings separately; this change has not altered them:
 - Enable private vulnerability reporting and repository-enforced release immutability when the repository supports them; rehearse the draft-publication behavior first.
 - Add dependency-update automation and distributable attestations/SBOM after tool/provider validation. CI now repeats frontend/Rust advisory checks and declared-license inventory; maintainer review of obligations remains required. Keep permission scopes narrow and actions pinned to reviewed full SHAs.
 - Maintain the tested Node/Rust pins and review hosted runner image changes; hosted images still move. Require actual hosted results for each candidate.
-- Choose the project license; update GitHub About to the current desktop/local product description.
+- Keep the maintainer-approved MIT project license and third-party notice review current; update GitHub About to the desktop/local product description.
 
 Signing and automatic updates remain separate gated work in [UPDATE_SIGNING_ARCHITECTURE.md](UPDATE_SIGNING_ARCHITECTURE.md). Do not add signing credentials or public update endpoints as a side effect of release-process cleanup.
 
