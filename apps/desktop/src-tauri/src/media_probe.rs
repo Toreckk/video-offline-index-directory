@@ -327,12 +327,18 @@ mod tests {
                 "-NoProfile",
                 "-NonInteractive",
                 "-Command",
-                "[Console]::Out.Write('x' * 1100000)",
+                "[Console]::OpenStandardOutput().Write([byte[]]::new(1100000), 0, 1100000)",
             ]),
             &std::sync::atomic::AtomicBool::new(false),
-            std::time::Duration::from_secs(10),
+            // This fixture tests the byte cap, not PowerShell startup/console
+            // throughput on a loaded runner. Timeout behavior is tested above.
+            std::time::Duration::from_secs(30),
         );
-        assert!(result.unwrap_err().contains("output limit"));
+        let error = result.unwrap_err();
+        assert!(
+            error.contains("output limit"),
+            "unexpected failure: {error}"
+        );
     }
 
     #[test]

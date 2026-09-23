@@ -55,6 +55,7 @@ export async function acceptLegacyMigration() {
 
 export function readUserRecord(name: string) { return snapshot?.records[name] ?? null }
 export function hasUserDataStarted() { return status.phase !== 'idle' }
+export function hasUnsavedUserData() { return Boolean(processing) || Object.keys(pending).length > 0 }
 export function writeUserRecord(name: string, value: string) {
   if (suspendWrites || status.phase === 'idle' || status.phase === 'migration' || (status.phase === 'loading' && !snapshot)) return
   if ((pending[name] ?? snapshot?.records[name]) === value) return

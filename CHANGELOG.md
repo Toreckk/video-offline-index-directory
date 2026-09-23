@@ -13,11 +13,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
+- Manage video tags keeps its search and create inputs focusable inside the player, including fullscreen; Escape dismisses the tag popup before the player.
+- Desktop Close responds immediately when nothing remains to save and shows save progress or recovery choices when a pending write delays or prevents closing.
 - Desktop reconnect can reauthorize the same folder through the native picker when a migrated reference has no cached catalog, preserving its library identity and reporting cancellation or errors instead of silently doing nothing.
 - Library Source uses desktop-specific reconnect guidance and displays progress while reconnecting.
 - Verified file-identity renames commit catalog, tags and playback records together; incomplete discovery retains the previous records and changed files invalidate stale enrichment.
 - Player sessions detach outgoing media and ignore stale callbacks, with actionable playback errors and focus restoration for critical dialogs.
-- Fresh profiles initialize without a saved library, and desktop window close waits for pending metadata and playback progress to save.
+- Fresh profiles initialize without a saved library, and desktop window close captures pending metadata and playback progress before exiting.
 - Exact duplicate cleanup saves keeper metadata before file actions, protects verified handles against concurrent replacement, and journals staging paths for recoverable Recycle Bin moves.
 - Missing or corrupt thumbnails receive bounded regeneration attempts, and native metadata probes have independent scheduling, cancellation, deadlines and output limits.
 

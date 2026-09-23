@@ -29,6 +29,8 @@ export function useModalFocus(ref: RefObject<HTMLElement | null>, enabled: boole
     const handleKey = (event: KeyboardEvent) => {
       if (!isTop()) return
       if (event.key === 'Escape') {
+        // The owned popup handles Escape first, then restores its trigger.
+        if (dialog.querySelector('[data-void-popover-panel]')) return
         event.preventDefault()
         event.stopImmediatePropagation()
         escape.current()

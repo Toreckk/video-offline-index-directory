@@ -16,6 +16,7 @@ import type {
 
 export type DesktopWindowController = {
   close: () => Promise<void>
+  destroy: () => Promise<void>
   onCloseRequested?: (listener: (event: { preventDefault: () => void }) => void) => Promise<() => void>
   isMaximized: () => Promise<boolean>
   minimize: () => Promise<void>
@@ -29,6 +30,7 @@ export function createDesktopWindowController(): DesktopWindowController {
 
   return {
     close: () => appWindow.close(),
+    destroy: () => appWindow.destroy(),
     onCloseRequested: (listener) => appWindow.onCloseRequested(listener),
     isMaximized: () => appWindow.isMaximized(),
     minimize: () => appWindow.minimize(),

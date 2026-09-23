@@ -1,6 +1,6 @@
 # v0.4.0 release assembly
 
-Status: reliability implementation and local automated/package validation complete on `release/v0.4.0`; hosted evidence and maintainer QA pending. Publication disabled.
+Status: reliability implementation assembled on `release/v0.4.0`; maintainer reported tested flows passing except tag-popup input focus on 2026-09-07. On 2026-09-23, they also reported desktop Close stalling or failing. Both regressions are corrected locally and await maintainer retest. Hosted candidate packaging and remaining release gates are still open. Publication disabled.
 
 Includes the repository assessment, consolidated documentation, roadmap, README,
 contributor guidance and release-tooling improvements already prepared, together
@@ -18,7 +18,8 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 - [x] Cleanup locks verified file handles, journals recoverable staging and uses Recycle Bin operations. Metadata flush precedes filesystem mutation. Evidence: native lock/race fixtures and a real disposable-file recycle/restore round trip in the Windows user session.
 - [x] Dependency upgrades, advisory checks, declared-license inventory, pinned toolchains and adapter contract tests. [Dependency review](DEPENDENCY_REVIEW.md) records zero reported vulnerabilities, remaining upstream warnings and the unresolved project-license decision.
 - [x] Full local automated checks and both optimized installer builds passed. See the evidence table below. WiX validation remained enabled.
-- [ ] Installed WebView2 playback/audio/decoder stress and the maintainer's 2,500+ video reconnect/persistence checks.
+- [x] Maintainer reports the other tested application changes working and QA passed (2026-09-07); the reported Manage video tags input regression is corrected with focus/typing and Escape regression coverage.
+- [ ] Maintainer retest of both tag inputs in normal/fullscreen player and desktop Close during idle/playback/pending save. Installed WebView2 stress evidence and installer-specific records remain separate gates; the general QA report does not identify installer format or environment versions.
 - [ ] Actual clean install, same-format v0.3.2 upgrade, uninstall and migration/recovery QA for **both** NSIS and MSI.
 - [ ] Exact-SHA hosted checks/candidate artifacts, repository/environment protections and project-license/notice approval.
 
@@ -26,7 +27,7 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 
 | Check | Local result / remaining evidence |
 | --- | --- |
-| Shared checks | `pnpm check` passed: 55 files / 199 tests, 10 release-policy tests, local documentation/version validation, ESLint and both production UI builds. |
+| Shared checks | Latest `pnpm check`: 56 files / 204 tests, 10 release-policy tests, local documentation/version validation, ESLint and both production UI builds passed. |
 | Release policy | 10 Node policy tests and 11 offline PowerShell publisher tests passed. |
 | Native checks | Locked Clippy with warnings denied, formatting, and 24 tests passed; 2 opt-in tests executed separately as below. |
 | Real-media probe | Two generated MP4/WebM files probed successfully using the checksum-verified optional helper. This tiny corpus is correctness evidence, not a large-library performance result. |
@@ -34,14 +35,16 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 | Filesystem recovery | One newly created disposable copy was recycled and restored with bytes verified; keeper/lock fixtures passed. No personal media was used. |
 | Workflow syntax / fixtures | actionlint passed; fixture regeneration script produced both formats in an ignored output directory. |
 | Installer builds | Locked optimized NSIS and MSI passed with ordinary WiX validation; local hashes below. |
-| Installed runtime/hosted | Pending; record SHA, hashes and results in the proposal. Follow [V0.4_TESTING.md](V0.4_TESTING.md). |
+| Tag-input follow-up | Reproduced focus loss in a failing test, then verified both inputs, tag creation and popup-first Escape in the test and isolated Edge normal/fullscreen playback. Maintainer retest pending. |
+| Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Installed desktop retest pending. |
+| Installed runtime/hosted | Application QA reported passing except the focus issue above. Baseline hosted shared/native jobs passed; candidate packaging failed when the output-limit fixture timed out. The fixture now writes raw bytes with a separate test allowance; production deadlines/caps are unchanged. A new hosted run must pass. Installer-specific evidence remains open; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
 
-Local pre-commit candidate artifacts (source subsequently committed on this assembly branch; final SHA is recorded in the proposal):
+Latest local artifacts built from the corrected source before its follow-up commit (record the exact hosted artifact SHA separately):
 
 | File | Bytes | SHA-256 |
 | --- | --- | --- |
-| `VOID_0.4.0_x64-setup.exe` | 3,053,649 | `09e581a1e7169b4b93fb91e858e54e614529e849c7dd7c19a823af2a5bd09c33` |
-| `VOID_0.4.0_x64_en-US.msi` | 5,320,704 | `46b998ab2804c8e1d4e16f05f57459743241858e6597c0ed4324e3c35d61dbca` |
+| `VOID_0.4.0_x64-setup.exe` | 3,050,382 | `780675237dd7a266f123cca5b8416971c86dcd483e0cf44a0052fd136ada03ff` |
+| `VOID_0.4.0_x64_en-US.msi` | 5,324,800 | `3d7effcd6e5bab38cc95f13bf8a0762ddcab05b7b0dd922f57dd02614bf3dfad` |
 
 These hashes identify local test binaries, not future hosted/merge-SHA bytes. Record new hashes whenever rebuilding; do not use this table to approve public artifacts.
 
