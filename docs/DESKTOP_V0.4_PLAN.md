@@ -1,6 +1,6 @@
 # v0.4.0 release assembly
 
-Status: reliability implementation assembled on `release/v0.4.0`; maintainer reported tested flows passing except tag-popup input focus on 2026-09-07. On 2026-09-23, they also reported desktop Close stalling or failing. Both regressions are corrected locally and await maintainer retest. Hosted candidate packaging and remaining release gates are still open. Publication disabled.
+Status: reliability implementation assembled on `release/v0.4.0`; maintainer reported tested flows passing except tag-popup input focus on 2026-09-07. On 2026-09-23, they also reported desktop Close stalling or failing. Both regressions are corrected and await maintainer retest. Hosted checks and candidate packaging passed on the implementation commit recorded below; the proposal PR tracks checks for its latest head. Manual release gates remain open. Publication disabled.
 
 Includes the repository assessment, consolidated documentation, roadmap, README,
 contributor guidance and release-tooling improvements already prepared, together
@@ -21,7 +21,8 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 - [x] Maintainer reports the other tested application changes working and QA passed (2026-09-07); the reported Manage video tags input regression is corrected with focus/typing and Escape regression coverage.
 - [ ] Maintainer retest of both tag inputs in normal/fullscreen player and desktop Close during idle/playback/pending save. Installed WebView2 stress evidence and installer-specific records remain separate gates; the general QA report does not identify installer format or environment versions.
 - [ ] Actual clean install, same-format v0.3.2 upgrade, uninstall and migration/recovery QA for **both** NSIS and MSI.
-- [ ] Exact-SHA hosted checks/candidate artifacts, repository/environment protections and project-license/notice approval.
+- [x] Hosted shared/native checks and NSIS/MSI candidate packaging passed on implementation commit `e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3`; rerun on the final proposal head after any further changes.
+- [ ] Repository/environment protections and project-license/notice approval.
 
 ### Evidence and its limits
 
@@ -37,7 +38,7 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 | Installer builds | Locked optimized NSIS and MSI passed with ordinary WiX validation; local hashes below. |
 | Tag-input follow-up | Reproduced focus loss in a failing test, then verified both inputs, tag creation and popup-first Escape in the test and isolated Edge normal/fullscreen playback. Maintainer retest pending. |
 | Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The close dialog keeps focus above a later recovery panel. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Installed desktop retest pending. |
-| Installed runtime/hosted | Application QA reported passing except the focus issue above. Baseline hosted shared/native jobs passed; candidate packaging failed when the output-limit fixture timed out. The fixture now writes raw bytes with a separate test allowance; production deadlines/caps are unchanged. A new hosted run must pass. Installer-specific evidence remains open; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
+| Installed runtime/hosted | Application QA reported passing except the focus issue above. [Hosted candidate run 35880854844](https://github.com/Toreckk/video-offline-index-directory/actions/runs/35880854844) passed web/shared, 24 native tests (including the formerly failing output-limit test), both synthetic-file ffprobe checks, and Windows NSIS/MSI packaging at `e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3`. The obsolete test-helper URL that caused an intermediate 404 was replaced by a pinned, SHA-256-verified release asset. Artifact `windows-release-e65a1af4f9d49dcfff86cf0f9f6791cc9f9f0ed3` (ID `10761547281`, archive SHA-256 `5512d912edbc85f29cf206ee7bd0746c737f6ea86d5aafc0ab4393a2e35e3fcb`) contains installers, `SHA256SUMS.txt`, notes and build provenance. Recheck latest-head CI in the PR; installer-specific runtime evidence remains open; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
 
 Latest local artifacts built from the corrected source before its follow-up commit (record the exact hosted artifact SHA separately):
 
