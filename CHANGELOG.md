@@ -34,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Windows release tooling separates read-only candidate packaging from protected publication, retains reviewable artifacts and build provenance, and checks installer hashes, exact commit/tag state and upload results before publication.
 - Release validation now covers Cargo.lock, stable application identity, manifest/bundle targets, note headings and finalized changelog readiness, with regression tests and consolidated local check commands.
 - Development native data uses a separate namespace from installed data; migration/recovery and same-path reauthorization are documented explicitly.
-- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures.
+- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures with a checksum-verified, pinned helper download.
 
 ## [0.3.2] - 2026-09-03
 

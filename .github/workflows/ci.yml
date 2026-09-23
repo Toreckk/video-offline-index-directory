@@ -63,12 +63,13 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/ffmpeg | Out-Null
-          curl.exe --silent --show-error --location --fail --max-time 300 https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.1-essentials_build.7z --output artifacts/ffmpeg/tool.7z
+          curl.exe --silent --show-error --location --fail --retry 3 --max-time 300 https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-16-19-44/ffmpeg-n9.0.1-31-g3a7c002718-win64-lgpl-shared-9.0.zip --output artifacts/ffmpeg/tool.zip
           if ($LASTEXITCODE -ne 0) { throw 'Could not download the test helper' }
-          if ((Get-FileHash artifacts/ffmpeg/tool.7z -Algorithm SHA256).Hash -ne '49a73bdf0850092a252ac4641d922f3048d63ed113e196cc65ce1e4f7fb33e85') { throw 'Test-helper checksum mismatch' }
-          tar -xf artifacts/ffmpeg/tool.7z -C artifacts/ffmpeg
-          if ($LASTEXITCODE -ne 0) { throw 'Could not extract the test helper' }
-          $env:VOID_FFPROBE_PATH = Join-Path $PWD 'artifacts/ffmpeg/ffmpeg-9.0.1-essentials_build/bin/ffprobe.exe'
+          if ((Get-FileHash artifacts/ffmpeg/tool.zip -Algorithm SHA256).Hash -ne '637358c079097ca4876902133b8811d094a7cc04d80db97fa4eb372c0b7ec225') { throw 'Test-helper checksum mismatch' }
+          Expand-Archive artifacts/ffmpeg/tool.zip -DestinationPath artifacts/ffmpeg -Force
+          $probe = Get-ChildItem artifacts/ffmpeg -Filter ffprobe.exe -Recurse -File | Select-Object -First 1
+          if (-not $probe) { throw 'Test helper does not contain ffprobe.exe' }
+          $env:VOID_FFPROBE_PATH = $probe.FullName
           $env:VOID_MEDIA_PROBE_FIXTURE = Join-Path $PWD 'fixtures/media'
           cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --lib benchmarks_a_configured_media_corpus -- --ignored --nocapture
 
