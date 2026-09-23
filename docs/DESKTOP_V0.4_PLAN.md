@@ -27,7 +27,7 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 
 | Check | Local result / remaining evidence |
 | --- | --- |
-| Shared checks | Latest `pnpm check`: 56 files / 204 tests, 10 release-policy tests, local documentation/version validation, ESLint and both production UI builds passed. |
+| Shared checks | Latest `pnpm check`: 56 files / 205 tests, 10 release-policy tests, local documentation/version validation, ESLint and both production UI builds passed. |
 | Release policy | 10 Node policy tests and 11 offline PowerShell publisher tests passed. |
 | Native checks | Locked Clippy with warnings denied, formatting, and 24 tests passed; 2 opt-in tests executed separately as below. |
 | Real-media probe | Two generated MP4/WebM files probed successfully using the checksum-verified optional helper. This tiny corpus is correctness evidence, not a large-library performance result. |
@@ -36,15 +36,15 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 | Workflow syntax / fixtures | actionlint passed; fixture regeneration script produced both formats in an ignored output directory. |
 | Installer builds | Locked optimized NSIS and MSI passed with ordinary WiX validation; local hashes below. |
 | Tag-input follow-up | Reproduced focus loss in a failing test, then verified both inputs, tag creation and popup-first Escape in the test and isolated Edge normal/fullscreen playback. Maintainer retest pending. |
-| Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Installed desktop retest pending. |
+| Close follow-up | Verified immediate close when no save remains, successful pending-save close, visible failure/export/explicit exit and slow-save exit in `DesktopClose.test.tsx`. The close dialog keeps focus above a later recovery panel. The post-save path uses the window's direct destroy command; the required Tauri capability is declared. Installed desktop retest pending. |
 | Installed runtime/hosted | Application QA reported passing except the focus issue above. Baseline hosted shared/native jobs passed; candidate packaging failed when the output-limit fixture timed out. The fixture now writes raw bytes with a separate test allowance; production deadlines/caps are unchanged. A new hosted run must pass. Installer-specific evidence remains open; follow [V0.4_TESTING.md](V0.4_TESTING.md). |
 
 Latest local artifacts built from the corrected source before its follow-up commit (record the exact hosted artifact SHA separately):
 
 | File | Bytes | SHA-256 |
 | --- | --- | --- |
-| `VOID_0.4.0_x64-setup.exe` | 3,050,382 | `780675237dd7a266f123cca5b8416971c86dcd483e0cf44a0052fd136ada03ff` |
-| `VOID_0.4.0_x64_en-US.msi` | 5,324,800 | `3d7effcd6e5bab38cc95f13bf8a0762ddcab05b7b0dd922f57dd02614bf3dfad` |
+| `VOID_0.4.0_x64-setup.exe` | 3,052,709 | `f7e84576e581c463f010390345c6a68f3617e912a6b99758498e3b6f9718b752` |
+| `VOID_0.4.0_x64_en-US.msi` | 5,324,800 | `555ffc5a8fa59afe259879e1bb8ac5a7b3ac5468db4005595c7c7010a0cbc7cf` |
 
 These hashes identify local test binaries, not future hosted/merge-SHA bytes. Record new hashes whenever rebuilding; do not use this table to approve public artifacts.
 

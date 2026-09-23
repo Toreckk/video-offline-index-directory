@@ -29,7 +29,7 @@ export function DesktopShell({ children }: DesktopShellProps) {
     clearTimer()
     setExit(null)
   }, [clearTimer])
-  useModalFocus(exitRef, exit !== null, cancelExit)
+  useModalFocus(exitRef, exit !== null, cancelExit, 10)
   const closeNow = useCallback(() => {
     approved.current = true
     // The requested close was already intercepted. Destroy after the save to
