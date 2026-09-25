@@ -29,7 +29,7 @@ Review found common MIT/Apache/ISC/BSD/Unicode/Zlib/BlueOak licenses and specifi
 
 - `caniuse-lite` declares CC-BY-4.0 for development compatibility data.
 - `lightningcss` declares MPL-2.0 for the build tool; Rust `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext` and `selectors` also declare MPL-2.0. Preserve notices and applicable source-availability obligations when distributing executable code; no modifications to those dependencies are included here.
-- The locally used FFmpeg/Gyan helper is GPL-licensed development tooling. Hosted CI uses a pinned LGPL shared BtbN build. Neither helper is **bundled** into VOID or candidate release assets; only locally generated test media is committed.
+- The locally used FFmpeg/Gyan helper is GPL-licensed development tooling. Hosted CI uses the LGPL shared BtbN **2026-08-31 month-end build**, whose SHA-256 was verified against the publisher's asset digest and downloaded bytes. The two synthetic fixtures passed with that helper on 2026-09-25. [BtbN retains month-end builds for two years, versus 14 daily builds](https://github.com/BtbN/FFmpeg-Builds#release-retention-policy); the previous daily pin would have expired. Reassess at the v0.5 dependency review and refresh before August 2028. Neither helper is **bundled** into VOID or candidate release assets; only locally generated test media is committed.
 
 ## Distributable notices
 

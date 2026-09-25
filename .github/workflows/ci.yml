@@ -64,9 +64,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/ffmpeg | Out-Null
-          curl.exe --silent --show-error --location --fail --retry 3 --max-time 300 https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-16-19-44/ffmpeg-n9.0.1-31-g3a7c002718-win64-lgpl-shared-9.0.zip --output artifacts/ffmpeg/tool.zip
+          # Month-end builds are retained for two years; ordinary daily builds expire after 14 builds.
+          # Reassess this pin at dependency reviews and before August 2028.
+          curl.exe --silent --show-error --location --fail --retry 3 --max-time 300 https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-08-31-13-27/ffmpeg-n9.0.1-11-ge47273f4d9-win64-lgpl-shared-9.0.zip --output artifacts/ffmpeg/tool.zip
           if ($LASTEXITCODE -ne 0) { throw 'Could not download the test helper' }
-          if ((Get-FileHash artifacts/ffmpeg/tool.zip -Algorithm SHA256).Hash -ne '637358c079097ca4876902133b8811d094a7cc04d80db97fa4eb372c0b7ec225') { throw 'Test-helper checksum mismatch' }
+          if ((Get-FileHash artifacts/ffmpeg/tool.zip -Algorithm SHA256).Hash -ne '83a824f0729a69d143c9865125bb86988a11dd388325f0033711045522068aa0') { throw 'Test-helper checksum mismatch' }
           Expand-Archive artifacts/ffmpeg/tool.zip -DestinationPath artifacts/ffmpeg -Force
           $probe = Get-ChildItem artifacts/ffmpeg -Filter ffprobe.exe -Recurse -File | Select-Object -First 1
           if (-not $probe) { throw 'Test helper does not contain ffprobe.exe' }
