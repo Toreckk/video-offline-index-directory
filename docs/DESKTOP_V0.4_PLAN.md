@@ -31,7 +31,7 @@ with the reliability milestone in [the roadmap](PRODUCT_ROADMAP.md).
 
 | Check | Local result / remaining evidence |
 | --- | --- |
-| Shared checks | Latest `pnpm check`: 56 files / 205 tests, 10 release-policy tests, local documentation/version validation, ESLint and both production UI builds passed. |
+| Shared checks | Latest `pnpm check`: 56 files / 205 tests, 12 release-policy/notice tests, local documentation/version validation, ESLint and both production UI builds passed. |
 | Release policy | 12 Node policy/notice tests and 35 offline PowerShell preflight/publisher scenarios passed on 2026-09-25. Workflow syntax passed actionlint. |
 | Native checks | Locked Clippy with warnings denied, formatting, and 24 tests passed; 2 opt-in tests executed separately as below. |
 | Real-media probe | Two generated MP4/WebM files probed successfully using the checksum-verified optional helper. This tiny corpus is correctness evidence, not a large-library performance result. |

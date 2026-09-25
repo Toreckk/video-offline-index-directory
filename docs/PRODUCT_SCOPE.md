@@ -6,7 +6,7 @@ This document distinguishes the published v0.3.2 capability set from the v0.4.0 
 
 The release branch implements transactional native user data, current-origin migration and retained recovery, scoped atomic imports, conservative scan/rename identity, player teardown, bounded probes, safer cleanup, critical-dialog focus and reconnect recovery. The browser uses a corresponding transactional IndexedDB adapter. Development native data is separated from installed data. See [candidate notes](releases/v0.4.0.md), [data recovery](DATA_RECOVERY.md) and [implementation/evidence status](DESKTOP_V0.4_PLAN.md).
 
-The persistence limitations below describe **published v0.3.2**, not the candidate implementation. Installed migration and other manual release gates remain open; implementation is not a claim of released support.
+The persistence limitations below describe **published v0.3.2**, not the candidate implementation. The maintainer has reported candidate migration and both installer formats passing; final merge-artifact smoke and publication remain open. Candidate validation is not a claim of released support.
 
 ## Product purpose
 
