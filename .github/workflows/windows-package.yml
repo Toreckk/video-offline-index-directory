@@ -54,6 +54,7 @@ jobs:
             "$hash  $($_.Name)"
           } | Set-Content release-assets/SHA256SUMS.txt -Encoding utf8
           Copy-Item $manifest.notes release-assets/RELEASE_NOTES.md
+          Copy-Item THIRD_PARTY_NOTICES.txt release-assets/THIRD_PARTY_NOTICES.txt
           @{
             version = $manifest.version
             commit = $env:GITHUB_SHA
@@ -67,6 +68,8 @@ jobs:
           "### Windows candidate: v$($manifest.version)" >> $env:GITHUB_STEP_SUMMARY
           "Commit: $env:GITHUB_SHA. Unsigned NSIS/MSI; manual QA is still required." >> $env:GITHUB_STEP_SUMMARY
           Get-Content release-assets/SHA256SUMS.txt >> $env:GITHUB_STEP_SUMMARY
+          "Download the artifact below, then run: pnpm release:inspect <extracted-folder> $env:GITHUB_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "For the final master build, Publish release inputs: build_run_id=$env:GITHUB_RUN_ID; expected_sha=$env:GITHUB_SHA. Dispatch only after installed smoke QA." >> $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-release-${{ github.sha }}

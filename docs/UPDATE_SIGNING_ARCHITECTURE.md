@@ -4,7 +4,7 @@
 
 VOID v0.3.2 produces unsigned Windows x86-64 NSIS and MSI installers. It does not include an automatic updater. SHA-256 checksums published with each GitHub Release provide download-integrity evidence, but they are not publisher identity and do not suppress Windows SmartScreen warnings.
 
-This is an explicit release limitation, not an implicit trust claim. The current publication workflow builds installers from the merged release commit and publishes only after tests, lint, Rust checks, and both installer builds succeed.
+This is an explicit release limitation, not an implicit trust claim. The v0.4 workflow builds installers from the merged release commit. A separate manual dispatch promotes that reviewed build only after CI, package/provenance checks and final installed smoke; it automatically verifies public download hashes. See [release process](RELEASE_PROCESS.md).
 
 ## Two independent signatures
 

@@ -21,7 +21,7 @@ Use disposable fixture libraries. Do not commit generated installers, personal v
 - Use Conventional Commits (`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`); record compatibility changes explicitly during 0.x.
 - Update current scope only when capability lands; plans go in the roadmap and notable completed changes in `[Unreleased]`. Preserve historical release evidence through tagged links when old plans are removed.
 
-For ordinary work use a focused branch and PR. During release assembly, implementation PRs target `release/vX.Y.Z`; the draft proposal targets `master`. See [release process](docs/RELEASE_PROCESS.md) before changing the manifest: merging an authorized new manifest on master can publish installers.
+For ordinary work use a focused branch and PR. During release assembly, implementation PRs target `release/vX.Y.Z`; the draft proposal targets `master`. See [release process](docs/RELEASE_PROCESS.md): merging a finalized manifest builds installers; publication requires a separate manual dispatch with the reviewed build run and commit. When updating dependencies, run `pnpm notices:generate`, review the changed terms and source links, and commit `THIRD_PARTY_NOTICES.txt` with the lockfile.
 
 ## Reporting problems
 

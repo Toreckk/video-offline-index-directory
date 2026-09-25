@@ -4,6 +4,16 @@
 
 Branch protection and environment reviewers are **GitHub settings**, not guarantees established by these YAML files. The maintainer must verify them before relying on an approval gate.
 
+## Routine release: the short path
+
+1. Assemble the release branch and draft PR. The implementing agent maintains versions, changelog, notes, dependency notices and checks; the maintainer chooses scope and any new license/signing policy.
+2. Push once the changes are ready. Hosted CI and candidate packaging run automatically. Test the changed flows and both installer formats using the retained artifact. Keep completed evidence when later commits change only documentation or release automation.
+3. Finalize `publish: true`, merge the reviewed PR and let the final master build finish. The merge does **not** publish anything.
+4. Download/extract that final artifact. Run `pnpm release:inspect <extracted-folder> <full-merge-SHA>` to verify checksums and create a QA record under ignored `artifacts/release-qa/`, including Windows/WebView2 details. Smoke-test install, launch/playback, persistence and close in each format. The agent can record a tester's reported results; it must not invent them.
+5. In GitHub Actions, open **Publish release → Run workflow**, select `master`, and copy `build_run_id` and `expected_sha` from the build summary. This is the publication action. The workflow checks the build, CI, artifact, tag and downloads, publishes, and records results automatically. An agent may dispatch it when its connected tooling supports dispatch and the maintainer has authorized publication.
+
+Do the full migration/upgrade matrix once per relevant application/installer change. Documentation, evidence and publisher-only commits do not restart it. A rebuilt final artifact needs the short installed smoke check; add wider tests only when code or installer behavior changed. The short check and publication dispatch are the routine human work; hash collection, environment recording, repeated test commands and post-publication download verification are automated. Repository protection setup is a one-time operations task, not a question to repeat every release.
+
 ## Version and history policy
 
 Use Semantic Versioning and Conventional Commits. During 0.x, minor releases can change compatibility if release notes explain it; use patches for compatible fixes. Keep published tags and binaries immutable and fix forward with a higher version.
@@ -33,7 +43,7 @@ Keep `[Unreleased]` for notable completed changes. At finalization review the fu
 
 Pushing a `release/**` branch runs candidate packaging after CI succeeds, including when the new workflow is not yet on the default branch. Once the workflow exists on the default branch, **Package Windows candidate** can also be run manually against the release branch. The same `.github/workflows/windows-package.yml` is called by publication, avoiding two different packaging recipes.
 
-Candidate packaging uses read-only repository permissions, runs shared/native checks, builds locked NSIS/MSI packages with ordinary WiX validation, and uploads `windows-release-<commit SHA>` for 14 days. It includes both installers, `SHA256SUMS.txt`, `RELEASE_NOTES.md`, and `build-info.json` (version, commit, repository, workflow run/attempt and toolchain versions). The build record is traceability, not a cryptographic attestation or reproducibility guarantee.
+Candidate packaging uses read-only repository permissions, runs shared/native checks, builds locked NSIS/MSI packages with ordinary WiX validation, and uploads `windows-release-<commit SHA>` for 14 days. It includes both installers, `SHA256SUMS.txt`, `THIRD_PARTY_NOTICES.txt`, `RELEASE_NOTES.md`, and `build-info.json` (version, commit, repository, workflow run/attempt and toolchain versions). Both installers also include the notices file. The build record is traceability, not a cryptographic attestation or reproducibility guarantee.
 
 A manual candidate run never creates a tag or GitHub Release, regardless of the manifest's publish flag. Candidate downloads are Actions artifacts, not public installation recommendations. If an artifact expires, rebuild and re-record its exact hashes/QA evidence. Rebuilding may produce different bytes; never assume byte-for-byte reproducibility.
 
@@ -49,7 +59,7 @@ Use [MANUAL_QA.md](MANUAL_QA.md). Record:
 | Migration/recovery | Supported prior-version data, before/after counts/content, failure recovery |
 | Result | Pass/fail/pending, tester/date, linked defects and release decision |
 
-Both NSIS and MSI need real runtime coverage if both are advertised. Never infer upgrade safety from successful compilation. The historical v0.3.2 MSI waiver remains visible; future release-wide claims must be backed by evidence. Data loss, unsafe cleanup, persistent audio and installer continuity failures block publication. A noncritical exception must explicitly state risk, owner and follow-up; do not quietly check an unperformed gate.
+Both NSIS and MSI need real runtime coverage if both are advertised. Never infer upgrade safety from successful compilation. The historical v0.3.2 MSI waiver remains visible; future release-wide claims must be backed by evidence. Data loss, unsafe cleanup, persistent audio and installer continuity failures block publication. A noncritical exception must explicitly state risk, owner and follow-up; do not quietly check an unperformed gate. Keep QA results in the PR or attached record so adding evidence does not itself force a new binary build. Missing historical machine details must stay labeled unavailable; collect them automatically for the final artifact.
 
 Keep the application identifier `com.toreckk.void`, MSI upgrade code and legacy NSIS migration hook stable across brand changes. Same-format upgrades preserve data. Switching formats requires uninstall without deleting app data and then installing the other format.
 
@@ -57,19 +67,20 @@ Keep the application identifier `com.toreckk.void`, MSI upgrade code and legacy 
 
 Finalize the changelog/notes, set the new manifest to `publish: true`, run finalized validation, and ensure CI/manual evidence matches the proposal head. Remove draft status only when proposal gates are complete.
 
-**Merge effect:** a manifest change on master starts Publish release. Its read-only build job recreates the installers from the merge SHA and retains them. Only the separate `publish` job has `contents: write`, and it references the GitHub `release` environment. Configure required reviewers there so approval occurs **after binaries exist**.
+**Merge effect:** a manifest change on master starts the read-only build job in **Publish release**. It recreates the installers from the merge SHA and retains them. A merge never starts the write-capable publisher. Only a separate manual **Publish release** workflow dispatch on `master` can run that job; enter the reviewed build run ID and the exact approved merge SHA. Read-only preflight rejects another branch/SHA, a failed or unrelated build, absent successful CI or an expired/missing artifact. The publisher verifies the build run/attempt, provenance, notes and checksums. The `publish` job also references the GitHub `release` environment; required reviewers there add a second approval layer. Keep master at the approved SHA until dispatch; a later dispatch on a different SHA is rejected.
 
-Before approving that job, download and smoke-test the actual merge-SHA artifacts and record hashes. The release-branch candidate has a different commit and is insufficient evidence for final bytes. Re-run proportional manual checks, especially install/upgrade and migration. If environment reviewers are not configured, the publish job can proceed automatically after the build; YAML alone does not insert a human approval.
+Before dispatching publication, download and smoke-test the actual merge-SHA artifacts and record hashes with `release:inspect`. The release-branch candidate has a different commit and is insufficient evidence for final bytes. Carry forward its full QA matrix when behavior has not changed, and record the final installed smoke separately. If environment reviewers are absent, publication proceeds after the explicit manual dispatch; it cannot run as a side effect of the merge. Required-reviewer settings are recommended additional protection, not an unverifiable prerequisite for using this manual gate.
 
-The publisher verifies provenance fields, notes against the checked-out commit, exactly named NSIS/MSI checksum entries, local hashes, existing release/draft/tag state, uploaded names/sizes, CLI failures, and the published tag target. Lookup failures other than 404 stop publication. A matching unpublished draft may resume; a published release, wrong-commit tag or unexpected draft assets stop it. Only unpublished draft assets may be replaced during recovery. The workflow does not enable web hosting, signing or updates.
+The publisher verifies provenance fields, notes/notices against the checked-out commit, exactly named NSIS/MSI checksum entries, local hashes, existing release/draft/tag state, uploaded names/sizes, CLI failures, and the published tag target. It downloads the draft assets and hashes them before publication, then independently downloads all five public assets without credentials and hashes them again. Lookup failures other than 404 stop publication. A matching unpublished draft may resume; a published release, wrong-commit tag or unexpected draft assets stop it. Only unpublished draft assets may be replaced during recovery. The workflow does not enable web hosting, signing or updates.
 
 ## 5. Post-publication verification and recovery
 
-Verify release/tag point at the intended merge SHA and the public release contains the two installers, checksums and build record. Independently download the public installers and compare hashes to the checksum file. Keep the verification record in release evidence. Automatic post-publish tag checks do not replace that independent download.
+Check the successful publication summary: release/tag target the intended merge SHA and both installers, checksums, notices and build record passed independent public-download verification. Retain that workflow URL in the release PR. The agent verifies the public release state; maintainers do not need to repeat those automated hash checks by hand.
 
 - Before publication: fix source in a reviewed commit or repair runner/environment issues; rerun validation and regenerate evidence. Do not reuse a draft targeting another commit.
-- Failed upload to the same unpublished draft: rerun the publish job with the retained verified artifacts where possible. Running the entire workflow rebuilds bytes and requires renewed artifact evidence.
+- Failed upload to the same unpublished draft: re-dispatch publication with the same reviewed build run ID and exact SHA after inspecting the draft. A new build would create different bytes and requires renewed artifact evidence.
 - Unknown publication outcome: inspect the release before retrying. The script refuses to mutate a published version even if the previous run reported failure.
+- Public download verification failed after publication: the release stays public and unchanged. Diagnose availability, download and verify the existing assets; do not re-dispatch to overwrite a published release.
 - Published defect: label the release clearly and issue a higher patch release. Never move a tag or replace public binaries.
 - Database changes: versioned transactional migrations with a verified recovery path. Do not advise copying a live SQLite database without accounting for WAL/checkpoint consistency.
 

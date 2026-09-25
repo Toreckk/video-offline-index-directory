@@ -4,6 +4,16 @@ on:
   push:
     branches: [master]
     paths: [release-manifest.json]
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful master build run ID containing the reviewed installers
+        required: true
+        type: string
+      expected_sha:
+        description: Exact master commit SHA approved for publication
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -14,18 +24,46 @@ concurrency:
 
 jobs:
   build:
-    if: ${{ github.repository == 'Toreckk/video-offline-index-directory' }}
+    if: ${{ github.event_name == 'push' && github.repository == 'Toreckk/video-offline-index-directory' }}
     uses: ./.github/workflows/windows-package.yml
     with:
       finalized: true
 
+  verify:
+    name: Verify selected build and CI
+    if: ${{ github.event_name == 'workflow_dispatch' && github.repository == 'Toreckk/video-offline-index-directory' }}
+    runs-on: windows-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run_attempt: ${{ steps.preflight.outputs.run_attempt }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+      - run: node scripts/verify-version.mjs --finalized
+      - name: Verify source run
+        id: preflight
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          RELEASE_EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: ./scripts/verify-release-run.ps1
+
   publish:
     name: Publish verified Windows artifacts
-    needs: build
+    needs: verify
     runs-on: windows-latest
     timeout-minutes: 15
     environment: release
     permissions:
+      actions: read
       contents: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
@@ -35,8 +73,12 @@ jobs:
         with:
           name: windows-release-${{ github.sha }}
           path: release-assets
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
       - name: Verify and publish
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          RELEASE_BUILD_RUN_ATTEMPT: ${{ needs.verify.outputs.run_attempt }}
         run: ./scripts/publish-release.ps1

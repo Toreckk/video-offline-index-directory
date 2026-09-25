@@ -55,6 +55,7 @@ jobs:
       - run: cargo install cargo-audit --version 0.22.2 --locked
       - run: cargo audit --file apps/desktop/src-tauri/Cargo.lock
       - run: pnpm inventory:dependencies
+      - run: pnpm notices:check
       - run: pnpm test:release:native
       - run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
       - run: cargo clippy --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings

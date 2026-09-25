@@ -89,7 +89,7 @@ The hosted web edition is not currently published, so browser QA uses the local 
 - Resize to representative laptop and desktop viewports; confirm no content is hidden behind the title bar, sidebar, player, or tagging panel.
 - Run `pnpm test`, `pnpm lint`, `pnpm build:web`, `pnpm build:desktop`, and `pnpm verify:version`.
 - Record installer smoke-test results and known limitations in the version's release notes. A known data-loss, unsafe cleanup, persistent-audio, migration, or installer-continuity failure blocks release.
-- Record candidate and final merge SHA, Actions run/artifact, installer hashes, Windows/WebView2 versions, tester/date and pass/fail/pending per installer. Test final merge-SHA bytes before environment approval; then independently verify hashes of public downloads.
+- Record candidate and final merge SHA, Actions run/artifact, installer hashes, Windows/WebView2 versions, tester/date and pass/fail/pending per installer. `pnpm release:inspect <artifact-folder> <merge-SHA>` collects hashes/environment details. Smoke-test final merge-SHA bytes before publication dispatch; the publisher independently verifies public download hashes. Carry forward wider QA evidence unless relevant behavior changed.
 
 ## Native jobs and migration acceptance (v0.4 onward)
 

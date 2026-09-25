@@ -1,6 +1,6 @@
 # v0.4 dependency review
 
-Review date: 2026-09-06; project-license decision updated 2026-09-23. Results are dated evidence, not a guarantee that no future advisories exist. The maintainer selected MIT for VOID's own source; third-party terms remain separate.
+Advisory review date: 2026-09-06; project-license decision updated 2026-09-23; distributable notices reviewed 2026-09-25. Results are dated evidence, not a guarantee that no future advisories exist. The maintainer selected MIT for VOID's own source; third-party terms remain separate. Hosted CI repeats advisory checks for each candidate.
 
 ## Advisories and toolchains
 
@@ -31,4 +31,10 @@ Review found common MIT/Apache/ISC/BSD/Unicode/Zlib/BlueOak licenses and specifi
 - `lightningcss` declares MPL-2.0 for the build tool; Rust `cssparser`, `cssparser-macros`, `dtoa-short`, `option-ext` and `selectors` also declare MPL-2.0. Preserve notices and applicable source-availability obligations when distributing executable code; no modifications to those dependencies are included here.
 - The locally used FFmpeg/Gyan helper is GPL-licensed development tooling. Hosted CI uses a pinned LGPL shared BtbN build. Neither helper is **bundled** into VOID or candidate release assets; only locally generated test media is committed.
 
-Declared-license inventory is not legal approval or a completed distributable SBOM. The MIT selection covers VOID source, not third-party code; the maintainer still needs to approve applicable notices/source availability for distribution. v0.10 adds distributable SBOM/provenance; foundational review remains a v0.4 release gate.
+## Distributable notices
+
+The v0.4 technical distribution review is implemented in [THIRD_PARTY_NOTICES.txt](../THIRD_PARTY_NOTICES.txt): 295 dependency versions from the production JavaScript graph and resolved Windows Rust graph, conservatively including Rust build dependencies. Both installers carry this file beside the executable, and publication includes it as a separate download. It preserves upstream license/copyright/notice texts and provides exact versioned package-source downloads. VOID does not modify those dependency sources. The MPL source pointers follow [Mozilla's guidance for distributing code compiled from unchanged MPL source](https://www.mozilla.org/en-US/MPL/2.0/FAQ/).
+
+Run `pnpm notices:generate` after dependency updates and review the diff. `pnpm notices:check` rejects stale notices; generation stops on unknown license terms or missing license text. Crates that omit their license files use small, version-specific upstream copies with [recorded source revisions](../scripts/license-overrides/README.md). MIT is selected where those overrides offer MIT OR Apache-2.0. New versions cannot silently inherit an old override. Nested vendored notices are retained as well.
+
+The review found no dependency-source modifications or bundled FFmpeg helper requiring an additional source distribution. Future modifications, new license expressions or newly bundled external binaries require a fresh review. This notice inventory does not claim a complete distributable SBOM; v0.10 adds the richer SBOM/attestation work. The earlier open item to collect notices is now complete, and normal release QA verifies the notices file is installed.
