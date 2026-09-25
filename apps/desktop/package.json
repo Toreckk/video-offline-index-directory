@@ -1,7 +1,8 @@
 {
   "name": "@void/desktop",
   "private": true,
-  "version": "0.3.2",
+  "version": "0.4.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts",
@@ -12,10 +13,10 @@
     "@void/app": "workspace:*",
     "@void/core": "workspace:*",
     "@void/platform-desktop": "workspace:*",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.8.0"
+    "@tauri-apps/cli": "^2.11.4"
   }
 }

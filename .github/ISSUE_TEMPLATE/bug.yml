@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a reproducible problem with VOID
+body:
+  - type: markdown
+    attributes:
+      value: Do not include private media, paths or credentials. Use SECURITY.md for sensitive issues.
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      description: VOID version, desktop/browser, OS, browser or WebView2 version, NSIS/MSI where relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps, expected result and actual result
+      description: Include the smallest reproduction with synthetic filenames and whether it happens after restart.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Relevant evidence
+      description: Redacted errors, library size, storage type, media container/codec, or a screenshot with private content removed.

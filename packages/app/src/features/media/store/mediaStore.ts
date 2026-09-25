@@ -6,6 +6,8 @@ import type { DurationRange } from '../model/durationRange'
 export type ThumbnailStatus = 'idle' | 'queued' | 'ready' | 'error'
 
 export type MediaAsset = {
+  availability?: 'available' | 'unavailable'
+  fileIdentity?: string
   id: string
   libraryId: string
   rootName: string
@@ -69,8 +71,11 @@ export const useMediaStore = create<MediaState & MediaActions>((set) => ({
       const orderedIds = [...state.orderedIds]
 
       for (const asset of assets) {
-        const existing = assetsById[asset.id]
-        if (!existing) orderedIds.push(asset.id)
+        const previous = assetsById[asset.id]
+        if (!previous) orderedIds.push(asset.id)
+        const existing = previous && previous.size === asset.size && previous.lastModified === asset.lastModified &&
+          (!previous.fileIdentity || !asset.fileIdentity || previous.fileIdentity === asset.fileIdentity)
+          ? previous : undefined
         assetsById[asset.id] = {
           ...asset,
           duration: asset.duration ?? existing?.duration,

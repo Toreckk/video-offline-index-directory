@@ -27,6 +27,7 @@ apps/desktop/src-tauri/icons/icon.png
 
 # Generated installers, updater metadata, and local databases
 artifacts
+release-assets
 *.db
 *.db-shm
 *.db-wal

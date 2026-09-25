@@ -13,6 +13,7 @@ import { copyTextToClipboard } from '../../../utils/clipboard'
 import { TooltipIconButton } from '../../../components/controls/TooltipIconButton'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 import { MediaTagEditor } from '../../annotations/components/MediaTagEditor'
+import { useModalFocus } from '../../../shared/useModalFocus'
 
 export function PlayerModal() {
   const selectedAssetId = usePlayerStore((state) => state.selectedAssetId)
@@ -25,10 +26,15 @@ export function PlayerModal() {
   const asset = useMediaStore((state) =>
     selectedAssetId ? state.assetsById[selectedAssetId] : undefined,
   )
-  const src = usePlayerMediaUrls(selectedAssetId, queueIds)
+  const { src, error: preparationError } = usePlayerMediaUrls(selectedAssetId, queueIds)
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const frameRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useModalFocus(dialogRef, Boolean(selectedAssetId && asset), () => {
+    if (document.fullscreenElement) void document.exitFullscreen()
+    else closePlayer()
+  })
   const chromeHideTimerRef = useRef<number | null>(null)
   const [didCopyPath, setDidCopyPath] = useState(false)
   const [isTagWorkspaceOpen, setIsTagWorkspaceOpen] = useState(false)
@@ -108,6 +114,8 @@ export function PlayerModal() {
     <div
       className="void-player-modal fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-2 backdrop-blur-md"
       role="dialog"
+      ref={dialogRef}
+      tabIndex={-1}
       aria-modal="true"
       aria-label={`Playing ${asset.name}`}
       onMouseDown={(event) => {
@@ -125,7 +133,7 @@ export function PlayerModal() {
       >
       <div className="relative flex min-w-0 flex-1 items-center justify-center">
       <div ref={containerRef} className="relative aspect-video max-h-full w-full border border-white/10 bg-black">
-        <PlayerVideo ref={videoRef} src={src} title={asset.name} resumeAt={playback?.positionSeconds ?? 0} defaultVolume={defaultVolume} defaultPlaybackRate={defaultPlaybackRate} onProgress={(position, duration) => updateProgress(asset.id, position, duration)} onComplete={(duration) => {
+        <PlayerVideo preparationError={preparationError} key={asset.id} ref={videoRef} src={src} title={asset.name} resumeAt={playback?.positionSeconds ?? 0} defaultVolume={defaultVolume} defaultPlaybackRate={defaultPlaybackRate} onProgress={(position, duration) => updateProgress(asset.id, position, duration)} onComplete={(duration) => {
           recordCompletion(asset.id, duration)
           const result = advanceAfterCompletion(playbackOrder, repeatMode)
           if (result === 'replay' && videoRef.current) {

@@ -17,9 +17,14 @@ pub fn load(connection: &Connection, library_id: &str) -> Result<Option<NativeCa
 }
 
 pub fn save(connection: &mut Connection, catalog: &NativeCatalog) -> Result<(), String> {
-    let payload = serde_json::to_string(catalog).map_err(display_error)?;
     let transaction = connection.transaction().map_err(display_error)?;
-    transaction
+    save_in_transaction(&transaction, catalog)?;
+    transaction.commit().map_err(display_error)
+}
+
+pub fn save_in_transaction(connection: &Connection, catalog: &NativeCatalog) -> Result<(), String> {
+    let payload = serde_json::to_string(catalog).map_err(display_error)?;
+    connection
         .execute(
             "INSERT INTO media_catalogs(library_id, root_path, saved_at, payload)
              VALUES (?1, ?2, ?3, ?4)
@@ -35,7 +40,7 @@ pub fn save(connection: &mut Connection, catalog: &NativeCatalog) -> Result<(), 
             ],
         )
         .map_err(display_error)?;
-    transaction.commit().map_err(display_error)
+    Ok(())
 }
 
 pub fn delete(connection: &Connection, library_id: &str) -> Result<(), String> {
@@ -100,6 +105,8 @@ mod tests {
             saved_at: 1_700_000_000_000,
             assets: (0..count)
                 .map(|index| NativeCatalogAsset {
+                    file_identity: None,
+                    availability: None,
                     id: format!("benchmark-library/folder-{}/clip-{index}.mp4", index % 50),
                     library_id: "benchmark-library".to_string(),
                     root_name: "Videos".to_string(),

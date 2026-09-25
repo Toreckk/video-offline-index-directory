@@ -68,13 +68,12 @@ export default function HomePage() {
         </div>
 
         <h2 className="mb-6 text-[clamp(42px,4vw,60px)] font-black leading-[0.95] tracking-[-0.03em] text-on-primary drop-shadow-[0_9px_0_rgba(255,255,255,0.12)]">
-          Welcome to the Void
+          Your video library starts here
         </h2>
 
         <p className="mb-[66px] max-w-[690px] text-[clamp(16px,1.3vw,21px)] font-medium leading-[1.55] text-[#aaa3b1]">
-          Your cinematic canvas is empty. VOID indexes and previews
-          high-definition local media assets with precision. Configure your
-          library root to begin populating the explorer grid.
+          Choose a folder to browse, organize and play your videos.
+          Your files stay on this device.
         </p>
 
         <button
@@ -89,7 +88,7 @@ export default function HomePage() {
             className="text-primary-fixed-dim transition-all duration-300 group-hover:text-on-primary"
           />
           <span className="mt-0.5 text-[15px] font-black uppercase tracking-[0.16em]">
-            Configure Library Route
+            Choose a video folder
           </span>
         </button>
 
@@ -99,7 +98,7 @@ export default function HomePage() {
             <div>
               <p className="text-sm font-bold">Reconnect {directoryName}</p>
               <p className="mt-1 text-xs text-on-secondary">
-                Your browser needs permission before this library can be restored.
+                Restore access to the saved folder to continue browsing this library.
               </p>
             </div>
             <button
@@ -115,7 +114,7 @@ export default function HomePage() {
         <div className="mt-16 flex items-center gap-3 text-on-secondary/70">
           <Info size={17} strokeWidth={2} />
           <span className="mt-0.5 text-[14px] font-bold tracking-[0.02em]">
-            Supports .mp4 and .webm (.mov, .mkv, .r3d coming soon)
+            Recognizes MP4 and WebM. Playback depends on the codecs available on this device.
           </span>
         </div>
       </section>

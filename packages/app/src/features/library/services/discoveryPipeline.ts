@@ -58,6 +58,7 @@ export async function runDiscoveryPipeline(
   const batchSize = Math.max(1, options.batchSize ?? DEFAULT_BATCH_SIZE)
   const discoveredIds = new Set<string>()
   let foldersScanned = 0
+  let complete = true
   let batch: Promise<MediaAsset | null>[] = []
 
   const flush = async () => {
@@ -78,6 +79,7 @@ export async function runDiscoveryPipeline(
       options.onFoldersScanned?.(foldersScanned)
     },
     onError: ({ pathParts, error }) => {
+      complete = false
       options.onDiagnostic?.({
         stage: 'discovery',
         path: pathParts.join('/') || 'Library root',
@@ -95,6 +97,7 @@ export async function runDiscoveryPipeline(
           return asset
         })
         .catch((error) => {
+          complete = false
           options.onDiagnostic?.({
             stage: 'metadata',
             path: [...file.pathParts, file.name].join('/'),
@@ -108,7 +111,7 @@ export async function runDiscoveryPipeline(
 
   await flush()
   throwIfAborted(options.signal)
-  return { discoveredIds: [...discoveredIds], foldersScanned }
+  return { discoveredIds: [...discoveredIds], foldersScanned, complete }
 }
 
 async function createAsset(
@@ -127,6 +130,7 @@ async function createAsset(
     ...file,
     ...metadata,
     thumbnailStatus: 'idle',
+    availability: 'available',
   }
 }
 
@@ -145,10 +149,16 @@ async function* getDiscoveredFiles(
 
   const scanLibrary = getVoidPlatform().scanLibrary
   if (!scanLibrary) throw new Error('Native library scanning is unavailable.')
-  const files = await scanLibrary({
+  const result = await scanLibrary({
     rootPath: source.rootPath,
     scanSubfolders: options.scanSubfolders,
   })
+  const files = result.files
+  if (!result.complete) {
+    for (const diagnostic of result.diagnostics.length ? result.diagnostics : [{ path: '', message: 'Discovery was incomplete. Previous entries were retained.' }]) {
+      options.onError({ pathParts: diagnostic.path.split('/'), error: new Error(diagnostic.message) })
+    }
+  }
   const folders = new Set(files.map((file) => file.pathParts.join('\u0000')))
   for (const folder of folders) {
     options.onDirectoryVisited(folder ? folder.split('\u0000') : [])
@@ -164,6 +174,7 @@ function nativeFileToDiscovered(file: NativeMediaFile): DiscoveredVideoFile | nu
   const extension = getSupportedVideoExtension(file.name)
   if (!extension) return null
   return {
+    ...('fileIdentity' in file ? { fileIdentity: file.fileIdentity } : {}),
     name: file.name,
     extension,
     pathParts: file.pathParts,

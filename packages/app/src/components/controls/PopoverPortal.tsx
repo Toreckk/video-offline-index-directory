@@ -20,7 +20,11 @@ export function PopoverPortal({ anchorRef, panelRef, children, width, align = 'l
       const panel = panelRef.current
       if (!anchor || !panel) return
       const fullscreenElement = document.fullscreenElement
-      setPortalTarget(fullscreenElement instanceof HTMLElement && fullscreenElement.contains(anchor) ? fullscreenElement : document.body)
+      const modal = anchor.closest<HTMLElement>('[role="dialog"][aria-modal="true"]')
+      // Keep interactive portals within their owner's focus/inert boundary. A
+      // fullscreen child of the modal must also contain the popup to display it.
+      const fullscreenTarget = fullscreenElement instanceof HTMLElement && fullscreenElement.contains(anchor) ? fullscreenElement : null
+      setPortalTarget(fullscreenTarget && !fullscreenTarget.contains(modal) ? fullscreenTarget : modal ?? document.body)
       const rect = anchor.getBoundingClientRect()
       const margin = 12
       const gap = 8
@@ -46,7 +50,7 @@ export function PopoverPortal({ anchorRef, panelRef, children, width, align = 'l
   }, [align, anchorRef, panelRef, width])
 
   return createPortal(
-    <div ref={panelRef} onWheel={(event) => {
+    <div ref={panelRef} data-void-popover-panel onWheel={(event) => {
       const panel = event.currentTarget
       const cannotScroll = panel.scrollHeight <= panel.clientHeight
       const atTop = panel.scrollTop <= 0 && event.deltaY < 0

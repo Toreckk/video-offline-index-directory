@@ -6,15 +6,18 @@ import type {
   NativeLibraryWatchEvent,
   NativeLibrarySelection,
   NativeMediaMetadata,
-  NativeMediaFile,
+  NativeScanResult,
   NativeMediaProbeStatus,
   NativeDuplicateCleanupRequest,
   NativeDuplicateCleanupResult,
   VoidPlatform,
+  UserDataSnapshot,
 } from '@void/core'
 
 export type DesktopWindowController = {
   close: () => Promise<void>
+  destroy: () => Promise<void>
+  onCloseRequested?: (listener: (event: { preventDefault: () => void }) => void) => Promise<() => void>
   isMaximized: () => Promise<boolean>
   minimize: () => Promise<void>
   onResized: (listener: () => void) => Promise<() => void>
@@ -27,6 +30,8 @@ export function createDesktopWindowController(): DesktopWindowController {
 
   return {
     close: () => appWindow.close(),
+    destroy: () => appWindow.destroy(),
+    onCloseRequested: (listener) => appWindow.onCloseRequested(listener),
     isMaximized: () => appWindow.isMaximized(),
     minimize: () => appWindow.minimize(),
     onResized: (listener) => appWindow.onResized(listener),
@@ -38,6 +43,12 @@ export function createDesktopWindowController(): DesktopWindowController {
 export function createDesktopPlatform(): VoidPlatform {
   return {
     kind: 'desktop',
+    userData: {
+      raw: () => invoke<string | null>('raw_user_data'),
+      load: () => invoke<UserDataSnapshot | null>('load_user_data'),
+      commit: (request) => invoke<UserDataSnapshot>('commit_user_data', { request }),
+      recovery: () => invoke<Array<{ reason: string; snapshot: UserDataSnapshot }>>('user_data_recovery'),
+    },
     capabilities: {
       persistentLibraryAccess: true,
       nativeCatalog: true,
@@ -52,7 +63,7 @@ export function createDesktopPlatform(): VoidPlatform {
     restoreLibrary: (libraryId, rootPath) =>
       invoke<NativeLibrarySelection>('restore_library', { libraryId, rootPath }),
     scanLibrary: (options) =>
-      invoke<NativeMediaFile[]>('scan_library', { options }),
+      invoke<NativeScanResult>('scan_library', { options }),
     watchLibrary: async (options, onEvent) => {
       let watchId: string | null = null
       const unlisten = await listen<NativeLibraryWatchEvent>(
@@ -93,8 +104,19 @@ export function createDesktopPlatform(): VoidPlatform {
     hashFile: (absolutePath) => invoke<string>('hash_file', { absolutePath }),
     getMediaProbeStatus: () =>
       invoke<NativeMediaProbeStatus>('media_probe_status'),
-    probeMedia: (absolutePath) =>
-      invoke<NativeMediaMetadata>('probe_media', { absolutePath }),
+    probeMedia: async (absolutePath, signal) => {
+      if (signal?.aborted) throw new DOMException('Media analysis cancelled.', 'AbortError')
+      const jobId = crypto.randomUUID()
+      const cancel = () => { void invoke<void>('cancel_media_probe', { jobId }).catch(() => undefined) }
+      const result = invoke<NativeMediaMetadata>('probe_media', { absolutePath, jobId })
+      signal?.addEventListener('abort', cancel, { once: true })
+      if (signal?.aborted) cancel()
+      try {
+        const metadata = await result
+        if (signal?.aborted) throw new DOMException('Media analysis cancelled.', 'AbortError')
+        return metadata
+      } finally { signal?.removeEventListener('abort', cancel) }
+    },
     cleanupDuplicateFiles: (request: NativeDuplicateCleanupRequest) =>
       invoke<NativeDuplicateCleanupResult>('cleanup_duplicate_files', { request }),
   }

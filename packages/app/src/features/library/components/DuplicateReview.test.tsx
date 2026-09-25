@@ -11,9 +11,11 @@ const mocks = vi.hoisted(() => ({
   copyText: vi.fn(async () => undefined),
   detectDuplicates: vi.fn(),
   cleanup: vi.fn(),
+  flush: vi.fn(async () => undefined),
 }))
 
 vi.mock('idb-keyval', () => ({ get: vi.fn(async () => undefined), set: vi.fn(async () => undefined), del: vi.fn(async () => undefined) }))
+vi.mock('../../../shared/persistence/userDataCoordinator', () => ({ flushUserData: mocks.flush, hasUserDataStarted: () => false }))
 vi.mock('../../../utils/clipboard', () => ({ copyTextToClipboard: mocks.copyText }))
 vi.mock('../../explorer/hooks/useThumbnailUrl', () => ({ useThumbnailUrl: () => null }))
 vi.mock('../services/duplicateDetection', () => ({ detectDuplicateMedia: mocks.detectDuplicates }))
@@ -34,6 +36,7 @@ beforeEach(() => {
     fingerprintKind: 'sampled',
   })
   mocks.cleanup.mockReset()
+  mocks.flush.mockReset().mockResolvedValue(undefined)
   useMediaStore.setState({ assetsById: {}, orderedIds: [] })
 })
 
@@ -43,6 +46,21 @@ afterEach(() => {
 })
 
 describe('DuplicateReview', () => {
+  it('does not move files when keeper metadata cannot be saved', async () => {
+    const desktopAssets = [createDesktopAsset('original', 'Holiday.mp4'), createDesktopAsset('copy', 'Holiday (1).mp4')]
+    mocks.detectDuplicates.mockResolvedValue({ exactGroups: [{ assets: desktopAssets, classification: 'exact', evidence: ['Complete SHA-256 matches'], completeHash: 'a'.repeat(64) }], probableGroups: [], filesHashed: 2, fingerprintKind: 'complete' })
+    mocks.flush.mockRejectedValue(new Error('Database is read-only'))
+    installVoidPlatform(desktopPlatform())
+    useMediaStore.setState({ assetsById: Object.fromEntries(desktopAssets.map((asset) => [asset.id, asset])), orderedIds: desktopAssets.map((asset) => asset.id) })
+    render(<DuplicateReview assets={desktopAssets} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Scan for duplicates' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Review Recycle Bin cleanup' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Recycle Bin move' }))
+    expect(await screen.findByText('Database is read-only')).toBeInTheDocument()
+    expect(mocks.cleanup).not.toHaveBeenCalled()
+    expect(useMediaStore.getState().orderedIds).toEqual(['original', 'copy'])
+  })
+
   it('copies only the filename and keeps per-row copied feedback until remount', async () => {
     const firstRender = render(<DuplicateReview assets={assets} />)
     fireEvent.click(screen.getByRole('button', { name: 'Scan for duplicates' }))

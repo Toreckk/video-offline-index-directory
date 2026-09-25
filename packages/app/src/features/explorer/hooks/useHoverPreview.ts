@@ -15,7 +15,8 @@ import { createMediaUrl } from '../../media/services/mediaFileSource'
 const SNIPPET_LENGTH_MS = 1_700
 
 export function useHoverPreview(asset: MediaAsset) {
-  const autoplay = useSettingsStore((state) => state.autoplayHoverPreview)
+  const autoplaySetting = useSettingsStore((state) => state.autoplayHoverPreview)
+  const autoplay = autoplaySetting && asset.availability !== 'unavailable'
   const previewDelayMs = useSettingsStore((state) => state.previewDelayMs)
   const activePreviewId = useMediaStore((state) => state.activePreviewId)
   const setActivePreviewId = useMediaStore(

@@ -61,7 +61,7 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   )
 
   useNativeLibraryWatcher({
-    enabled: scanStatus === 'ready' && scanPhase === 'complete',
+    enabled: permissionStatus === 'granted' && scanStatus === 'ready' && scanPhase === 'complete',
     source: nativeWatchSource,
     scanSubfolders,
   })
@@ -74,6 +74,8 @@ export function LibraryRouteProvider({ children }: { children: ReactNode }) {
   const startCurrentLibraryScan = useCallback(async () => {
     const source = getCurrentScanSource()
     if (!source) return
+    const current = useLibraryStore.getState()
+    automaticallyScannedSourceRef.current = `${current.sourceKind}:${current.libraryId}:${current.rootPath ?? current.directoryName}`
     setSuccessDismissed(false)
     await startScan(source, { scanSubfolders })
   }, [scanSubfolders, startScan])

@@ -32,6 +32,7 @@ export type WalkDirectoryOptions = {
 }
 
 export type DiscoveredVideoFile = {
+  fileIdentity?: string
   name: string
   extension: SupportedVideoExtension
   pathParts: string[]

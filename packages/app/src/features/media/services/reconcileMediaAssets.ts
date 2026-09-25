@@ -22,15 +22,29 @@ export function reconcileMediaAssets(
 ): MediaReconciliation {
   const existingById = new Map(existingAssets.map((asset) => [asset.id, asset]))
   const discoveredById = new Map(discoveredAssets.map((asset) => [asset.id, asset]))
-  const existingByPath = new Map(existingAssets.map((asset) => [mediaPath(asset), asset]))
-  const discoveredByPath = new Map(discoveredAssets.map((asset) => [mediaPath(asset), asset]))
+  // Watcher ordering is only a hint. Unique native identity is the authority,
+  // including moves reported as separate From/To events or made while closed.
+  void renames
+  const group = (assets: readonly MediaAsset[]) => {
+    const result = new Map<string, MediaAsset[]>()
+    for (const asset of assets) {
+      if (!asset.fileIdentity) continue
+      const key = JSON.stringify([asset.libraryId, asset.fileIdentity])
+      result.set(key, [...(result.get(key) ?? []), asset])
+    }
+    return result
+  }
+  const before = group(existingAssets)
+  const after = group(discoveredAssets)
   const renameTargets = new Map<string, MediaAsset>()
   const renamedMediaIds: MediaIdMigration[] = []
-
-  for (const rename of renames) {
-    const existing = existingByPath.get(normalizePath(rename.fromPath))
-    const discovered = discoveredByPath.get(normalizePath(rename.toPath))
-    if (!existing || !discovered || existing.id === discovered.id) continue
+  for (const [identity, sources] of before) {
+    const targets = after.get(identity)
+    if (sources.length !== 1 || targets?.length !== 1) continue
+    const existing = sources[0]!
+    const discovered = targets[0]!
+    if (existing.id === discovered.id || discoveredById.has(existing.id) ||
+      existingById.has(discovered.id) || !hasSameFileVersion(existing, discovered)) continue
     renameTargets.set(discovered.id, existing)
     renamedMediaIds.push({ fromId: existing.id, toId: discovered.id })
   }
@@ -103,7 +117,8 @@ export function reconcileMediaAssets(
 }
 
 function hasSameFileVersion(left: MediaAsset, right: MediaAsset) {
-  return left.size === right.size && left.lastModified === right.lastModified
+  return left.size === right.size && left.lastModified === right.lastModified &&
+    (!left.fileIdentity || !right.fileIdentity || left.fileIdentity === right.fileIdentity)
 }
 
 function preserveEnrichment(asset: MediaAsset, previous: MediaAsset): MediaAsset {
@@ -114,13 +129,8 @@ function preserveEnrichment(asset: MediaAsset, previous: MediaAsset): MediaAsset
     duration: previous.duration,
     width: previous.width,
     height: previous.height,
+    videoCodec: previous.videoCodec,
+    audioCodec: previous.audioCodec,
+    mediaProbeStatus: previous.mediaProbeStatus,
   }
-}
-
-function mediaPath(asset: MediaAsset) {
-  return normalizePath([...asset.pathParts, asset.name].join('/'))
-}
-
-function normalizePath(path: string) {
-  return path.replaceAll('\\', '/').replace(/^\.\//, '').toLocaleLowerCase()
 }

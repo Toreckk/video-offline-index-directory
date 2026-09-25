@@ -10,9 +10,11 @@ import { thumbnailQueue } from '../../media/services/thumbnailQueue'
 import { scheduleThumbnailEnrichment } from '../../media/services/thumbnailEnrichmentPipeline'
 import { sortMediaAssets } from '../../explorer/services/sortMediaAssets'
 import { useSettingsStore } from '../../settings/store/settingsStore'
-import { saveMediaCatalog } from '../../media/services/mediaCatalogCache'
+import { saveMediaCatalog, toNativeCatalogAsset } from '../../media/services/mediaCatalogCache'
+import { reconcileMediaAssets } from '../../media/services/reconcileMediaAssets'
+import { commitReconciliation } from '../../media/services/commitReconciliation'
 import { runDiscoveryPipeline } from '../services/discoveryPipeline'
-import { scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
+import { nativeProbeQueue, scheduleNativeMetadataEnrichment } from '../../media/services/nativeMetadataEnrichment'
 
 export function useLibraryScanner() {
   const activeScanRef = useRef<AbortController | null>(null)
@@ -21,6 +23,7 @@ export function useLibraryScanner() {
     activeScanRef.current?.abort()
     activeScanRef.current = null
     thumbnailQueue.clearPending()
+    nativeProbeQueue.clearPending()
   }, [])
 
   const startScan = useCallback(
@@ -34,16 +37,20 @@ export function useLibraryScanner() {
       const libraryStore = useLibraryStore.getState()
       const mediaStore = useMediaStore.getState()
 
-      if (!options.preserveExisting) mediaStore.clearAssets()
+      // A manual rescan of this library must retain its last-known catalog until
+      // discovery proves completeness. A different library starts a new catalog.
+      if (mediaStore.orderedIds.some((id) => mediaStore.assetsById[id]?.libraryId !== source.libraryId)) mediaStore.clearAssets()
       libraryStore.resetScan()
       libraryStore.setScanStatus('scanning')
       libraryStore.setScanPhase('discovering')
       libraryStore.setMediaIds([])
+      const previousAssets = getCurrentAssets()
+      const discoveredAssets: MediaAsset[] = []
 
       let thumbnailWorkScheduled = false
 
       try {
-        const { discoveredIds } = await runDiscoveryPipeline({
+        const { discoveredIds, complete } = await runDiscoveryPipeline({
           source,
           scanSubfolders: options.scanSubfolders,
           signal: controller.signal,
@@ -57,6 +64,7 @@ export function useLibraryScanner() {
             })
           },
           onBatch: async (assets) => {
+            discoveredAssets.push(...assets)
             useMediaStore.getState().addAssets(assets)
             const ids = useMediaStore.getState().orderedIds
             const store = useLibraryStore.getState()
@@ -66,34 +74,47 @@ export function useLibraryScanner() {
           },
         })
 
-        mediaStore.retainAssets(discoveredIds)
+        if (complete && source.kind === 'native-directory') {
+          const reconciliation = reconcileMediaAssets(previousAssets, discoveredAssets)
+          await commitReconciliation({ version: 1, libraryId: source.libraryId, rootPath: source.rootPath,
+            savedAt: Date.now(), assets: reconciliation.assets.flatMap(toNativeCatalogAsset) }, reconciliation.renamedMediaIds, () => {
+            if (!controller.signal.aborted) useMediaStore.getState().replaceAssets(reconciliation.assets)
+          })
+          if (controller.signal.aborted) throw new DOMException('Scan aborted.', 'AbortError')
+        } else if (complete) mediaStore.retainAssets(discoveredIds)
+        else {
+          const discovered = new Set(discoveredIds)
+          mediaStore.updateAssets(useMediaStore.getState().orderedIds.filter((id) => !discovered.has(id)).map((id) => ({ id, patch: { availability: 'unavailable' as const } })))
+        }
 
         const assets = getCurrentAssets()
+        const availableAssets = assets.filter((asset) => asset.availability !== 'unavailable')
         const ids = assets.map((asset) => asset.id)
         const currentLibraryStore = useLibraryStore.getState()
         currentLibraryStore.setMediaIds(ids)
         currentLibraryStore.updateScanProgress({
           videosFound: ids.length,
-          thumbnailTotal: ids.length,
+          thumbnailTotal: availableAssets.length,
         })
         currentLibraryStore.setScanStatus('ready')
         void persistCatalog(source.libraryId, assets, source.kind === 'native-directory' ? source.rootPath : undefined)
 
-        if (assets.length === 0) {
+        if (availableAssets.length === 0) {
           currentLibraryStore.setScanPhase('complete')
         } else {
           currentLibraryStore.setScanPhase('thumbnails')
           thumbnailWorkScheduled = true
           enqueueThumbnails(
             sortMediaAssets(
-              assets,
+              availableAssets,
               useSettingsStore.getState().defaultSortOrder,
             ),
             controller.signal,
           )
-          void enqueueNativeMetadata(assets, controller.signal)
+          void enqueueNativeMetadata(availableAssets, controller.signal)
         }
       } catch (error) {
+        if (activeScanRef.current !== controller) return
         if (isAbortError(error)) {
           const hasPartialResults = useMediaStore.getState().orderedIds.length > 0
           const store = useLibraryStore.getState()

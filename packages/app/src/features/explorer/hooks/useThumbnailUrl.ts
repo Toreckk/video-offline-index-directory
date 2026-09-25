@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getCachedThumbnail } from '../../media/services/thumbnailCache'
 import { acquireThumbnailResource } from '../../media/services/thumbnailResourceCache'
+import { recoverThumbnail } from '../../media/services/thumbnailRecovery'
 
 export function useThumbnailUrl(
   thumbnailBlobKey: string | undefined,
   thumbnailStatus: 'idle' | 'queued' | 'ready' | 'error',
+  mediaId?: string,
 ) {
   const [thumbnailResource, setThumbnailResource] = useState<{
     key: string
@@ -17,7 +19,8 @@ export function useThumbnailUrl(
     let active = true
     const lease = acquireThumbnailResource(thumbnailBlobKey, getCachedThumbnail)
     void lease.url.then((url) => {
-      if (!active || !url) return
+      if (!active) return
+      if (!url) { if (mediaId) recoverThumbnail(mediaId, thumbnailBlobKey); return }
       setThumbnailResource({ key: thumbnailBlobKey, url })
     })
 
@@ -25,7 +28,7 @@ export function useThumbnailUrl(
       active = false
       lease.release()
     }
-  }, [thumbnailBlobKey, thumbnailStatus])
+  }, [mediaId, thumbnailBlobKey, thumbnailStatus])
 
   if (
     thumbnailStatus !== 'ready' ||

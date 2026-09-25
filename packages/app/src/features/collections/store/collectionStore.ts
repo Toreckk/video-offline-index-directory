@@ -50,6 +50,7 @@ export const useCollectionStore = create<CollectionState & CollectionActions>()(
     {
       name: 'void-collections-store',
       storage: createJSONStorage(() => idbStateStorage),
+      skipHydration: true,
       partialize: (state) => ({ collectionsById: state.collectionsById, orderedCollectionIds: state.orderedCollectionIds }),
       version: 2,
       migrate: (persistedState) => migrateCollectionState(persistedState),

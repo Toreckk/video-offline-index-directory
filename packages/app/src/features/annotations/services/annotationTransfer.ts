@@ -6,6 +6,7 @@ import {
   type TagDefinition,
 } from '../model/annotationTypes'
 import { selectTags } from './tagCatalog'
+import { validateJsonTree } from '../../../shared/persistence/userDataValidation'
 
 export const ANNOTATION_EXPORT_VERSION = 2
 const LEGACY_ANNOTATION_EXPORT_VERSION = 1
@@ -60,6 +61,7 @@ export function createAnnotationExport(data: AnnotationData): CompactAnnotationE
 }
 
 export function parseAnnotationExport(value: unknown): AnnotationExport {
+  validateJsonTree(value)
   if (!isRecord(value)) throw new Error('This is not a supported VOID annotation backup.')
   if (value.v === ANNOTATION_EXPORT_VERSION) return parseCompactExport(value)
   if (value.schemaVersion === LEGACY_ANNOTATION_EXPORT_VERSION) return parseLegacyExport(value)

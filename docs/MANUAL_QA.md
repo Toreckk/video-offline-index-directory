@@ -1,220 +1,99 @@
-# VOID Manual QA Checklist
+# VOID Manual QA
 
-Run the app in a Chromium-based browser. Use a disposable test folder containing a few valid `.mp4` and `.webm` files, nested folders, unsupported files, and one intentionally corrupt video.
+This is an evergreen regression checklist for the current supported product. Version-specific evidence belongs in `docs/releases/`, not here.
 
-Repeat the folder-selection, scan, preview, and player checks in Firefox. Firefox should use session folder access and request reconnection after a browser restart while retaining the same library metadata identity.
+For the current candidate, follow [v0.4 testing instructions](V0.4_TESTING.md) and record results against [the assembly gates](DESKTOP_V0.4_PLAN.md).
 
-## Folder access and restore
+Use a disposable library containing nested folders, `.mp4` and `.webm` files, duplicate and same-name examples, short and long videos, black opening frames, one corrupt file, and unsupported files. For scale checks, use representative 2,500- and 5,000-video fixtures with at least 300 tags. Never run cleanup tests against irreplaceable media.
 
-- Open `Configure Library Route` from Explorer and confirm the explanatory modal appears before the native folder picker.
-- Confirm `.mp4` and `.webm` are active while `.mov`, `.mkv`, and `.r3d` are marked coming soon.
-- Cancel the native picker and confirm the app remains usable with no error banner.
-- Pick the test folder and confirm the Folders screen shows its name and connected permission state.
-- Refresh the page. Confirm a granted handle rescans automatically when `Restore last library` is enabled.
-- Revoke site access to the folder, refresh, and confirm `Reconnect Library` appears instead of an automatic permission prompt.
-- Disable `Restore last library`, refresh, and confirm the saved route is not opened automatically.
-- In Firefox, select the same folder after a restart and confirm it reconnects to the existing library rather than creating a second identity.
-- During Firefox reconnection, select a differently named folder and confirm VOID rejects it instead of attaching it to the existing library id.
-- In Firefox, confirm the route modal closes and Folders appears immediately after selection while scanning continues.
+## Test matrix
 
-## Discovery and progress
+- Current Chromium browser build.
+- Firefox fallback behavior where called out.
+- Windows 10 or 11 x86-64 desktop development build.
+- Clean and same-format upgrade installations of both NSIS and MSI packages before a release.
 
-- Scan with `Scan subfolders` enabled and confirm nested `.mp4`/`.webm` files appear.
-- Scan with it disabled and confirm nested videos are excluded.
-- Confirm unsupported and non-video files never appear in Explorer.
-- Confirm folder/video counters increase without a fake discovery percentage.
-- Click `Run in Background`, navigate between screens, and confirm the compact indexing status remains visible.
-- Start a scan and click `Abort Scan`; confirm the UI remains responsive and any discovered partial results stay usable.
-- Confirm a corrupt or unreadable nested file/folder does not stop the rest of the library from indexing.
+The hosted web edition is not currently published, so browser QA uses the local web build.
 
-## Thumbnails and Explorer
+## Library access and discovery
 
-- Confirm placeholder tiles appear before thumbnail work finishes.
-- Confirm visible tiles receive thumbnails before off-screen tiles when priority is `Visible first`.
-- With Explorer sorted differently from filesystem discovery order, confirm thumbnails fill from the visible top rows downward; scrolling should reprioritize the approaching rows.
-- Confirm thumbnail progress shows a real completed/total percentage.
-- Refresh and rescan; confirm cached thumbnails appear without being regenerated where possible.
-- Clear the thumbnail cache in Settings and confirm original video files are unchanged.
-- Verify filename search, all three sort orders, all three tile densities, and the filename overlay toggle.
-- Favorite several videos and confirm the Favorites filter includes only those videos after refresh.
-- Create `year:2025` and `christmas`, assign both to one video, and confirm selecting both filters requires both tags.
-- Confirm selecting a parent folder includes its descendant folders and combines correctly with search, Favorites, and tag filters.
-- Confirm Favorites, folder options, and tag search results show correct library-wide counts.
-- Select Untagged and confirm only videos with zero tags remain; assigning a tag should remove a video from this result.
-- Open the Tags dropdown, search by a partial tag name, select multiple tags, and confirm the result requires every selected tag.
-- From a tile, open the quick tag control, create a tag, and confirm it is assigned without opening the player.
-- Choose `Add videos to tag...`, select several tile checkboxes, apply, and confirm all selected videos receive the tag. Repeat and confirm there are no duplicate assignments.
-- Click directly on the visible bulk checkbox/label and confirm the tile toggles selected state.
-- Cancel a bulk assignment and confirm it changes no annotations.
-- Repeat with 400+ videos and record scroll/input responsiveness before enabling virtualization work.
-- In Chromium, refresh a previously scanned library and confirm cached tiles paint before the background reconciliation scan completes; removed files should disappear when reconciliation finishes.
-- In Firefox, confirm refresh still requires folder reconnection and does not silently copy full video files into browser storage.
+- Select a library, cancel a selection, reconnect it, restore it after restart where supported, and disable automatic restoration.
+- Scan with subfolders enabled and disabled. Confirm only supported video files appear and folder/video counters remain accurate.
+- Run a scan in the background, navigate between views, cancel it, and confirm discovered partial results remain usable.
+- Confirm corrupt files and unreadable folders produce bounded diagnostics without stopping the rest of the scan.
+- For a previously indexed library, deny subtree access or disconnect its drive during scanning. Existing entries must remain recoverable/unavailable rather than being inferred deleted from an incomplete scan. This is a known baseline gap; record failures honestly.
+- On desktop, add, rename, modify, and remove files externally; confirm the watcher reconciles the library and preserves metadata on recognized renames.
+- Interleave two renames, replace a destination, rename a folder and do a case-only rename. Tags/playback must never transfer based on an ambiguous pairing. Confirm unchanged codec/probe fields survive reconciliation.
+- In Firefox, confirm the session-source fallback asks for reconnection after restart and never silently attaches a different folder to an existing library identity.
 
-## Hover preview
+## Explorer, thumbnails, and performance
 
-- Sweep the pointer quickly across tiles and confirm previews do not start before the configured delay.
-- Hover one tile and confirm its preview is muted and samples multiple timestamps for a long video.
-- Move directly to another tile and confirm only the new preview continues.
-- Disable autoplay previews and confirm no tile mounts a playing preview.
-- Start a preview while thumbnails are generating and confirm thumbnail work pauses, then resumes afterward.
+- Confirm placeholders render immediately, visible thumbnails are prioritized, black-frame candidates receive a later refinement pass, and cached thumbnails survive restart/rescan.
+- Navigate Explorer → large collection → Explorer. Confirm already-loaded thumbnails are reused, mounted tiles remain bounded, and the UI does not freeze.
+- Clear the thumbnail cache and confirm source videos and user metadata are untouched.
+- Exercise filename/path search; folder, favorite, untagged, tag, and duration filters; sort modes; densities; and clear-filters behavior in combination.
+- Confirm the duration slider derives its endpoints from measured library durations, direct values stay synchronized, and reset controls jump to the corresponding endpoint.
+- Verify hover previews are delayed, muted, single-owner, and disabled by the autoplay-preview preference.
+- Run automated performance benchmarks for the 2,500/5,000-video fixtures and investigate regressions before manual sign-off.
+
+## Tags, favorites, and transfer
+
+- Create, rename, recolor, favorite, search, merge, link, and delete tags; verify case-insensitive uniqueness, usage counts, assignment migration, and implication-cycle rejection.
+- Exercise tile quick tagging, bulk assignment, player tagging, and the docked workspace with at least 300 tags. Confirm menus remain searchable, bounded, correctly positioned, and keyboard accessible.
+- Favorite videos and tags, restart the same environment, and confirm they persist.
+- Export a populated metadata backup, make local changes, and import it. Confirm tags, favorites, collections, and playback records merge without replacing unrelated data.
+- Import a backup into the same library through another supported environment and confirm library-relative paths map to the intended files; report matched and unmatched records accurately.
+- Switch between two libraries with equal relative paths before export/import. Confirm backup scope and conflict preview prevent cross-library metadata assignment; test disk-full/interrupted import and durable completion reporting. These are v0.4 acceptance checks, not claims about v0.3.2.
+
+## Smart collections
+
+- Build and verify `A AND B`, `A AND NOT C`, `A OR B`, and `(A OR B) AND G AND NOT E` using nested All/Any groups.
+- Bulk-wrap selected rules into a new group, move one rule between groups, change group operators, and confirm live counts update without recreating the collection.
+- Add, remove, or rename tags after saving a collection and confirm the collection remains a live query.
+- Create duration and watched-state rules and confirm they match the same domain semantics as Explorer.
+- Open a 5,000-video collection and confirm the viewer uses a virtualized grid and the player queue remains limited to that collection's current matches.
 
 ## Player
 
-- Click a tile and confirm the modal opens with native audio controls.
-- Favorite a video from the player and assign an existing tag.
-- Quick-create a tag from the player and confirm it is immediately assigned with an automatically selected curated color.
-- Open quick tags on tiles along the right and bottom viewport edges; confirm the menu remains fully visible and clicks never reach the tile behind it.
-- With more than six tags, search in the quick-tag menu and confirm the scrollable result list assigns the intended tag.
-- With 100+ tags, confirm quick assignment, Explorer filtering, and bulk-target selection all provide search and show assigned, favorite, recent, and remaining tags consistently.
-- Favorite several tags, refresh, and confirm those preferences persist and remain ahead of the general catalog.
-- In a section with more than 60 tags, confirm the initial list is bounded and `Show more` exposes the complete section.
-- Assign a previously unused tag and confirm it moves into Recently Used and its usage count updates immediately.
-- Open one dropdown and then another; confirm the first closes. Click outside or press Escape and confirm the active dropdown closes without opening/favoriting a video underneath.
-- Confirm quick-tag search shows only one clear-search X and quick-create remains visible above the scrollable tag list.
-- Quick-create a differently-capitalized existing tag name and confirm no duplicate is created while the existing tag is assigned.
-- Confirm quick-tag sections are alphabetical, including Recently used, while the Explorer Tags filter is ordered by descending video count.
-- Open quick add on a heavily tagged video and confirm Assigned is collapsed by default, can be expanded to remove tags, and searching only shows assigned tags when they match the query.
-- Select an Explorer tag filter, search for another tag, then clear the search. Confirm every selected tag remains pinned in the Selected tags section and is not duplicated below.
-- Confirm tiles show at most three tag chips below the filename, followed by a `+N` overflow count, with size and duration aligned together at the lower right.
-- Rescan a library with existing cached thumbnails and confirm durations are populated instead of remaining `--:--`.
-- In Settings, change that tag color, verify its usage count, and delete it using the confirmation step.
-- Open Settings and confirm Experience, Library, and Tags are separate sections whose controls do not appear in the wrong section.
-- In Settings > Tags, rename a tag and confirm all existing video assignments keep the new name. Try renaming it to an existing tag with different capitalization and confirm the conflict is rejected.
-- Migrate a populated tag into an existing tag, confirm assignments are deduplicated, and test both keeping and deleting the empty source tag.
-- Link `year:1991` to `year:1900s` and that tag to `year:1000s`; assigning `year:1991` must add all three exactly once. Attempt a reverse link and confirm the cycle is rejected.
-- Create collections for `A AND B`, `A AND NOT C`, `A OR B`, and `(A OR B) AND NOT (C OR D)` using nested groups. Edit a saved collection and confirm counts and contents update immediately without recreating it.
-- Confirm the Collections catalog does not render any collection's videos. Open a collection, confirm its dedicated viewer and queue, then use Back to collections.
-- Create at least 61 tags, then verify search, Name/Most used/Recently used sorting, Favorites/Unused scopes, summary counts, and the 50-row `Load more` boundary.
-- Export annotations, change local favorites/tags, then import the backup and confirm data is merged rather than destructively replaced.
-- Use left/right edge buttons and `ArrowLeft`/`ArrowRight` to navigate the current filtered/sorted Explorer queue.
-- Press Space outside form controls and confirm play/pause toggles.
-- Press `f` and confirm the entire player container enters fullscreen with overlays intact.
-- Press Escape once in fullscreen to exit fullscreen, then again to close the player.
-- Confirm the Explorer header never appears over the player or fullscreen frame, and player tag popovers remain above the player.
-- Confirm always-visible previous/next buttons sit beside the video and keyboard Left/Right selects the same adjacent videos.
-- Watch part of a video, close it, reopen it, and confirm playback resumes near the saved position. Reach 90%, confirm Watched appears, then toggle it back to Unwatched.
-- Complete a video twice, confirm the tile shows an eye with `2`, open Video info to inspect completed plays and timestamps, and sort Explorer by Most watched.
-- Confirm tiles with zero completed plays show no watched badge or eye count; tiles with completed plays show a clearly readable eye/count directly below the file-type badge, unaffected by long or numerous tags.
-- Set default volume to 30% and playback speed to 1.25×, then open both MP4 and WebM files and confirm both defaults are applied.
-- Hover and keyboard-focus every player icon and confirm its tooltip explains the action. Copy a video's relative path and confirm it contains its library folders and filename.
-- Hover a tile and confirm the file type remains readable at the top left while the right-side action stack does not obscure the title or metadata.
-- Confirm the tile's overflow, favorite, and tag buttons form a vertical stack, while the overflow menu contains Play, Watched, Video info, and Copy relative path.
-- With a quick-tag popover open, wheel over both scrollable and non-scrollable areas and confirm the Explorer page never scrolls behind it.
-- Export a populated annotation backup, confirm the message reports its compact size, then import both version-1 and version-2 files and verify equivalent merged data.
-- Confirm opening/closing many videos does not leave playback audio running or steadily increase decoder usage.
-- Open a video from a filtered Explorer result and from a smart collection; confirm Displayed order, Shuffle, and Smart shuffle stay inside the queue that was visible when playback opened.
-- Confirm Smart shuffle does not repeat a video before its current queue is exhausted, Repeat all starts a new cycle, Repeat one records completion and restarts the same video, and Repeat off stops at the scope boundary.
-- Confirm the high-contrast previous/next buttons remain visible over the video edges in the maximized player and in fullscreen without reserving side gutters.
-- In both the maximized player and fullscreen, move the pointer over the bottom of the video and confirm the native pause, timeline, and volume controls appear and remain clickable beneath the custom overlay chrome.
-- Confirm the player title, action menu, and navigation arrows fade after three seconds without pointer activity, hide immediately when the pointer leaves the player, and return on pointer movement or focus.
-- Confirm the default playback controls open in Displayed order with Repeat one selected, and that both chevrons remain geometrically centered inside their circular buttons.
-- Confirm videos with black opening frames retry later thumbnail positions and show a useful poster after the refreshed thumbnail cache is generated.
-- Open the docked tagging workspace and confirm the video resizes beside it on desktop, quick tagging remains available, tag changes follow the selected video, and the panel can be closed without closing playback.
-- Under Library > Health > Duplicates, run analysis and confirm matching sampled-content groups and filename-only collisions are presented separately.
-- Choose a preferred duplicate, merge metadata, and confirm tags, favorite state, playback history, and play counts are copied to it while every source file and source metadata record remains unchanged.
-- Confirm an unsuffixed filename is listed before its `(1)`, `(2)`, and later copies. Copy a filename and confirm only the name plus extension reaches the clipboard, that its button changes to `Copied!`, and that the feedback resets after refresh.
+- Open MP4 and WebM videos and verify play/pause, seeking, volume, speed, resume, watched state, completion counts, favorite, tagging, and video information.
+- Verify previous/next controls and Left/Right keys use the visible filtered/sorted scope; verify Displayed order, Shuffle, and Smart shuffle with Repeat off, one, and all.
+- Confirm Smart shuffle does not repeat until the current scope is exhausted, Repeat all starts a new cycle, and Repeat one records completion before restarting.
+- Exercise maximized, fullscreen, and docked-tagging layouts. Confirm native media controls remain clickable, navigation arrows are centered and visible, overlays hide after inactivity, and title-bar spacing is correct.
+- Rapidly open and close videos and navigate while media is playing or buffering. Confirm only the selected video remains audible and decoder/resource use returns after closing the player.
+- Verify Space, `f`, Escape, focus handling, tooltips, and reduced-motion behavior without triggering shortcuts inside form controls.
 
-## Accessibility and resilience
+## Health, duplicates, and cleanup
 
-- Navigate sidebar, route modal, Explorer tiles, and player controls using only the keyboard.
-- Confirm focus indicators remain visible and the modal buttons have meaningful accessible names.
-- Enable `Reduce motion` and confirm nonessential animation and transitions stop.
-- Open each native select in Chromium and Firefox and confirm option text and backgrounds follow the dark theme.
-- Open each Explorer dropdown and confirm its custom listbox, hover, selected state, and scroll area use the VOID theme.
-- Open Library > Health and confirm video/size/duration/format/annotation totals match the current library.
-- Set Library ready notification to 10 seconds and confirm it dismisses automatically. Repeat with Never (`0`) and confirm it remains until manually closed.
-- Complete a scan while Explorer is already active and confirm the Library ready notification never appears, including after navigating to another tab.
-- Include a corrupt or unreadable item and confirm its discovery, metadata, or thumbnail issue appears in Library > Health without stopping the rest of the scan.
-- Inspect the browser console through every flow and confirm no uncaught errors or object URL warnings.
+- Confirm Library Health reports discovery, thumbnail, duration, and analysis coverage consistently with the source screen.
+- Run duplicate analysis and verify exact-content groups, probable groups, and filename-only collisions are visibly distinct and naturally ordered.
+- Select a keeper and merge metadata. Confirm tags, favorite state, playback history, and completed-play counts are added to it while all source records and files remain unchanged.
+- Copy a candidate filename and confirm only the filename plus extension is copied and the control reports `Copied!` until refresh.
+- On desktop with disposable exact duplicates, select redundant copies, review the confirmation, and run cleanup. Confirm VOID revalidates full hashes, protects the keeper, rejects changed/non-exact files, reports per-file results, and moves successful files to the Windows Recycle Bin.
+- Confirm the browser never offers native reveal, streaming-hash cleanup, or source-file deletion.
 
-## Desktop v0.2.0 regression
+## Desktop shell, persistence, and installers
 
-- Relaunch a previously indexed desktop library and confirm cached videos paint before background reconciliation finishes.
-- While Explorer is open, add, replace, rename, and remove videos in the selected folder. Confirm each change appears without a manual rescan and the non-blocking `Updating library` status clears afterward.
-- Rename a tagged or favorited video and confirm its tags, favorite state, and playback history follow the new path.
-- Add or rename several files quickly and confirm the coalesced update produces no duplicate tiles or lost metadata.
-- Trigger a second library change while a new video's thumbnail is still pending and confirm the thumbnail completes instead of remaining queued.
-- Rename a tagged video, then add a different video at the original path and confirm the new file does not inherit the renamed video's tags, favorite, or playback history.
-- With roughly 5,000 videos, scroll rapidly from the beginning toward the end and confirm tiles keep filling without a multi-second initial freeze. Open a video and confirm its playback queue still covers the complete filtered result.
-- Confirm the VOID title bar can drag the window, double-click to maximize/restore, and exposes working minimize, maximize/restore, and close buttons with visible keyboard focus.
-- Enable `Use native Windows title bar` in Settings, relaunch, and confirm native decorations return. Disable it and relaunch to restore the themed title bar.
-- Disable `Restore last library`, relaunch, reconnect the remembered native library, and confirm scanning and playback succeed without selecting a different folder.
-- With the themed title bar enabled, confirm there is only one vertical page scroller and the bottom of every view remains reachable without a 32 px overflow strip.
+- Toggle the themed and native title bars across restart, maximize, restore, fullscreen, and the docked player. Confirm exactly one title bar is visible and controls work.
+- Restart the same installed build and confirm its catalog, thumbnails, tags, favorites, collections, playback records, and settings remain available.
+- Upgrade NSIS → newer NSIS and MSI → newer MSI. Confirm one application registration remains and installed-to-installed user data is retained.
+- Treat `pnpm dev:desktop` and an installed package as separate metadata environments until the v0.4.0 native metadata migration ships; use JSON export/import when comparing them.
+- Switch installer formats only by uninstalling without deleting application data, then installing the other format; verify data remains before removing the old package.
+- Confirm uninstall offers an explicit application-data choice and never removes source videos.
+- Verify installer filenames, product name, version, checksums, unsigned status, and release notes agree with the release manifest.
 
-## Windows installer smoke test
+## Accessibility and release sign-off
 
-- On a clean Windows 10 or Windows 11 x64 account, install the NSIS `.exe`, launch VOID, select a disposable library, and complete one scan and playback check.
-- Uninstall the NSIS build and confirm the application entry and installed program files are removed without touching the selected video library.
-- Repeat install, launch, scan, playback, and uninstall with the MSI package.
-- Confirm both installed applications report the release version from `release-manifest.json` and Windows identifies them as unsigned rather than as a trusted publisher.
-- Hash both downloaded installers and confirm they match `SHA256SUMS.txt` from the GitHub Release.
+- Complete primary navigation, collection editing, tagging, playback, dialogs, and cleanup confirmation using only the keyboard.
+- Confirm focus is visible, controls have meaningful accessible names, contrast remains readable in active/hover/disabled states, and reduced motion suppresses nonessential movement.
+- Open each modal by keyboard: initial focus moves inside, Tab/Shift+Tab stay inside, background is inert, Escape closes, and focus returns sensibly. Keep focused player controls visible and check virtualized-grid focus after scrolling/filtering.
+- Resize to representative laptop and desktop viewports; confirm no content is hidden behind the title bar, sidebar, player, or tagging panel.
+- Run `pnpm test`, `pnpm lint`, `pnpm build:web`, `pnpm build:desktop`, and `pnpm verify:version`.
+- Record installer smoke-test results and known limitations in the version's release notes. A known data-loss, unsafe cleanup, persistent-audio, migration, or installer-continuity failure blocks release.
+- Record candidate and final merge SHA, Actions run/artifact, installer hashes, Windows/WebView2 versions, tester/date and pass/fail/pending per installer. `pnpm release:inspect <artifact-folder> <merge-SHA>` collects hashes/environment details. Smoke-test final merge-SHA bytes before publication dispatch; the publisher independently verifies public download hashes. Carry forward wider QA evidence unless relevant behavior changed.
 
-## Desktop v0.3.2 thumbnail reuse and VOID naming
+## Native jobs and migration acceptance (v0.4 onward)
 
-- Load Explorer until representative thumbnails are visible, open a large smart collection containing the same videos, then return to Explorer. Confirm already-seen thumbnails paint promptly without a second loading wave, UI freeze, or object-URL warnings.
-- Open collections with roughly 2,500 and 5,000 matches. Scroll rapidly from beginning to end, confirm tiles continue filling, and open several videos to verify the playback queue still covers the complete collection in displayed order.
-- While a large collection is open, edit and save its rules. Confirm the grid repositions correctly below the editor, matching results remain accurate, and scrolling stays responsive.
-- Clear the local thumbnail cache in Settings, return to Explorer and Collections, and confirm thumbnails regenerate normally without broken retained images or stale previews.
-- Let the quick thumbnail pass complete and wait for black-frame refinement. Confirm an updated thumbnail appears when remounted and no old object URL is revoked while still visible.
-- Confirm the browser tab, themed and native desktop title bars, Windows application entry, installer UI, and About/system metadata use `VOID` without dotted spelling.
-- Install the v0.3.1 NSIS package, populate settings and library metadata, close the app, then run the v0.3.2 NSIS package. Confirm there is one Windows application entry named `VOID`, no dotted-name shortcut remains, and settings, the selected library, catalog, tags, favorites, collections, playback data, and cached thumbnails remain available.
-- Repeat the populated in-place upgrade from the v0.3.1 MSI to the v0.3.2 MSI. Confirm Windows replaces the earlier entry, reports v0.3.2, and retains the same application data.
-- With the v0.3.1 NSIS-installed app still running, start the v0.3.2 NSIS installer. Confirm it closes the previous app, completes the replacement, and launches v0.3.2 without a second installation entry.
-- On a disposable v0.3.1 NSIS installation, make its registered uninstaller unavailable, then start v0.3.2. Confirm the installer explains that removal failed and stops before creating a partial second installation; restore the uninstaller before cleanup.
-- To switch installer formats, uninstall v0.3.1 without selecting deletion of app data, install v0.3.2 using the other format, and confirm the populated application data is restored. Confirm the release notes do not promise automatic cross-format replacement.
-- Complete the standard Windows installer smoke test above with the current-commit `VOID` NSIS and MSI packages.
-
-## Desktop v0.3.1 collection and control polish
-
-- With the themed title bar enabled, launch through `pnpm dev:desktop` and relaunch several times. Confirm the themed VOID bar is always present and the native Windows bar never appears above it.
-- Toggle `Use native Windows title bar` on and off rapidly, then relaunch once with each preference. Confirm exactly one title bar appears and its minimize, maximize/restore, close, drag, and double-click controls work.
-- Open a video with the themed title bar enabled, then open and close the docked tagging workspace. Confirm both layouts retain a clear gap below the title bar and all top-right player controls remain unobstructed. Enter true fullscreen and confirm the player uses the complete display.
-- In Library Source, confirm a native library says `Persistent desktop access`, a retained browser handle says `Persistent browser access`, and Firefox/session selection says `Session-only browser access`.
-- Confirm the native-library source also explains that desktop file actions are explicit and require confirmation.
-- In Explorer and a smart collection duration rule, change both duration limits and use the quiet `Min` and `Max` buttons to restore the shortest and longest measured library values. Confirm direct numeric entry and both slider handles still work.
-- Create four tag rules A, B, C, and E. Confirm `Add nested group` is visually separated beneath the ordinary rule actions.
-- Confirm each bulk-selection checkbox is vertically centered with its rule controls. Select A, B, and C, group them as `Any rule`, and confirm their saved collection results combine with E as expected.
-- Change E to `Does not have` and confirm the saved collection results represent `(A OR B OR C) AND NOT E`.
-- Add another nested group, move one individual rule into it using the move control, save, reopen, and confirm the structure and results persist.
-- Repeat selection, grouping, moving, and nested-group creation with keyboard controls only; confirm selected rules remain clear and no rule is duplicated or lost.
-- Complete the standard Windows installer smoke test above with the current-commit NSIS and MSI packages.
-
-## Desktop v0.3.0 media intelligence and cleanup
-
-Use disposable copies of media for every cleanup test. Never exercise an in-development removal workflow against the only copy of a personal video.
-
-### Native media analysis
-
-- Launch without an available native probe and confirm library restoration, scanning, WebView thumbnails, playback, and Library Health continue to work without a blocking error.
-- With the approved probe available, scan representative MP4 and WebM videos and compare reported duration, dimensions, video codec, and audio codec with a trusted external inspection.
-- Include a corrupt file, unsupported stream layout, and deliberately slow probe fixture; confirm diagnostics are bounded, other videos continue enriching, and cancellation/reconciliation remains responsive.
-- Rescan an unchanged library and confirm cached technical metadata is reused. Replace one file and confirm only the changed identity is re-probed.
-
-### Duration filtering
-
-- In Explorer, confirm the dual-handle selector starts at the shortest known video and ends at the longest known video in the library.
-- Drag both handles and use the synchronized minute inputs to isolate narrow ranges such as 8–10 minutes; confirm videos exactly on both selected boundaries remain included.
-- Before moving either handle, confirm the full-span default does not filter the library. After narrowing the range, confirm media without measured duration is excluded and its missing coverage remains visible in Library Health.
-- Clear the filter and confirm the complete current folder/tag/search scope returns.
-- Save equivalent duration rules in a smart collection, reopen it after relaunch, and confirm its results exactly match the same Explorer range.
-
-### Duplicate evidence
-
-- Confirm same-name-only groups are labeled as collisions and never expose cleanup.
-- Confirm probable groups explain their matching filename, size, duration, dimensions, codec, or sampled-fingerprint evidence without claiming byte equality.
-- Complete full SHA-256 verification on identical and deliberately different candidates; only identical complete hashes may become exact groups.
-- Modify a candidate after verification and confirm its exact status is invalidated before any cleanup action.
-
-### Recycle Bin cleanup
-
-- Create at least three disposable byte-identical files, assign different tags/favorite/playback history to them, select a preferred copy, and cancel at the final confirmation. Confirm no file or metadata changes.
-- Repeat and confirm cleanup. Verify the preferred file remains, supported metadata is merged into it, selected redundant copies appear in the Windows Recycle Bin, and Explorer/catalog state reconciles.
-- Restore one removed file from the Recycle Bin and confirm the watcher or rescan returns it as a distinct media identity without corrupting the preferred copy's metadata.
-- Attempt cleanup after changing, moving, or making one candidate inaccessible. Confirm every moved, skipped, and failed file is reported accurately and at least one verified copy remains.
-- Confirm a path outside the selected library is rejected and the web edition exposes no Recycle Bin action.
-
-### Release regression
-
-- Repeat the 5,000-video/300-tag responsiveness fixture while metadata enrichment and duplicate analysis are active.
-- Export metadata before cleanup, import it into a disposable matching library afterward, and confirm supported tags, favorites, collections, and playback data remain portable.
-- Complete the standard Windows installer smoke test above with the current-commit NSIS and MSI packages.
+- Simulate ffprobe hanging, failing, or returning excessive output. Confirm deadline/cancel kills and reaps the child and later thumbnails proceed. Cancel scan/hash work and switch libraries; stale jobs must not write into the new library.
+- Exercise installed-origin migration from v0.3.2, repeated migration, newer native data, unknown schema, corruption, read-only/full disk and interruption around commit. Verify receipts, retained legacy data, recovery export and idempotence.
+- Check all required metadata stores finish hydration before mutable UI becomes available; failures show recovery actions. Dev and installed native namespaces must remain deliberately separate after migration.
+- Follow [PERFORMANCE.md](PERFORMANCE.md) for packaged-app p95 and memory evidence; synthetic/jsdom timings alone cannot satisfy release responsiveness gates.

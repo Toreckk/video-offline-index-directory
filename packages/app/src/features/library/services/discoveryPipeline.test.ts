@@ -65,6 +65,7 @@ describe('runDiscoveryPipeline', () => {
     }, dependencies)
 
     expect(result.discoveredIds).toEqual(['library%20id/valid.mp4'])
+    expect(result.complete).toBe(false)
     expect(diagnosticMessages).toEqual([
       'discovery:folder unavailable',
       'metadata:metadata unavailable',

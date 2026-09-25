@@ -1,5 +1,27 @@
 export type PlatformKind = 'web' | 'desktop'
 
+export type UserDataSnapshot = {
+  schemaVersion: 1
+  revision: number
+  records: Record<string, string>
+  migration: { id: string; origin: string; createdAt: number } | null
+}
+
+export type UserDataCommit = {
+  expectedRevision: number
+  records: Record<string, string>
+  migration?: NonNullable<UserDataSnapshot['migration']>
+  recoveryReason?: 'import'
+  catalog?: NativeCatalog
+}
+
+export type UserDataPort = {
+  raw?: () => Promise<string | null>
+  load: () => Promise<UserDataSnapshot | null>
+  commit: (request: UserDataCommit) => Promise<UserDataSnapshot>
+  recovery: () => Promise<Array<{ reason: string; snapshot: UserDataSnapshot }>>
+}
+
 export type PlatformCapabilities = {
   persistentLibraryAccess: boolean
   nativeCatalog: boolean
@@ -52,6 +74,7 @@ export type NativeLibrarySelection = {
 }
 
 export type NativeMediaFile = {
+  fileIdentity?: string
   name: string
   extension: string
   pathParts: string[]
@@ -61,6 +84,7 @@ export type NativeMediaFile = {
 }
 
 export type NativeCatalogAsset = NativeMediaFile & {
+  availability?: 'available' | 'unavailable'
   id: string
   libraryId: string
   rootName: string
@@ -87,6 +111,12 @@ export type NativeScanOptions = {
   scanSubfolders: boolean
 }
 
+export type NativeScanResult = {
+  files: NativeMediaFile[]
+  complete: boolean
+  diagnostics: Array<{ path: string; message: string }>
+}
+
 export type NativeLibraryWatchOptions = NativeScanOptions
 
 export type NativeLibraryRename = {
@@ -107,6 +137,7 @@ export type NativeLibraryWatchSubscription = {
 }
 
 export type VoidPlatform = {
+  userData?: UserDataPort
   kind: PlatformKind
   capabilities: PlatformCapabilities
   selectLibrary?: () => Promise<NativeLibrarySelection | null>
@@ -114,7 +145,7 @@ export type VoidPlatform = {
     libraryId: string,
     rootPath: string,
   ) => Promise<NativeLibrarySelection>
-  scanLibrary?: (options: NativeScanOptions) => Promise<NativeMediaFile[]>
+  scanLibrary?: (options: NativeScanOptions) => Promise<NativeScanResult>
   watchLibrary?: (
     options: NativeLibraryWatchOptions,
     onEvent: (event: NativeLibraryWatchEvent) => void,
@@ -129,7 +160,7 @@ export type VoidPlatform = {
   revealFile?: (absolutePath: string) => Promise<void>
   hashFile?: (absolutePath: string) => Promise<string>
   getMediaProbeStatus?: () => Promise<NativeMediaProbeStatus>
-  probeMedia?: (absolutePath: string) => Promise<NativeMediaMetadata>
+  probeMedia?: (absolutePath: string, signal?: AbortSignal) => Promise<NativeMediaMetadata>
   cleanupDuplicateFiles?: (
     request: NativeDuplicateCleanupRequest,
   ) => Promise<NativeDuplicateCleanupResult>

@@ -357,6 +357,7 @@ export const useAnnotationStore = create<AnnotationState & AnnotationActions>()(
     {
       name: 'void-annotations-store',
       storage: createJSONStorage(() => idbStateStorage),
+      skipHydration: true,
       partialize: (state) => ({
         tagsById: state.tagsById,
         orderedTagIds: state.orderedTagIds,

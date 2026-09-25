@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-25
+
+### Added
+
+- Transactional desktop user-data storage and a browser storage adapter, with a legacy-data migration preview, retained recovery snapshots, bounded imports and visible save failures.
+- Metadata backup previews distinguish one-library exports from all-library exports and preserve ownership of unmatched records.
+- Windows installers include third-party license notices and versioned dependency source links; CI checks that notices match installed dependencies.
+
+### Changed
+
+- VOID's source is now available under the MIT License.
+- Project documentation now uses one current product-scope reference and one unreleased roadmap, with an evergreen QA checklist replacing completed release plans and outdated implementation notes.
+- Repository assessment, desktop performance criteria, UI/brand brief, contributor guidance and a gated roadmap now prioritize reliability before Insights and broader features.
+- Windows release tooling separates read-only packaging from explicitly dispatched publication, verifies the selected build and CI at the approved commit, and checks downloaded asset hashes before and after publication. A QA helper records installer hashes and Windows/WebView2 versions.
+- Release validation now covers Cargo.lock, stable application identity, manifest/bundle targets, note headings and finalized changelog readiness, with regression tests and consolidated local check commands.
+- Development native data uses a separate namespace from installed data; migration/recovery and same-path reauthorization are documented explicitly.
+- CI uses tested Node/Rust versions, repeats dependency advisory checks and exercises native probing against committed synthetic MP4/WebM fixtures with a checksum-verified helper pinned to a retained monthly build.
+
+### Fixed
+
+- Manage video tags keeps its search and create inputs focusable inside the player, including fullscreen; Escape dismisses the tag popup before the player.
+- Desktop Close responds immediately when nothing remains to save and shows save progress or recovery choices when a pending write delays or prevents closing.
+- Desktop reconnect can reauthorize the same folder through the native picker when a migrated reference has no cached catalog, preserving its library identity and reporting cancellation or errors instead of silently doing nothing.
+- Library Source uses desktop-specific reconnect guidance and displays progress while reconnecting.
+- Verified file-identity renames commit catalog, tags and playback records together; incomplete discovery retains the previous records and changed files invalidate stale enrichment.
+- Player sessions detach outgoing media and ignore stale callbacks, with actionable playback errors and focus restoration for critical dialogs.
+- Fresh profiles initialize without a saved library, and desktop window close captures pending metadata and playback progress before exiting.
+- Exact duplicate cleanup saves keeper metadata before file actions, protects verified handles against concurrent replacement, and journals staging paths for recoverable Recycle Bin moves.
+- Missing or corrupt thumbnails receive bounded regeneration attempts, and native metadata probes have independent scheduling, cancellation, deadlines and output limits.
+
+### Security
+
+- Updated JavaScript dependencies and Rust transitive dependencies to resolve the vulnerabilities reported by the release dependency audits; desktop builds now require Rust 1.98 or newer.
+
 ## [0.3.2] - 2026-09-03
 
 ### Changed
@@ -92,7 +126,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Desktop thumbnail generation no longer fails because canvas reads are tainted by native media URLs.
 - Imported legacy annotations and favorites remap to the current native library identity when relative media paths still match.
 
-[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Toreckk/video-offline-index-directory/compare/v0.2.0...v0.3.0

@@ -111,6 +111,7 @@ function createController(
 ): DesktopWindowController {
   return {
     close: vi.fn(async () => undefined),
+    destroy: vi.fn(async () => undefined),
     isMaximized: vi.fn(async () => false),
     minimize: vi.fn(async () => undefined),
     onResized: vi.fn(async () => () => undefined),

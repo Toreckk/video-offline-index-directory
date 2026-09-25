@@ -6,9 +6,13 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'apps/*/dist', 'apps/desktop/src-tauri/target', 'apps/desktop/src-tauri/gen']),
+  globalIgnores(['dist', 'artifacts', 'release-assets', 'apps/*/dist', 'apps/desktop/src-tauri/target', 'apps/desktop/src-tauri/gen']),
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: globals.node },
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

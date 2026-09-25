@@ -3,6 +3,12 @@ import type { MediaAsset } from '../store/mediaStore'
 import { reconcileMediaAssets } from './reconcileMediaAssets'
 
 describe('reconcileMediaAssets', () => {
+  it('never migrates metadata from unverified or conflicting rename hints', () => {
+    const before = asset('old', 1, { name: 'before.mp4', fileIdentity: 'one', videoCodec: 'h264', mediaProbeStatus: 'ready' })
+    const after = asset('new', 1, { name: 'after.mp4', fileIdentity: 'two' })
+    expect(reconcileMediaAssets([before], [after], [{ fromPath: 'before.mp4', toPath: 'after.mp4' }]).renamedMediaIds).toEqual([])
+    expect(reconcileMediaAssets([before], [{ ...before, videoCodec: undefined, mediaProbeStatus: undefined }]).assets[0]).toMatchObject({ videoCodec: 'h264', mediaProbeStatus: 'ready' })
+  })
   it('preserves enrichment for unchanged videos and their displayed order', () => {
     const existing = [asset('b', 2), asset('a', 1, { thumbnailStatus: 'ready', duration: 12 })]
     const result = reconcileMediaAssets(existing, [asset('a', 1), asset('b', 2)])
@@ -40,8 +46,8 @@ describe('reconcileMediaAssets', () => {
   })
 
   it('preserves cached enrichment and reports metadata migration for an explicit rename', () => {
-    const before = asset('old-id', 1, { name: 'before.mp4', thumbnailStatus: 'ready', duration: 9 })
-    const after = asset('new-id', 1, { name: 'after.mp4' })
+    const before = asset('old-id', 1, { fileIdentity: 'same-file', name: 'before.mp4', thumbnailStatus: 'ready', duration: 9 })
+    const after = asset('new-id', 1, { fileIdentity: 'same-file', name: 'after.mp4' })
     const result = reconcileMediaAssets([before], [after], [{ fromPath: 'before.mp4', toPath: 'after.mp4' }])
 
     expect(result.assets[0]).toMatchObject({ id: 'new-id', thumbnailStatus: 'ready', duration: 9 })

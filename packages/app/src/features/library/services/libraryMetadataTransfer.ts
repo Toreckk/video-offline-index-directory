@@ -12,10 +12,12 @@ import type {
   SmartCollectionRules,
 } from '../../collections/model/collectionTypes'
 import type { PlaybackData, PlaybackRecord } from '../../playback/model/playbackTypes'
+import { validateJsonTree } from '../../../shared/persistence/userDataValidation'
 
 export const LIBRARY_METADATA_EXPORT_VERSION = 1
 
 export type LibraryMetadataExport = {
+  scope?: 'library' | 'all'
   kind: 'void-library-metadata'
   version: typeof LIBRARY_METADATA_EXPORT_VERSION
   exportedAt: string
@@ -27,6 +29,7 @@ export type LibraryMetadataExport = {
 }
 
 export type ParsedLibraryMetadata = {
+  scope: 'library' | 'all'
   library: LibraryMetadataExport['library']
   annotations: AnnotationExport
   favoriteTagIds: string[]
@@ -52,22 +55,25 @@ export function createLibraryMetadataExport(input: {
   orderedCollectionIds: readonly string[]
   playback: PlaybackData
 }): LibraryMetadataExport {
+  const belongs = (id: string) => !input.libraryId || id.startsWith(`${encodeURIComponent(input.libraryId)}/`)
   return {
+    scope: input.libraryId ? 'library' : 'all',
     kind: 'void-library-metadata',
     version: LIBRARY_METADATA_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     library: { id: input.libraryId, name: input.libraryName },
-    annotations: createAnnotationExport(input.annotations),
+    annotations: createAnnotationExport({ ...input.annotations, annotationsByMediaId: Object.fromEntries(Object.entries(input.annotations.annotationsByMediaId).filter(([id]) => belongs(id))) }),
     favoriteTagIds: input.favoriteTagIds.filter((id) => input.annotations.tagsById[id]),
     collections: input.orderedCollectionIds.flatMap((id) => {
       const collection = input.collectionsById[id]
       return collection ? [collection] : []
     }),
-    playback: Object.entries(input.playback.recordsByMediaId),
+    playback: Object.entries(input.playback.recordsByMediaId).filter(([id]) => belongs(id)),
   }
 }
 
 export function parseLibraryMetadataExport(value: unknown): ParsedLibraryMetadata {
+  validateJsonTree(value)
   if (!isRecord(value) || value.kind !== 'void-library-metadata' || value.version !== 1) {
     throw new Error('This is not a supported VOID library metadata backup.')
   }
@@ -85,7 +91,12 @@ export function parseLibraryMetadataExport(value: unknown): ParsedLibraryMetadat
   const collections = value.collections.map(parseCollection)
   if (!Array.isArray(value.playback)) throw new Error('The backup playback history is invalid.')
   const recordsByMediaId = Object.fromEntries(value.playback.map(parsePlaybackEntry))
+  const ids = [...annotations.annotations.map((item) => item.mediaId), ...Object.keys(recordsByMediaId)]
+  const mixed = !libraryId || ids.some((id) => !id.startsWith(`${encodeURIComponent(libraryId)}/`))
+  if (value.scope !== undefined && value.scope !== 'library' && value.scope !== 'all') throw new Error('Invalid backup scope.')
+  if (value.scope === 'library' && mixed && ids.length > 0) throw new Error('The backup contains media outside its declared library.')
   return {
+    scope: value.scope === 'all' || mixed ? 'all' : 'library',
     library: { id: libraryId, name: libraryName },
     annotations,
     favoriteTagIds: value.favoriteTagIds,
@@ -105,12 +116,13 @@ export function mergeLibraryMetadata(
   },
   imported: ParsedLibraryMetadata,
 ): MergedLibraryMetadata {
-  const remapMediaId = (mediaId: string) => current.libraryId
-    ? replaceLibraryId(mediaId, current.libraryId)
+  const targetLibraryId = imported.scope === 'library' ? current.libraryId : null
+  const remapMediaId = (mediaId: string) => targetLibraryId
+    ? replaceLibraryId(mediaId, targetLibraryId)
     : mediaId
   const remappedAnnotations = mapAnnotationExportToLibrary(
     imported.annotations,
-    current.libraryId,
+    targetLibraryId,
   )
   const annotations = mergeAnnotationExport(current.annotations, remappedAnnotations)
   const mergedTagIdByName = new Map(
@@ -175,6 +187,8 @@ export function mapAnnotationExportToLibrary(
   libraryId: string | null,
 ): AnnotationExport {
   if (!libraryId) return imported
+  const sourceLibraries = new Set(imported.annotations.map((item) => item.mediaId.split('/')[0]))
+  if (sourceLibraries.size > 1) throw new Error('This annotation backup spans multiple libraries. Preserve its original library IDs instead of remapping it to one folder.')
   return {
     ...imported,
     annotations: imported.annotations.map((annotation) => ({

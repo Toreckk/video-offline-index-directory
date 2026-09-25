@@ -61,9 +61,11 @@ export async function deleteMediaCatalog(libraryId: string) {
   await del(`${CATALOG_PREFIX}${libraryId}`)
 }
 
-function toNativeCatalogAsset(asset: MediaAsset): NativeCatalogAsset[] {
+export function toNativeCatalogAsset(asset: MediaAsset): NativeCatalogAsset[] {
   if (asset.source.kind !== 'desktop-path') return []
   return [{
+    fileIdentity: asset.fileIdentity,
+    availability: asset.availability,
     id: asset.id,
     libraryId: asset.libraryId,
     rootName: asset.rootName,
@@ -89,6 +91,8 @@ function fromNativeCatalogAsset(asset: NativeCatalogAsset): MediaAsset[] {
   if (!extension) return []
   const thumbnailIsCurrent = isCurrentThumbnailBlobKey(asset.thumbnailBlobKey)
   return [{
+    fileIdentity: asset.fileIdentity,
+    availability: asset.availability,
     id: asset.id,
     libraryId: asset.libraryId,
     rootName: asset.rootName,

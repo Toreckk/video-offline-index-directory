@@ -44,6 +44,23 @@ const collection: SmartCollection = {
 }
 
 describe('library metadata transfer', () => {
+  it('exports only the selected library and preserves ownership in legacy mixed-library backups', () => {
+    const a = 'A/clip.mp4'
+    const b = 'B/clip.mp4'
+    const mixed: AnnotationData = { ...annotations, annotationsByMediaId: {
+      [a]: { favorite: true, tagIds: ['holiday'], updatedAt: 1 },
+      [b]: { favorite: false, tagIds: [], updatedAt: 2 },
+    } }
+    const exported = createLibraryMetadataExport({ libraryId: 'A', libraryName: 'A', annotations: mixed, favoriteTagIds: [], collectionsById: {}, orderedCollectionIds: [], playback: { recordsByMediaId: {} } })
+    expect(exported.annotations.a.map((row) => row[0])).toEqual([a])
+    const all = createLibraryMetadataExport({ libraryId: null, libraryName: null, annotations: mixed, favoriteTagIds: [], collectionsById: {}, orderedCollectionIds: [], playback: { recordsByMediaId: {} } })
+    const legacy = { ...all, scope: undefined, library: { id: 'A', name: 'A' } }
+    const parsed = parseLibraryMetadataExport(legacy)
+    expect(parsed.scope).toBe('all')
+    const merged = mergeLibraryMetadata({ libraryId: 'C', annotations: { tagsById: {}, orderedTagIds: [], annotationsByMediaId: {}, tagImplications: {} }, favoriteTagIds: [], collectionsById: {}, orderedCollectionIds: [], playback: { recordsByMediaId: {} } }, parsed)
+    expect(Object.keys(merged.annotations.annotationsByMediaId).sort()).toEqual([a, b])
+    expect(() => parseLibraryMetadataExport({ ...legacy, scope: 'library' })).toThrow('outside')
+  })
   it('round-trips portable metadata and remaps media to the selected library', () => {
     const exported = createLibraryMetadataExport({
       libraryId: 'old-library',

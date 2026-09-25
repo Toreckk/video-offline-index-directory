@@ -4,7 +4,17 @@ use crate::{
 };
 use serde::Deserialize;
 use serde_json::Value;
-use std::{ffi::OsString, path::Path, process::Command};
+use std::{
+    ffi::OsString,
+    io::Read,
+    path::Path,
+    process::{Command, Output, Stdio},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::{Duration, Instant},
+};
 use tauri::{AppHandle, Manager, async_runtime};
 
 const PROVIDER: &str = "ffprobe";
@@ -42,17 +52,40 @@ pub async fn media_probe_status() -> Result<NativeMediaProbeStatus, String> {
 pub async fn probe_media(
     app: AppHandle,
     absolute_path: String,
+    job_id: String,
 ) -> Result<NativeMediaMetadata, String> {
-    let path = app
+    let cancelled = app.state::<AppState>().probe_job(&job_id)?;
+    let path = match app
         .state::<AppState>()
-        .validate_file(Path::new(&absolute_path))?;
-    async_runtime::spawn_blocking(move || probe_file(&path))
+        .validate_file(Path::new(&absolute_path))
+    {
+        Ok(path) => path,
+        Err(error) => {
+            app.state::<AppState>().finish_probe_job(&job_id);
+            return Err(error);
+        }
+    };
+    let result = async_runtime::spawn_blocking(move || probe_file_cancellable(&path, &cancelled))
         .await
-        .map_err(display_error)?
+        .map_err(display_error);
+    app.state::<AppState>().finish_probe_job(&job_id);
+    result?
+}
+
+#[tauri::command]
+pub fn cancel_media_probe(app: AppHandle, job_id: String) -> Result<(), String> {
+    app.state::<AppState>()
+        .probe_job(&job_id)?
+        .store(true, Ordering::Relaxed);
+    Ok(())
 }
 
 fn probe_status() -> NativeMediaProbeStatus {
-    match Command::new(ffprobe_executable()).arg("-version").output() {
+    match run_bounded(
+        Command::new(ffprobe_executable()).arg("-version"),
+        &AtomicBool::new(false),
+        Duration::from_secs(3),
+    ) {
         Ok(output) if output.status.success() => NativeMediaProbeStatus {
             available: true,
             provider: PROVIDER.to_string(),
@@ -71,19 +104,33 @@ fn probe_status() -> NativeMediaProbeStatus {
     }
 }
 
+#[cfg(test)]
 fn probe_file(path: &Path) -> Result<NativeMediaMetadata, String> {
-    let output = Command::new(ffprobe_executable())
-        .args([
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration:stream=codec_type,codec_name,width,height,duration",
-            "-of",
-            "json",
-        ])
-        .arg(path)
-        .output()
-        .map_err(|error| format!("Unable to start ffprobe: {error}"))?;
+    probe_file_cancellable(path, &AtomicBool::new(false))
+}
+
+fn probe_file_cancellable(
+    path: &Path,
+    cancelled: &AtomicBool,
+) -> Result<NativeMediaMetadata, String> {
+    let output = run_bounded(
+        Command::new(ffprobe_executable())
+            .args([
+                "-v",
+                "error",
+                "-protocol_whitelist",
+                "file",
+                "-format_whitelist",
+                "mov,mp4,m4a,3gp,3g2,mj2,matroska,webm",
+                "-show_entries",
+                "format=duration:stream=codec_type,codec_name,width,height,duration",
+                "-of",
+                "json",
+            ])
+            .arg(path),
+        cancelled,
+        Duration::from_secs(10),
+    )?;
 
     if !output.status.success() {
         let diagnostic = bounded_diagnostic(&output.stderr);
@@ -97,6 +144,88 @@ fn probe_file(path: &Path) -> Result<NativeMediaMetadata, String> {
     let document: ProbeDocument = serde_json::from_slice(&output.stdout)
         .map_err(|error| format!("ffprobe returned invalid metadata: {error}"))?;
     metadata_from_document(document)
+}
+
+fn run_bounded(
+    command: &mut Command,
+    cancelled: &AtomicBool,
+    deadline: Duration,
+) -> Result<Output, String> {
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("Media analysis cancelled.".into());
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    let mut child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Unable to start ffprobe: {e}"))?;
+    let exceeded = Arc::new(AtomicBool::new(false));
+    let read = |pipe: Box<dyn Read + Send>, limit: u64, exceeded: Arc<AtomicBool>| {
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            pipe.take(limit + 1)
+                .read_to_end(&mut bytes)
+                .map_err(display_error)?;
+            if bytes.len() as u64 > limit {
+                exceeded.store(true, Ordering::Relaxed);
+                return Err("Media analysis exceeded its output limit.".to_string());
+            }
+            Ok(bytes)
+        })
+    };
+    let stdout = read(
+        Box::new(child.stdout.take().ok_or("Missing ffprobe output pipe.")?),
+        1024 * 1024,
+        exceeded.clone(),
+    );
+    let stderr = read(
+        Box::new(child.stderr.take().ok_or("Missing ffprobe error pipe.")?),
+        64 * 1024,
+        exceeded.clone(),
+    );
+    let start = Instant::now();
+    let status = loop {
+        let failure = if cancelled.load(Ordering::Relaxed) {
+            Some("Media analysis cancelled.")
+        } else if exceeded.load(Ordering::Relaxed) {
+            Some("Media analysis exceeded its output limit.")
+        } else if start.elapsed() >= deadline {
+            Some("Media analysis timed out after its deadline.")
+        } else {
+            None
+        };
+        if let Some(message) = failure {
+            let _ = child.kill();
+            let _ = child.wait();
+            break Err(message.to_string());
+        }
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) => std::thread::sleep(Duration::from_millis(20)),
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                break Err(display_error(error));
+            }
+        }
+    };
+    let out = stdout
+        .join()
+        .map_err(|_| "Media output reader failed.".to_string())?;
+    let err = stderr
+        .join()
+        .map_err(|_| "Media error reader failed.".to_string())?;
+    Ok(Output {
+        status: status?,
+        stdout: out?,
+        stderr: err?,
+    })
 }
 
 fn metadata_from_document(document: ProbeDocument) -> Result<NativeMediaMetadata, String> {
@@ -148,6 +277,69 @@ mod tests {
     use super::{ProbeDocument, bounded_diagnostic, metadata_from_document, probe_file};
     use std::{path::Path, time::Instant};
     use walkdir::WalkDir;
+
+    #[test]
+    #[cfg(windows)]
+    fn terminates_and_reaps_a_stalled_helper() {
+        let started = Instant::now();
+        let result = super::run_bounded(
+            std::process::Command::new("powershell.exe").args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Start-Sleep -Seconds 20",
+            ]),
+            &std::sync::atomic::AtomicBool::new(false),
+            std::time::Duration::from_millis(150),
+        );
+        assert!(result.unwrap_err().contains("timed out"));
+        assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn native_cancellation_interrupts_a_running_helper() {
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+            });
+            let result = super::run_bounded(
+                std::process::Command::new("powershell.exe").args([
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    "Start-Sleep -Seconds 20",
+                ]),
+                &cancelled,
+                std::time::Duration::from_secs(10),
+            );
+            assert!(result.unwrap_err().contains("cancelled"));
+        });
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn rejects_oversized_output_before_parsing_it() {
+        let result = super::run_bounded(
+            std::process::Command::new("powershell.exe").args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "[Console]::OpenStandardOutput().Write([byte[]]::new(1100000), 0, 1100000)",
+            ]),
+            &std::sync::atomic::AtomicBool::new(false),
+            // This fixture tests the byte cap, not PowerShell startup/console
+            // throughput on a loaded runner. Timeout behavior is tested above.
+            std::time::Duration::from_secs(30),
+        );
+        let error = result.unwrap_err();
+        assert!(
+            error.contains("output limit"),
+            "unexpected failure: {error}"
+        );
+    }
 
     #[test]
     fn parses_video_audio_and_format_metadata() {

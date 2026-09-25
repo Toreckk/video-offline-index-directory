@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useMediaStore } from '../../media/store/mediaStore'
 import { thumbnailQueue } from '../../media/services/thumbnailQueue'
+import { nativeProbeQueue } from '../../media/services/nativeMetadataEnrichment'
 import { usePlayerStore } from '../../player/store/playerStore'
 import { useSettingsStore } from '../../settings/store/settingsStore'
 
@@ -16,6 +17,7 @@ export function BackgroundWorkCoordinator() {
         activePreviewId !== null ||
         selectedAssetId !== null,
     )
+    nativeProbeQueue.setPaused(thumbnailPriority === 'paused' || activePreviewId !== null || selectedAssetId !== null)
   }, [activePreviewId, selectedAssetId, thumbnailPriority])
 
   useEffect(() => {

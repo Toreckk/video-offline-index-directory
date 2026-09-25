@@ -4,8 +4,8 @@ use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{
-        Mutex,
-        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
 
@@ -15,24 +15,37 @@ pub struct AppState {
     allowed_roots: Mutex<HashSet<PathBuf>>,
     library_watchers: Mutex<HashMap<String, RecommendedWatcher>>,
     next_watch_id: AtomicU64,
+    probe_jobs: Mutex<HashMap<String, (std::time::Instant, Arc<AtomicBool>)>>,
 }
 
 impl AppState {
     pub fn new(database_path: PathBuf, thumbnail_dir: PathBuf) -> Result<Self, String> {
-        std::fs::create_dir_all(&thumbnail_dir).map_err(display_error)?;
+        if let Err(error) = std::fs::create_dir_all(&thumbnail_dir) {
+            eprintln!("Thumbnail cache is unavailable: {error}");
+        }
         let state = Self {
             database_path,
             thumbnail_dir,
             allowed_roots: Mutex::new(HashSet::new()),
             library_watchers: Mutex::new(HashMap::new()),
             next_watch_id: AtomicU64::new(1),
+            probe_jobs: Mutex::new(HashMap::new()),
         };
-        state.initialize_database()?;
+        // Keep the window available for recovery even if storage cannot open.
+        if let Err(error) = state.initialize_database() {
+            eprintln!("User data requires recovery: {error}");
+        }
         Ok(state)
     }
 
     pub fn open_database(&self) -> Result<Connection, String> {
+        if let Some(parent) = self.database_path.parent() {
+            std::fs::create_dir_all(parent).map_err(display_error)?;
+        }
         let connection = Connection::open(&self.database_path).map_err(display_error)?;
+        connection
+            .busy_timeout(std::time::Duration::from_secs(5))
+            .map_err(display_error)?;
         connection
             .pragma_update(None, "foreign_keys", "ON")
             .map_err(display_error)?;
@@ -40,6 +53,30 @@ impl AppState {
             .pragma_update(None, "journal_mode", "WAL")
             .map_err(display_error)?;
         Ok(connection)
+    }
+
+    pub fn probe_job(&self, id: &str) -> Result<Arc<AtomicBool>, String> {
+        if id.is_empty() || id.len() > 128 {
+            return Err("Invalid probe job ID.".to_string());
+        }
+        let mut jobs = self.probe_jobs.lock().map_err(display_error)?;
+        jobs.retain(|_, (created, flag)| {
+            Arc::strong_count(flag) > 1 || created.elapsed() < std::time::Duration::from_secs(30)
+        });
+        if jobs.len() >= 64 && !jobs.contains_key(id) {
+            return Err("Too many native probe requests.".to_string());
+        }
+        Ok(jobs
+            .entry(id.to_string())
+            .or_insert_with(|| (std::time::Instant::now(), Arc::new(AtomicBool::new(false))))
+            .1
+            .clone())
+    }
+
+    pub fn finish_probe_job(&self, id: &str) {
+        if let Ok(mut jobs) = self.probe_jobs.lock() {
+            jobs.remove(id);
+        }
     }
 
     pub fn register_root(&self, root: &Path) -> Result<PathBuf, String> {
@@ -109,8 +146,9 @@ impl AppState {
             .is_some())
     }
 
-    fn initialize_database(&self) -> Result<(), String> {
+    pub fn initialize_database(&self) -> Result<(), String> {
         let connection = self.open_database()?;
+        crate::user_data::initialize(&connection)?;
         connection
             .execute_batch(
                 "BEGIN;

@@ -12,7 +12,7 @@ const NavItem = ({ id, label, icon: Icon, isActive, onClick }: NavItemProps) => 
       onClick={onClick}
       className={`
         group relative flex h-[70px] w-full items-center gap-5 overflow-hidden rounded-[7px] px-6
-        cursor-pointer outline-none transition-all duration-300
+        cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all duration-300
         ${
           isActive
             ? "bg-surface-container-high text-on-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
@@ -60,7 +60,7 @@ export default function Sidebar({
           VOID
         </h1>
         <p className="mt-3 text-[13px] font-bold uppercase tracking-[0.24em] text-on-secondary/65">
-          Cinematography
+          Video library
         </p>
       </header>
 

@@ -1,0 +1,17 @@
+name: Feature proposal
+description: Describe a user problem and the smallest useful improvement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the task, current friction, and any workaround.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome and success check
+      description: Explain the smallest useful result, affected edition, and how you would know it helps.
+    validations:
+      required: true

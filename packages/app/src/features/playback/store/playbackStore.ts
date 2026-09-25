@@ -148,6 +148,7 @@ export const usePlaybackStore = create<PlaybackState & PlaybackActions>()(
     {
       name: 'void-playback-store',
       storage: createJSONStorage(() => idbStateStorage),
+      skipHydration: true,
       partialize: (state) => ({ recordsByMediaId: state.recordsByMediaId }),
       version: 1,
       onRehydrateStorage: () => () => usePlaybackStore.setState({ isHydrated: true }),
